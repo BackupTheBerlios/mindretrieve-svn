@@ -19,13 +19,13 @@ from util import rspreader
 
 log = logging.getLogger('encodetool')
 
-DEFAULT_ENCODING = 'iso-8859-1'
+DEFAULT_ENCODING  = 'iso-8859-1'
 
 DEFAULT           = 'DEFAULT'
-HTTP_CONTENT_TYPE = 'HTTP_CONTENT_TYPE'
-XML_DECLARATION   = 'XML_DECLARATION'
-META_CHARSET      = 'META_CHARSET'
-LINK_CHARSET      = 'LINK_CHARSET'
+HTTP_CONTENT_TYPE = 'HTTP'
+XML_DECLARATION   = 'XML_DECL'
+META_CHARSET      = 'META'
+LINK_CHARSET      = 'LINK'
 
 
 def findCharSet(ctype):
@@ -109,6 +109,20 @@ def determineEncoding(meta, first_block):
 
     # use default encoding
     return DEFAULT_ENCODING, DEFAULT
+
+
+
+def determineEncodingLenient(meta, first_block):
+    """ More lenient version of determineEncoding().
+        If charset is not a supported encoding, use default instead.
+    """
+    charset, source_id = determineEncoding(meta, first_block)
+    try:
+        codecs.lookup(charset)
+    except LookupError:
+        return DEFAULT_ENCODING, DEFAULT
+    else:
+        return charset, source_id
 
 
 

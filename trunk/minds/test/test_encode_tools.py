@@ -62,6 +62,19 @@ class TestEncodeTools(unittest.TestCase):
         self.assertEqual(('iso-8859-1',encode_tools.DEFAULT), result)
 
 
+    def test_determine_lenient(self):
+
+        result = encode_tools.determineEncoding(
+            {'content-type': 'text/html; charset=bad' },
+            '')
+        self.assertEqual(('bad',encode_tools.HTTP_CONTENT_TYPE), result)    # controlled test
+
+        result = encode_tools.determineEncodingLenient(
+            {'content-type': 'text/html; charset=bad' },
+            '')
+        self.assertEqual(('iso-8859-1',encode_tools.DEFAULT), result)       # return default instead of bad
+
+
     def test_getreader(self):
         Reader = encode_tools.getreader('latin-1')
         fp = StringIO.StringIO('mam\xe1')

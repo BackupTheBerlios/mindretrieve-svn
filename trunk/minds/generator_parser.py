@@ -55,12 +55,14 @@ class GeneratorParser(sgmllib.SGMLParser):
         else:
             self.stream.append((DATA,unichr(ch)))
 
-    def unknown_charref(self, ref):
+    #def unknown_charref(self, ref):
+    # note the original handle_charref just isn't good enough to handle unicode
+    def handle_charref(self, name):
         try:
-            if ref[:1].lower() == 'x':      # e.g. &#xE5; -> ref='xE5'
-                ch = int(ref[1:],16)
+            if name[:1].lower() == 'x':      # e.g. &#xE5; -> name='xE5'
+                ch = int(name[1:],16)
             else:
-                ch = int(ref)
+                ch = int(name)
         except ValueError:
             pass
         else:

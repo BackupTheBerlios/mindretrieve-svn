@@ -1,0 +1,50 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3c.org/TR/html4/loose.dtd">
+<html>
+<head>
+<title>MindRetrieve - Configuration</title>
+<link rel="stylesheet" href="main.css" type="text/css">
+<style>
+  #indexStatus { font-size1: 80%; margin-top: 6ex;  }
+</style>
+</head>
+
+<body>
+
+<h1>MindRetrieve</h1>
+
+
+<p>More configurable items will be available in the future.</p>
+
+
+<p id='indexStatus'>
+Documents
+indexed <span node='-con:numIndexed'>0</span>
+queued <span node='-con:numQueued'>0</span>
+<a href='/indexnow'>[index now]</a>
+</p>
+
+
+<p style='margin-top:6ex'>Date <span
+node='con:time_stamp'>%time_stamp</span>
+<a href='/config?action=shutdown'>[Shutdown]</a>
+</p>
+
+<hr style='margin-top: 12ex' size='2' noshade='1'/>
+
+<div id='navigationBar'>
+
+<div id='homepagelink'>
+Copyright &copy; 2005 <a href='http://mindretrieve.berlios.de/'>MindRetrieve</a>
+</div>
+
+<a href='/'>Home</a>
+| <a href='/library'>Library</a>
+| <span id='navigationCurrent'>Config</span>
+| <a href='/help'>Help</a>
+
+</div>
+
+<span node='-con:dummy' comment='HTMLTemplate want at least one node?!'></span>
+
+</body>
+</html>

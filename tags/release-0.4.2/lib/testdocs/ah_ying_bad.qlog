@@ -1,0 +1,127 @@
+450
+                 
+GET http://local.tungwaiyip.info:8080/AhYing.html HTTP/1.0
+User-Agent: Opera/7.54u1 (Windows NT 5.0; U)  [en]
+Host: local.tungwaiyip.info:8080
+Accept: text/html, application/xml;q=0.9, application/xhtml+xml, image/png, image/jpeg, image/gif, image/x-xbitmap, */*;q=0.1
+Accept-Language: en
+Accept-Charset: windows-1252, utf-8, utf-16, iso-8859-1;q=0.6, *;q=0.1
+Accept-Encoding: deflate, gzip, x-gzip, identity, *;q=0
+Proxy-Connection: close
+
+
+
+225
+                 
+HTTP/1.1 200 OK
+ETag: W/"2582-1070150865568"
+Last-Modified: Sun, 30 Nov 2003 00:07:45 GMT
+Content-Type: text/html
+Content-Length: 2582
+Date: Tue, 18 Jan 2005 22:18:24 GMT
+Server: Apache-Coyote/1.1
+Connection: close
+
+
+
+2582
+                
+﻿<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+
+<html>
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=BAD!!">
+  <title>Movie Review - Ah Ying</title>
+  <link title="Main Style" rel="stylesheet" href="../../main.css" type="text/css" />
+</head>
+
+<body bgcolor="#FFFFFF">
+
+<!-- _template -------------------------------------------------------->
+
+
+
+<!-- heading ---------------------------------------------------------->
+<table cellspacing='0' cellpadding='15' width='100%' class='heading_area'>
+<tr>
+<td valign='middle' align='left'>
+  <span class='heading'>
+  tungwaiyip.info
+  </span>
+</td>
+</tr>
+</table>
+
+<p class='headingspacer'>&nbsp;</p>
+
+
+
+<!-- content area ----------------------------------------------------->
+<table width="100%" cellpadding="3" cellspacing="0">
+<tr>
+
+
+<!-- column 1: Index area --------------------------------------------->
+
+<td width="80" valign="top" class='indexcolumn'>
+
+&nbsp;
+
+</td>
+<!-- end column 1 -->
+
+
+<!--
+Note: This template insert an opened table into the main document.
+Don't forget to include _template_end.html to close the table.
+-->
+
+
+
+
+
+<!-- column 1.5 Spacer ------------------------------------------------->
+
+<td width="10" valign="top">
+  &nbsp;
+</td>
+
+
+<!-- column 2: blog column -------------------------------------------->
+<td width="500" valign="top" class="blogcolumn">
+
+<h3>Movie: <a href="http://www.imdb.com/title/tt0085144/">半邊人 (Ah Ying)</a></h3>
+<h3>Hong Kong, 1983</h3>
+
+<p class="chinese_p">首次看方育平的《半邊人》非常歡喜。電影由一群非專業演員演出，女主角許素瑩演替父母魚檔賣魚的女兒，跟眾兄弟姊妹共住一斗室。與男友曾有一段熱戀卻無疾而終，後因好奇參加了戲劇班。老師張松柏以探索和實集的方法啟發一群學生，一心為自己的電影編劇卻又遇到因難重重。他和阿瑩二人份外投契，但不知對大家的關係能有怎麼期望。</p>
+
+<p class="chinese_p">《半邊人》是一部平實真摯的電影，看８０年小人物的生活多令我憶起曾經渡過的歲月。
+<span class="blogdate"><small>(11/27/2003)</small></span>
+</p>
+
+</td>
+
+
+<!-- column 2.5 Spacer ------------------------------------------------->
+
+<td width="*" valign="top">
+  &nbsp;
+</td>
+
+
+<!-- _template_end ---------------------------------------------------->
+
+
+
+<!-- end content area ------------------------------------------------->
+</tr>
+</table>
+
+
+
+
+</body>
+</html>
+
+

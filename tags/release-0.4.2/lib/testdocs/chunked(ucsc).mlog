@@ -1,0 +1,1051 @@
+528
+                 
+GET http://www.cse.ucsc.edu/research/compbio/ismb99.handouts/KK185FP.html HTTP/1.1
+Host: www.cse.ucsc.edu
+User-Agent: Mozilla/5.0 (Windows; U; Windows NT 5.0; rv:1.7.3) Gecko/20040913 Firefox/0.10.1
+Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
+Accept-Language: en-us,en;q=0.5
+Accept-Encoding: gzip,deflate
+Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.7
+Keep-Alive: 300
+Proxy-Connection: keep-alive
+Cookie: SOE_usertrack=128.107.253.39.67901099691955664
+
+
+
+222
+                 
+HTTP/1.1 200 OK
+Date: Fri, 05 Nov 2004 21:59:16 GMT
+Server: Apache/1.3.31 (Unix) mod_ssl/2.8.17 OpenSSL/0.9.7d PHP/4.3.9 DAV/1.0.3 mod_perl/1.29
+Transfer-Encoding: chunked
+Content-Type: text/html
+Connection: Close
+
+
+
+43505
+               
+1000
+<HTML>
+<HEAD>
+<TITLE>MEMORANDUM</TITLE>
+</HEAD>
+<BODY>
+
+<center>Hidden Markov Models and Protein Sequence Analysis</center>
+
+<P>
+<center>by Rachel Karchin</center>
+
+<P>
+</font>
+
+<P>
+<hr>
+<B><P ALIGN="CENTER">Table of Contents</P>
+</B>
+
+<P><a href="#Intro">Introduction</a>&#9;
+
+<P><a href="#protstruct">Protein Structure</a>&#9;</P>
+
+<P><a href="#statprof">Statistical Profiles</a>&#9;</P>
+
+<P><a href="#hmm">Hidden Markov Models</a>&#9;</P><DIR>
+
+<P><a href="#score">Scoring a Sequence with an HMM</a>&#9;</P><DIR>
+
+<P><a href="#sc_means">What the Score Means</a>&#9;</P>
+
+<P><a href="#loc_glob">Local and Global Scoring</a>&#9;</P></DIR>
+
+<P><a href="#building">Building an HMM</a>&#9;</P><DIR>
+
+<P><a href="#seq_weight">Sequence Weighting</a>&#9;</P>
+
+<P><a href="#overfit">Overfitting and Regularization</a>&#9;</P></DIR>
+
+<P><a href="#uses">Uses of HMMs</a>&#9;</P><DIR>
+
+<P><a href="#classify">Classifying Sequences with an HMM</a>&#9;</P>
+
+<P><a href="#multiple">Creating multiple alignments</a>&#9;</P></DIR>
+</DIR>
+
+<P><a href="#conclusion">Conclusion</a>&#9;</P>
+<a href="#appa">Appendix A</a></P>
+<P ALIGN="RIGHT">&nbsp;</P>
+<hr>
+<B>
+<a name="Intro"></a>Introduction
+</B>
+<P></P>
+
+<P>&#9;This paper provides an introduction to a sophisticated and
+flexible statistical model called the <I>hidden Markov model </I>(HMM)
+and its use as a tool in the study of protein molecules.  Due to the
+breadth and complexity of the subject, my goal is to provide an
+overview of HMM-related protein research.  The topics covered do not
+represent a comprehensive study of the field, and I have targeted my
+explanation of the technical material at an undergraduate computer
+science major who knows something about chemistry and electric
+circuits, but is unfamiliar with HMMs.  At the risk of presenting an
+oversimplified version of the material, I have avoided mathematical
+equations as much as possible and tried to explain algorithms in plain
+English.</P>
+
+<P>&#9;Using HMMs to analyze proteins is part of a new scientific
+field called <I>bioinformatics, </I>based on the relationship between
+computer science, statistics and molecular biology.  Because of large
+government-sponsored projects like the <I>Human Genome Project</I> in
+the United States, there has been an exponential increase in the
+quantity of data available about proteins, DNA, and RNA.  Traditional
+lab methods of studying the structure and function of these molecules
+are no longer able to keep up with the rate of new information.  As a
+result, molecular biologists have turned to statistical methods
+capable of analyzing large amounts of data, and to computer programs
+which implement these methods.</P> 
+
+<B> <a name="protstruct"></a>Protein Structure</P> </B>
+
+<P>&#9;Proteins are large, organic molecules and are among the most
+important components in the cells of living organisms.  They are more
+diverse in structure and function than any other kind of molecule.
+Enzymes, antibodies, hormones, transport molecules, hair, skin,
+muscle, tendons, cartilage, claws, nails, horns, hooves, and feathers
+are all made of proteins <A href="#c1">[1]</a>.</P>
+
+<P>&#9;These remarkable molecules are built from an alphabet of twenty
+smaller molecules known as <I>amino acids </I>(see <A
+href="#appa">Appendix A</a>).  All twenty amino acids have a common
+chemical core of two functional groups, a <I>carboxylic acid </I>group
+and an <I>amino</I> group.  A central carbon atom connects the two
+groups.  In nature, this atom is always bonded to both a hydrogen atom
+and another functional group called a <I>side chain</I>, which is
+different for each of the twenty amino acids <A href="#c1">[1]</a>.</P>
+
+<P>&#9;Amino acids within a protein are bonded by a condensation
+reaction in which the carboxylic acid group (COOH) of one amino acid
+is linked to the amino group (NH<SUB>2</SUB>) of a second, releasing
+one molecule of water.  This combination of two amino acids is known
+as a <I>peptide linkage</I>.  As shown in <a href="#fig1">Figure
+1</a>, sequential condensations produce a chain of bonded amino acids
+known as a <I>polypeptide 
+1000
+chain </I><A href="#c1">[1]</a><I>.</P> 
+
+<a name="fig1"></a> </I><P ALIGN="CENTER"><IMG SRC="Image1.gif"
+WIDTH=429 HEIGHT=311></P>
+
+<I><P ALIGN="CENTER">Figure 1.  Condensation reactions producing a
+polypeptide chain</P> </I> 
+
+<P>&#9;The linear sequence of amino acids in a polypeptide chain is
+known as the <I>primary structure</I> of a protein.  The enormous
+diversity of proteins is due to the many ways in which amino acids can
+combine in these chains.  A set of <B>n</B> amino acids can form
+20<SUP>n</SUP> polypeptides, so 20<SUP>100</SUP> combinations are
+possible for a protein built from 100 amino acids.  This number is
+larger than the number of known atoms in the universe <A
+href="#c1">[1]</a>.</P>
+
+<P>&#9;Within long polypeptide chains, certain sections twist into
+coils and fold into sheets.  These shapes are known as the
+<I>secondary structure</I> of a protein.  Secondary structure is
+formed by hydrogen bonds between the carboxylic acid group and the
+amino group of two amino acids which are not adjacent in the
+polypeptide chain.  If the two amino acids are part of a single chain,
+a twisted-helix shape is formed.  When a protein is built from
+multiple chains of polypeptides, multiple hydrogen bonds can form
+across many chains.  This creates <I>pleated sheets</I>.  Examples of
+these sheets can be seen in the lower half of <a href="#fig2">Figure
+2</a>.  The tightly coiled structures in the upper half of <a
+href="#fig2">Figure 2</a> are twisted helices, known as <I>alpha
+helices.</P> 
+
+<a name="fig2"></a> </I><P ALIGN="CENTER"><IMG SRC="Image2.gif"
+WIDTH=403 HEIGHT=343></P> 
+
+<I><P ALIGN="CENTER">Figure 2.  Secondary
+structure of metalloprotease/inhibitor protein </P> </I>
+
+<P>&#9;Although the linear string of amino acids is a simplified view
+of a molecule's structure, relationships between proteins can
+frequently be seen by comparing only their primary structures.  <a
+href="#fig3">Figure 3</a> shows the primary structures of four related
+proteins.  The amino acid molecules are represented by single letters.
+Only a small piece of each protein is shown.  They are laid out in a
+<I>multiple alignment, </I>an ordering which highlights areas in which
+they are extremely similar.</P> 
+
+<a name="fig3"></a> <center>
+
+<FONT FACE="Courier">
+<P>&#9;CGGSLLNAN--TVLTAAHC</P>
+<P>&#9;CGGSLIDNK-GWILTAAHC</P>
+<P>&#9;CGGSLIRQG--WVMTAAHC</P>
+<P>&#9;CGGSLIREDSSFVLTAAHC</P>
+
+<P>
+</FONT></center>    
+<center>
+<I>Figure 3.  Primary structure of four related proteins</P>
+</I>
+</center>
+
+<P>By taking a close look at the alignment, we can see the history of
+evolution in this protein family.  Possibly, the ancestor of the four
+proteins above looked like the protein in <a href="#fig4">Figure
+4</a>.</P>
+
+<a name="fig4"></a>
+<P ALIGN="CENTER"><IMG SRC="Image3.gif" WIDTH=158 HEIGHT=16></P>
+<I><P ALIGN="CENTER">Figure 4.  A possible common ancestor</P>
+
+</I>To understand why, consider what happens to a protein inside a
+cell when the cell reproduces.  Through a process called <I>mitosis,
+</I>the cell makes a copy of itself and then splits into two
+<I>daughter </I>cells.  Most of the time, a protein in the parent cell
+is exactly duplicated in the daughter cell.  However, over long
+periods of time, errors occur in this copying process.  When this
+happens, a protein in the daughter cell is slightly different from its
+counterpart in the parent.  The three most common errors are
+<I>substitution </I>of an amino acid in a given position,
+<I>insertion</I> of one or more new amino acids, and <I>deletion</I>
+of one or more amino acids.</P> 
+
+<a name="fig5"></a> <center> <IMG
+SRC="Image3a.gif" WIDTH=600 HEIGHT=85></P> 
+
+<I> Figure 5.  Protein from ancestor cell and a possible
+descendant</P> </I>
+
+<P>&#9; </center> <a href="#fig5">Figure 5</a> shows a possible worst
+case scenario after two kinds of errors have occurred.  The daughter
+cell's protein is on the bottom row.  A substitution error has
+occurred in position 13, where the parent has the amino acid F and the
+daughter has the amino acid V.  The daughter also has six insertion
+errors (REDSSK) in positions 7 t
+1000
+hrough 12.</P>
+
+<B> <P> <a name="statprof"></a>
+Statistical Profiles</P> </B>
+
+<P>&#9;As a result of these errors, proteins which share a common
+ancestor are not exactly alike.  However, they inherit many
+similarities in primary structure from their ancestor.  This is known
+as <I>conservation </I>of primary structure in a protein family.  An
+example is seen in <a href="#fig3">Figure 3</a>, where most of the
+positions (columns) in the multiple alignment contain only one or two
+distinct amino acids.</P>
+
+<P>&#9;These structural similarities make it possible to create a
+statistical model of a protein family.  The model shown in <a
+href="#fig6">Figure 6</a> is a simplified statistical <I>profile</I>,
+a model which shows the amino acid probability distribution for each
+position in the family <A href="#c2">[2]</a>.  According to this
+profile, the probability of C in position 1 is 0.8, the probability of
+G in position 2 is 0.4, and so forth.  The probabilities are
+calculated from the observed frequencies of amino acids in the
+family.</P>
+
+<I>
+<a name="fig6"></a>
+<P ALIGN="CENTER"><IMG SRC="Image4.gif" WIDTH=555 HEIGHT=555></P>
+
+<P ALIGN="CENTER">Figure 6.  A statistical model of ten related proteins</P>
+
+</I>
+
+<P>Given a profile, the probability of a sequence is the product of
+the amino acid probabilities given by the profile.  For example, the
+probability of CGGSV, given the profile in <a href="#fig6">Figure
+6</a>, is </P>
+
+<P ALIGN="CENTER">0.8 * 0.4 * 0.8 * 0.6 * 0.2 = .031.</P>
+
+<P>Given a statistical model, the probability of a sequence is used to
+calculate a <I>score</I> for the sequence.  Because multiplication of
+fractions is computationally expensive and prone to floating point
+errors such as underflow, a convenient transformation into the
+logarithmic world is used.  The score of a sequence is calculated by
+taking the logs of all amino acid probabilities and adding them up.
+Using this method with base <B>e</B> logarithms, the score of CGGSV
+is</P>
+
+<P ALIGN="CENTER">log<SUB>e</SUB>(0.8)+log<SUB>e</SUB>(0.4)+log<SUB>e</SUB>(0.8)+log<SUB>e</SUB>(0.6)+log<SUB>e</SUB>(0.2) = -3.48</P>
+
+<P>&#9;In practice, profile models take other factors into account.
+For example, members of a protein family have varying lengths, so a
+score <I>penalty</I> is charged for insertions and deletions.  The
+scores of individual amino acids in a profile are also <I>position
+specific</I>.  In other words, more weight must be given to an
+unlikely amino acid which appears in a structurally important position
+in the protein than to one which appears in a structurally unimportant
+position.</P>
+
+<P>&#9;Although these refinements are necessary to create good profile
+models, they introduce many additional free parameters which must be
+calculated when building a profile, and unfortunately, the
+calculations must be done by trial and error.  These shortcomings set
+the stage for a new kind of profile, based on the Hidden Markov
+model.</P>
+
+<B> <P> <a name="hmm"></a> Hidden Markov Models</P>
+
+</B>
+
+<P>&#9;Hidden Markov models (HMMs) offer a more systematic approach to
+estimating model parameters.  The HMM is a dynamic kind of statistical
+profile.  Like an ordinary profile, it is built by analyzing the
+distribution of amino acids in a training set of related proteins.
+However, an HMM has a more complex topology than a profile.  It can be
+visualized as a <I>finite state machine</I>, familiar to students of
+computer science. </P>
+
+<P>&#9;Finite state machines typically move through a series of states
+and produce some kind of output either when the machine has reached a
+particular state or when it is moving from state to state.  The HMM
+generates a protein sequence by <I>emitting</I> amino acids as it
+progresses through a series of states.  Each state has a table of
+amino acid <I>emission probabilities</I> similar to those described in
+a profile model.  There are also <I>transition probabilities</I> for
+moving from state to state.</P>
+
+<a name="fig7"></a>
+<I><P ALIGN="CENTER"><IMG SRC="Image6.gif" WIDTH=551 HEIGHT=285></P>
+
+<P ALIGN="CENTER">Figure 7.  A possible
+1000
+ hidden Markov model for the
+protein ACCY.  The protein is represented as a sequence of
+probabilities.  The numbers in the boxes show the probability that an
+amino acid occurs in a particular state, and the numbers next to the
+directed arcs show probabilities which connect the states.  The
+probability of ACCY is shown as a highlighted path through the
+model. </P>
+
+</I> <P>&#9;<a href="#fig7">Figure 7</a> shows one topology for a
+hidden Markov model.  Although other topologies are used, the one
+shown is very popular in protein sequence analysis.  Note that there
+are three kinds of states represented by three different shapes.  The
+squares are called <I>match states</I>, and the amino acids emitted
+from them form the conserved primary structure of a protein.  These
+amino acids are the same as those in the common ancestor or, if not,
+are the result of substitutions.  The diamond shapes are <I>insert
+states</I> and emit amino acids which result from insertions.  The
+circles are special, silent states known as <I>delete states</I> and
+model deletions.</P>
+
+<P>&#9;Transitions from state to state progress from left to right
+through the model, with the exception of the self-loops on the diamond
+insertion states.  The self-loops allow deletions of any length to fit
+the model, regardless of the length of other sequences in the
+family.</P>
+
+<B>
+<a name="score"></a>
+Scoring a Sequence with an HMM</P>
+
+</B>
+
+<P>&#9;Any sequence can be represented by a path through the model.
+The probability of any sequence, given the model, is computed by
+multiplying the emission and transition probabilities along the
+path.</P>
+
+<P>&#9;In <a href="#fig7">Figure 7</a>, a path through the model
+represented by ACCY is highlighted.  In the interest of saving space,
+the full tables of emission probabilities are not shown.  Only the
+probability of the emitted amino acid is given.  For example, the
+probability of A being emitted in position 1 is 0.3, and the
+probability of C being emitted in position 2 is 0.6.  The probability
+of ACCY along this path is </P>
+
+<P ALIGN="CENTER">.4 * .3 * .46 * .6 * .97 * .5 * .015 * .73 *.01 * 1 = 1.76x10<SUP>-6</SUP>.</P>
+
+<P>&#9;As in the profile case described above, the calculation is
+simplified by transforming probabilities to logs so that addition can
+replace multiplication.  The resulting number is the <I>raw</I>
+<I>score</I> of a sequence, given the HMM.</P>
+
+<P>&#9;For example, the score of ACCY along the path shown in <a
+href="#fig7">Figure 7</a> is </P>
+
+<P ALIGN="CENTER">log<SUB>e</SUB>(.4) + log<SUB>e</SUB>(.3) +
+log<SUB>e</SUB>(.46) + log<SUB>e</SUB>(.6) + log<SUB>e</SUB>(.97) +
+log<SUB>e</SUB>(.5) + log<SUB>e</SUB>(.015) + log<SUB>e</SUB>(.73)
++log<SUB>e</SUB>(.01) + log<SUB>e</SUB>(1) = -13.25</P>
+
+<P>&#9;The calculation is easy if the exact state path is known, as in
+the toy example of <a href="#fig7">Figure 7</a>.  In a real model,
+many different state paths through a model can generate the same
+sequence.  Therefore, the correct probability of a sequence is the sum
+of probabilities over all of the possible state paths.  Unfortunately,
+a brute force calculation of this problem is computationally
+unfeasible, except in the case of very short sequences.  Two good
+alternatives are to calculate the sum over all paths inductively using
+the <I>forward algorithm,</I> or to calculate the most probable path
+through the model using the <I>Viterbi algorithm</I>.  Both algorithms
+are described below.</P>
+
+<a name="fig8"></a> <P ALIGN="CENTER"><IMG SRC="Image7.gif" WIDTH=551
+HEIGHT=285></P>
+
+<I><P ALIGN="CENTER">Figure 8.  HMM with multiple paths through the
+model for ACCY.  The highlighted path is only one of several
+possibilities. </P>
+
+</I> <P>&#9;Consider the HMM shown in <a href="#fig8">Figure 8</a>.
+The Insert, Match, and Delete states are labeled with their position
+number in the model, M1, D1 etc.  (States I1 and I2 are unlabelled to
+reduce clutter.)  Because the number of insertion states is greater
+than the number of match or delete states, there is an extra insertion
+state at the beginning of the model, labeled
+1000
+ I0.  Unlike the HMM in <a
+href="#fig7">Figure 7</a>, where the state path for ACCY was known,
+several state paths through the model are possible for this
+sequence.</P>
+
+<P>&#9;The most likely path through the model is computed with the
+Viterbi algorithm.  The algorithm employs a matrix, shown in <a
+href="#fig9">Figure 9</a>.  The columns of the matrix are indexed by
+the states in the model, and the rows are indexed by the sequence.
+Deletion states are not shown, since, by definition, they have a zero
+probability of emitting an amino acid.  The elements of the matrix are
+initialized to zero and then computed with these steps:</P>
+
+<P><DIR>
+<DIR>
+
+<P>1.&#9;The probability that the amino acid <I>A</I> was generated by
+state I0<I> </I>is computed and entered as the first element of the
+matrix.  </P>
+
+<P>2.&#9;The probabilities that C<I> </I>is emitted in state M1
+(multiplied by the probability of the most likely transition to state
+M1<I> </I>from state I0) and in state I1 (multiplied by the most
+likely transition to state I1 from state I0) are entered into the
+matrix element indexed by C and I1/M1.</P>
+
+<P>3.&#9;The maximum probability, max(I1, M1), is calculated.</P>
+
+<P>4.&#9;A pointer is set from the winner back to state I0<I>.</P>
+
+</I>
+<P>5.&#9;Steps 2-4 are repeated until the matrix is filled.</P>
+
+</DIR>
+</DIR>
+
+<P>Prob(A in state I0)   = 0.4*0.3=0.12</P>
+
+<P>Prob(C in state I1)   = 0.05*0.06*0.5 = .015</P>
+
+<P>Prob(C in state M1) = 0.46*0.01 = 0.005</P>
+
+<P>Prob(C in state M2) = 0.46*0.5 = 0.23</P>
+
+<P>Prob(Y in state I3)   = 0.015*0.73*0.01 = .0001</P>
+
+<P>Prob(Y in state M3) = 0.97*0.23 = 0.22</P>
+
+<P>The most likely path through the model can now be found by
+following the back-pointers.</P>
+
+<a name="fig9"></a>
+<I><P ALIGN="CENTER"><IMG SRC="Image8.gif" WIDTH=475 HEIGHT=197></P>
+
+<P ALIGN="CENTER">Figure 9.  Matrix for the Viterbi algorithm</P>
+
+</I> <P>Once the most probable path through the model is known, the
+probability of a sequence given the model can be computed by
+multiplying all probabilities along the path.  </P>
+
+<P>&#9;The forward algorithm is similar to Viterbi.  However in step
+3, a sum rather than a maximum is computed, and no back pointers are
+necessary.  The probability of the sequence is found by summing the
+probabilities in the last column.  The resulting matrix is shown in <a
+href="#fig10">Figure 10</a>.</P>
+
+<P>Prob(A in state I0)   = 0.4*0.3=0.12</P>
+
+<P>Prob(C in state I1)   = 0.05*0.06*0.5 = 0.015</P>
+
+<P>Prob(C in state M1) = 0.46*0.01= 0.005</P>
+
+<P>Prob(C in state M2) = (0.005*0.97) +(0.015*0.46)= .012</P>
+
+<P>Prob(Y in state I3)   = .012*0.015*0.73*0.01 = 1.31x10<SUP>-7</P>
+
+</SUP>
+<P>Prob(Y in state M3) = .012*0.97*0.2 = 0.002</P>
+
+<a name="fig10"></a>
+<I><P ALIGN="CENTER"><IMG SRC="Image9.gif" WIDTH=475 HEIGHT=197></P>
+
+<P ALIGN="CENTER">Figure 10.  Matrix for the Forward algorithm</P>
+
+</I><B>
+<a name="sc_means"></a>
+What the Score Means</P>
+
+</B>
+
+<P>&#9;Once the probability of a sequence has been determined, its
+score can be computed.  Because the model is a generalization of how
+amino acids are distributed in a related group (or class) of
+sequences, a score measures the probability that a sequence belongs to
+the class.  A high score implies that the sequence of interest is
+probably a member of the class, and a low score implies it is probably
+not a member.</P>
+
+<B>
+<a name="loc_glob"></a>
+Local and Global Scoring</A></A></A></A></A></A></A></P>
+
+</B>
+
+<P>&#9;In the examples above, <I>global scoring </I>was used<I>.
+</I>This means simply that computation of the score begins at the
+first amino acid in the sequence and ends at the last one.  Even
+though this may seem like the most natural way to compute a score, the
+results are often misleading.  Because of the evolutionary variety
+found in related protein sequences, a family member may be composed of
+both highly conserved areas which score well against the model and
+divergent areas which score poorly.  If both kinds of areas are given
+equal importance, the overall score of family member may be poor.</P>
+
+<P>&#9;The solution to this
+1000
+ problem is to use <I>local scoring,
+</I>where the score of a sequence is set to the score of its highest
+scoring subsequence.  The principle can be illustrated with a very
+simple example.  Consider again the sequence ACCY shown in <a
+href="#fig5">Figure 5</a>.  Converting probabilities to the log world,
+the global score for the sequence is the sum of all four scores:
+-13.25.  The computation is shown in <a href="#fig11">Figure
+11<a>.</P>
+
+<a name="fig11"></a>
+<P ALIGN="CENTER"><IMG SRC="Image10.gif" WIDTH=345 HEIGHT=114></P>
+
+<I><P ALIGN="CENTER">Figure 11.  The log score of ACCY</P>
+
+</I> <P>Clearly, the score has been significantly lowered by A and Y.
+The score is low enough ACCY that may not appear to be a member of the
+family being modeled.</P>
+
+<a name="fig12"></a>
+<I><P ALIGN="CENTER"><IMG SRC="Image11.gif" WIDTH=43 HEIGHT=73></P>
+
+<P ALIGN="CENTER">Figure 12.  The family of sequence ACCY</P>
+
+</I> <P>&#9;Let's assume ACCY is a member of the family shown in <a
+href="#fig12">Figure 12</a>.  In this case, the global score proves to
+be a poor measure of family membership.  However, if local scoring is
+used to evaluate the sequence, the final score is much higher.  The
+highest scoring subsequence is found to be CC, with a score of -2.01.
+Unlike the global score, the local score is high enough to classify
+ACCY in this family.  In situations like this, classifications based
+on local scoring are more accurate than those based on global
+scoring.</P>
+
+<B>
+<a name="building"></a>
+Building an HMM</P>
+
+</B>
+
+<P>&#9;Another tricky problem is how to create an HMM in the first
+place, given a particular set of related training sequences.  It is
+necessary to estimate the amino acid emission distributions in each
+state and all state-to-state transition probabilities from a set of
+related training sequences.</P>
+
+<P>&#9;If the state paths for all the training sequences are known,
+the emission and transition probabilities in the model can be
+calculated by computing their <I>expected value: </I>observing the
+number of times each transmission or emission occurs in the training
+set and dividing by the sum of all the transmission probabilities or
+all the emission probabilities.</P>
+
+<P>&#9;If the state paths are unknown, finding the best model given
+the training set is an optimization problem which has no closed form
+solution.  It must be solved by iterative methods.</P>
+
+<P>&#9;The algorithms used to do this are closely related to the
+scoring algorithms described previously.  The goal is to find model
+parameters which maximize the probability of all sequences in the
+training set.  In other words, the desired model is a model against
+which all the sequences in the training set will have the best
+possible scores.  The parameters are re-estimated after every
+iteration by computing a score for each training sequence against the
+previous set of model parameters.</P>
+
+<P>&#9;The <I>Baum-Welch</I> algorithm is a variation of the forward
+algorithm described earlier.  It begins with a reasonable guess for an
+initial model and then calculates a score for each sequence in the
+training set over all possible paths through this model .  During the
+next iteration, a new set of expected emission and transition
+probabilities is calculated, as described above for the case when
+state paths are known.  The updated parameters replace those in the
+initial model, and the training sequences are scored against the new
+model.  The process is repeated until <I>model convergence,
+</I>meaning there is very little change in parameters between
+iterations.</P>
+
+<P>&#9;The <I>Viterbi </I>algorithm is less computationally expensive
+than Baum-Welch.  As described in the previous section, it computes
+the sequence scores over the most likely path rather than over the sum
+of all paths.</P>
+
+<P>&#9;However, there is no guarantee that a model built with either
+algorithm has parameters which maximize the probability of the
+training set.  As in many iterative methods, convergence indicates
+only that a local maximum has been found.  Several heuristic methods
+have been developed 
+1000
+to deal with this problem.  One approach is to
+start with several initial models and proceed to build several models
+in parallel.  When the models converge at several different local
+optimums, the probability of each model given the training set is
+computed, and the model with the highest probability wins.  Another
+approach is to add <I>noise, </I>or random data, into the mix at each
+iteration of the model building process.  Typically, an <I>annealing
+schedule</I> is used.  The schedule controls the amount of noise added
+during each iteration.  Less and less noise is added as iterations
+proceed.  The decrease is either linear or exponential.  The effect is
+to delay the convergence of the model.  When the model finally does
+converge, it is more likely to have found a good approximation to the
+global maximum <A href="#c3">[3]</a>.  </P>
+
+<B>
+<a name="seq_weight"></a>
+Sequence Weighting</P>
+
+</B>
+
+<P>&#9;Another problem with HMMs is that if there is a small group of
+sequences in the training set which are highly similar, the model will
+overspecialize to the small group.  To prevent this, several methods
+of <I>sequence weighting </I>have been developed.  These methods give
+the <I>outlier</I> sequences, those that do not belong to the highly
+similar group, additional importance in the calculation of model
+parameters.  </P>
+
+<P>&#9;The simplest weighting methods are based on tree structures.
+Sequences in a family are placed on branches of a tree, representing
+their divergence from a common ancestor.  One interesting approach is
+to visualize a tree made of conducting wire with a voltage V applied
+to the root. The leaves are set to V=0, and the currents flowing
+through each branch are calculated using Kirchoff's laws.  The
+currents are then used as the sequence weights.  Intuitively, the
+currents will be smaller in a more highly divided area of the tree
+(the highly similar sub-group), and larger in less divided areas of
+the tree (the outliers) <A href="#c4">[4]</a>. </P>
+
+<a name="fig13"></a>
+<P ALIGN="CENTER"><IMG SRC="Image12.gif" WIDTH=481 HEIGHT=223></P>
+
+<I><P ALIGN="CENTER">Figure 13.  Calculating tree-based weights</P>
+
+</I> <P>&#9;<a href="#fig13">Figure 13</a> demonstrates this approach.
+According to Kirchoff's laws, the following equations can be
+derived:</P>
+
+<P>&#9;&#9;&#9;I0=I1+I2&#9;&#9;&#9;I1=I2</P>
+
+<P>&#9;&#9;&#9;I2=I3+I4&#9;&#9;&#9;I3=I4</P>
+
+<P>&#9;&#9;&#9;I3=I5+I6&#9;&#9;&#9;I5=I6</P>
+
+<P>&#9;&#9;&#9;I4=I7+I8&#9;&#9;&#9;I7=I8</P>
+
+<P>With some algebraic manipulation, it can be shown that:</P>
+
+<P>&#9;&#9;&#9;I1=I2= .5 * I0</P>
+
+<P>&#9;&#9;&#9;I3=I4= .25*I1</P>
+
+<P>&#9;&#9;&#9;I5=I6=I7=I8= .125 * I1</P>
+
+<P>The corresponding sequence weights are shown in <a
+href="#fig14">Figure 14</a>.</P>
+
+<a name="fig14"></a>
+<P ALIGN="CENTER"><IMG SRC="Image13.gif" WIDTH=192 HEIGHT=203></P>
+
+<I><P ALIGN="CENTER">Figure 14.  Tree-based sequence weights</P></I> 
+
+<P>&#9;Another approach is known as <I>maximum discrimination
+</I>weighting <A href="#c5">[5]</a>.  In this method, weights are
+estimated iteratively while the model is being built.  After each
+iteration in the model building process, the sequences in the training
+set are scored against the current model.  Weights are assigned to
+each sequence, with poorly scoring sequences (outliers) receiving the
+highest valued weights.  During the next iteration, these sequences
+get more importance than sequences which had good scores during the
+prior round.  The process repeats until the model converges.</P>
+
+<P>&#9;A third kind of weighting method is based on trying to make the
+statistical spread in the model as uniform as possible <A
+href="#c6">[6]</a>.  The position-specific weighting method developed
+by Henikoff &amp; Henikoff falls into this category <A
+href="#c7">[7]</a> .  In this method, weights are based on the
+diversity observed in the columns of a multiple alignment of
+sequences.  </P>
+
+<P>A weight is computed for each position in a sequence inversely
+proportional to <I>m,</I> the number of different amino acids in the
+column and <I>k,</I> the number of times the amino
+1000
+ acid of interest
+appears in the column.  </P>
+
+<P ALIGN="CENTER"><IMG SRC="Image14.gif" WIDTH=38 HEIGHT=38></P>
+
+<P>For example, looking at the first sequence in the multiple
+alignment shown in <a href="#fig3">Figure 3</a>, the weight of amino
+acid C in position 1 is </P>
+
+<P ALIGN="CENTER"><IMG SRC="Image15.gif" WIDTH=58 HEIGHT=38>,</P>
+
+<P>and the weight of amino acid N in position 7 is</P>
+
+<P ALIGN="CENTER"><IMG SRC="Image16.gif" WIDTH=56 HEIGHT=38>.</P>
+
+<P>The weight of a sequence is the average of the weights in all
+positions, normalized to sum to 1.</P>
+
+<P>&#9;It is not possible to identify a single, best weighting method.
+Choice of a weighting method depends both on what the resulting model
+will be used for and the particular protein group being modeled.</P>
+
+<B>
+
+<P>
+<a name="overfit"></a>
+Overfitting and Regularization</A></A></A></A></A></A></A></P>
+
+</B>
+
+<P>&#9;Clearly, accurate methods of estimating amino acid
+distributions are necessary to build good HMMs.  A potential pitfall
+is illustrated by the example shown in <a href="#fig3">Figure 3</a>.
+Consider these four sequences to be members of a training set.  The
+first column shown contains one distinct amino acid: C.  Using the
+methods described so far, the probability of any of the other 19 amino
+acids appearing in this position is 0.  However, if we set all these
+probabilities to 0 in the model, we end up with a model unable to
+recognize family members which do not begin with a C.  Remember that
+members of the training set are only a small percentage of real
+members of the protein family.  At least some of the other members are
+likely to begin with different amino acids.</P>
+
+<P>&#9;This problem is known as <I>overfitting</I>.  A variety of
+approaches known as <I>regularization </I>have been developed to deal
+with it.  The simplest is to use <I>pseudocounts: </I>this means that,
+even if a given amino acid does not appear in a column of an aligned
+training set, it is given a fake count.  Fake counts are also added
+for the amino acids which appear in the column.  When probabilities
+are calculated, the fake counts are treated exactly like real observed
+counts.  Take a look at the first column of <a href="#fig3">Figure
+3</a>, which has 4 counts of the amino acid C.  If a pseudocount of 1
+is used for each of the 20 amino acids, in effect, the column contains
+24 entries, of which 4 are real and 20 are fake.  The probability of
+A, which does not appear in the column, is calculated as shown in <a
+href="#fig15">Figure 15</a>.</P>
+
+<a name="fig15"></a>
+<P ALIGN="CENTER"><IMG SRC="Image17.gif" WIDTH=365 HEIGHT=162></P>
+
+<I><P ALIGN="CENTER">Figure 15.  The probability of A in column 1 of
+<a href="#fig3">Figure 3</a> using pseudocounts</P></I>
+
+<P>The probability of C in position 1 is shown in <a
+href="#fig16">Figure 16</a>.</P>
+
+<a name="fig16"></a>
+<P ALIGN="CENTER"><IMG SRC="Image18.gif" WIDTH=365 HEIGHT=162></P>
+
+<I><P ALIGN="CENTER">Figure 16.  The probability of C in column 1 of <a href="#fig3">Figure 3</a> using pseudocounts</P>
+</I>
+
+<P>&#9;A sophisticated application of this method is known as
+<I>Dirichlet mixtures </I><A href="#c8">[8]</a>.  The mixtures are
+created by statistical analysis of the distribution of amino acids at
+particular positions in a large number of proteins.  The mixtures are
+built from smaller components known as <I>Dirichlet densities.
+</I> </P>
+
+
+<P>&#9;A Dirichlet density is a probability density over all
+possible combinations of amino acids appearing in a given position.
+It gives high probability to certain distributions and low probability
+to others.  For example, a particular Dirichlet density may give high
+probability to <I>conserved </I>distributions where a single amino
+acid predominates over all others.  Another possibility is a density
+where high probability is given to amino acids with a common
+identifying feature, such as the subgroup of <I>hydrophobic </I>amino
+acids.</P>
+
+<P>&#9;When an HMM is built using a Dirichlet mixture, a wealth of
+information about protein structure is factored into the parameter
+estimation proc
+1000
+ess.  The pseudocounts for each amino acid are
+calculated from a weighted sum of Dirichlet densities and added to the
+observed amino acid counts from the training set.  The parameters of
+the model are calculated as described above for simple
+pseudocounts.</P>
+
+<B>
+<a name="uses"></a>
+Uses of HMMs</P>
+
+</B>
+<B>
+<P>
+<a name="classify"></a>
+Classifying Sequences with an HMM</P>
+
+</B>
+
+<P>&#9;One common application of HMMs is classifying sequences in a
+database.  The method is to build an HMM with a training set of known
+members of the class, and then to compute the score of all sequences
+in the database.  The resulting scores are ranked and a suitable
+threshold is selected to separate class members from the other
+sequences in the database.</P>
+
+<P>&#9;Unfortunately, because these raw scores are length-dependent,
+they must be modified before the ranking can occur.  Various
+techniques have been developed to work around this shortcoming <a
+href="#c9">[9]</a>.  One approach is to calculate the difference in
+standard deviations between the raw score of a sequence and the mean
+score of sequences of similar length in the database.  A more
+sophisticated method scores a sequence by a <I>log-odds ratio</I>,
+shown in <a href="#fig17">Figure 17</a>.</P>
+
+<a name="fig17"></a>
+<P ALIGN="CENTER"><IMG SRC="Image19.gif" WIDTH=124 HEIGHT=39></P>
+
+<I><P ALIGN="CENTER">Figure 17.  The log-odds ratio</P>
+
+</I> <P>This number is the log of the ratio between two probabilities
+— the probability that the sequence was generated by the HMM and
+the probability that the sequence was generated by a <I>null</I>
+<I>model, </I>whose parameters reflect the general amino acid
+distribution in the training sequences.  Barrett, Hughey, and Karplus
+have shown that a good choice of null model is the geometric mean of
+amino acids in the match states <a href="#c9">[9]</a>.</P>
+
+<P>&#9;Another important issue is the selection of a suitable
+threshold separating family and non-family members.  One good method
+uses Milosavljevic's algorithmic significance test <A
+href="#c10">[10]</a>, setting the threshold to</P>
+
+<P ALIGN="CENTER"><IMG SRC="Image20.gif" WIDTH=149 HEIGHT=18>,</P>
+
+<P>where N is the number of sequences in the database being searched,
+and z is the logarithm base, usually set to the values <B>2</B> or
+<B>e</B>.  The variable <I>sigma</I> is a <I>significance</I> level
+which varies from .01 to 10.  Choice of a large sigma increases the
+chance of <I>false positives</I>.  These are non-family members which
+exceed the threshold because they score well against the HMM out of
+pure chance.  A small sigma sets the threshold at a level where fewer
+sequences will be classified as family members.  If sigma is too
+small, the chance of <I>false negatives</I> is increased.  In this
+case, sequences which are members of the family may not exceed the
+threshold and may be misclassified.</P>
+
+<B>
+<a name="multiple"></a>
+Creating multiple alignments</P>
+
+</B>
+
+<P>&#9;Another important use of HMMs is to automatically create a
+multiple alignment from a group of unaligned sequences.  Multiple
+alignment is the process of taking a group of sequences and
+identifying amino acids which are <I>homologous</I>, structurally or
+functionally similar.  The homologous amino acids are aligned in
+columns (see <a href="#fig3">Figure 3</a>).  Until recently, this
+tedious task was done by hand and required a biology expert with
+extensive knowledge of protein structure and evolution.</P>
+
+<P>&#9;A multiple alignment can be generated by using the Viterbi
+algorithm to find the most likely path through the HMM for each
+sequence.  Each match state in the HMM corresponds to a column in the
+multiple alignment.  A delete state is represented by a dash.  Amino
+acids from insert states are either not shown or are displayed in
+lower case letters.</P>
+
+An alternative to Viterbi is a method known as <i>posterior decoding</i>. By considering all positions in the model and all twenty amino acids, one can calculate the probability that each amino acid occurs at that each position in the model.  This produces a
+1000
+ table of probabilities for all possible pairs of amino acids and positions in the model.  From the table, it is possible to find the highest probability path through the model for any protein, based on all possible places that any amino acid can occur.
+<B>
+
+<P>
+<a name="conclusion"></a>
+Conclusion</P>
+
+</B>
+
+<P>&#9;This paper has explored many exciting features of HMMs.
+However, these models do have a few limitations.  </P>
+
+<P>&#9;The HMM is a linear model and is unable to capture higher order
+correlations among amino acids in a protein molecule.  These
+correlations include hydrogen bonds between non-adjacent amino acids
+in a polypeptide chain, hydrogen bonds created between amino acids in
+multiple chains, and<I> disulfide bridges, </I>chemical bonds between
+C (cysteine) amino acids which are distant from each other within the
+molecule.</P>
+
+<P>&#9;In reality, amino acids which are far apart in the linear chain
+may be physically close to each other when a protein folds.  Chemical
+and electrical interactions between them cannot be predicted with a
+linear model.</P>
+
+<P>&#9;Another flaw of HMMs lies at the very heart of the mathematical
+theory behind these models.  As anyone who has taken a stochastics
+course knows, the probability of a sequence of events is the
+multiplicative product of the probabilities of individual events only
+when the events are independent.  Throughout this paper, I have
+claimed that the probability of a protein sequence can be found by
+multiplying the probabilities of the amino acids in the sequence.
+This claim is only valid if the probability of any amino acid in the
+sequence is independent of the probabilities of its neighbors.</P>
+
+<P>&#9;In biology, this is not the case.  There are, in fact, strong
+dependencies between these probabilities.  For example, hydrophobic
+amino acids are highly likely to appear in proximity to each other.
+Because such molecules fear water, they cluster at the inside of a
+protein, rather than at the surface where they would be forced to
+encounter water molecules.</P>
+
+<P>&#9;These biological realities have motivated research into new
+kinds of statistical models.  Hybrids of HMMs and neural nets, dynamic
+Bayesian nets, factorial HMMs, Boltzmann trees and hidden Markov
+random fields are among the areas being <BR> explored <A
+href="#c6">[6]</a>.</P>
+
+<P>&#9;A good way to learn more about HMMs is to try using them.  To
+start, check out the URLs listed in <a href="#fig18">Figure
+18</a>.</P>
+
+<a name="fig18"></a>
+
+<P><IMG SRC="Image21.gif" WIDTH=518 HEIGHT=56></P>
+
+<I><P ALIGN="CENTER">Figure 18.  URLs for HMM web servers</P>
+
+</I> <P>You can find more information about HMMs and protein research
+at the URLS shown in <a href="#fig19">Figure 19</a>.</P>
+
+<a name="fig19"></a>
+<P ALIGN="CENTER"><IMG SRC="Image22.gif" WIDTH=282 HEIGHT=56></P>
+
+<I><P ALIGN="CENTER">Figure 19.  URLs for HMM and protein information</P>
+
+</I> <P>I also highly recommend the newly released book by Eddy,
+Mitchison, and Durbin, <I>Biological Sequence Analysis: Probabilistic
+models of proteins and nucleic acids </I><A href="#c6">[6]</a>, which
+you can order online at http://www.amazon.com.</P>
+
+<P ALIGN="LEFT">
+
+<hr>
+<b>
+<P ALIGN="CENTER">References</P>
+
+</b>
+<DIR>
+<DIR>
+
+<P><a name="c1"></a>
+[1]&#9;J. Olmsted and G. Williams.  <I>Chemistry the Molecular Science,</I>  pp. 549-557.  William C. Brown.  1997.</P>
+
+<P><a name="c2"></a>
+[2]&#9;M. Gribskov, A.D. McLachlan, and D. Eisenberg.  Profile analysis: detection of distantly related proteins.  <I>Proceedings of the National Academy of Sciences of<BR>
+the USA,</I> 84:4355-4358, 1987.</P>
+
+<P><a name="c3"></a>
+[3]&#9;R. Hughey and A. Krogh.  Hidden Markov models for sequence analysis: extension and analysis of the basic method.  <I>Computer Applications in the Biosciences,</I> 12:95-107. 1996.</P>
+
+<P><a name="c4"></a>
+[4]&#9;J.D. Thompson, D.G. Higgins, and T.J. Gibson.  Improved sensitivity of profile searches through the use of sequence weights and gap excision.  <I>Computer Applications in the Biosciences, </I>10:19-29.  1994b.</P>
+
+<P><a name="c5"></
+995
+a>
+[5]&#9;S.R. Eddy, G. Mitchison, and R. Durbin.  Maximum discrimination hidden Markov models of sequence consensus.  <I>Journal of Computational Biology, </I>2:9-23.  1995.</P>
+
+<P><a name="c6"></a>
+[6]&#9;R. Durbin, S. Eddy, A. Krogh, and G. Mitchison.  <I>Biological Sequence Analysis:  Probabilistic models of proteins and nucleic acids</I>.  pp. 51-68.  Cambridge University Press.  1998.</P>
+
+<P><a name="c7"></a>
+[7]&#9;S. Henikoff and J.G. Henikoff.  Position-based sequence weights.  <I>Journal of Molecular Biology, </I>243:574-578.  1994.</P>
+
+<P><a name="c8"></a>
+[8]&#9;K. Sjolander, K. Karplus, M. Brown, R. Hughey, A. Krogh, S.I. Mian, and D. Haussler.  Dirichlet mixtures: a method for improved detection of weak but significant protein sequence homology.  <I>Computer Applications in the Biosciences, </I>12:327-345.  1996.</P>
+
+<P><a name="c9"></a>
+[9]&#9;C. Barrett, R. Hughey, and K. Karplus.  Scoring hidden Markov models.  <I>CABIOS, </I>13(2):191-199.  1997.</P>
+
+<P><a name="c10"></a>
+[10]&#9;A. Milosavljevic and J. Jurka.  Discovering simple DNA sequences by the algorithmic similarity method.  <I>CABIOS, </I>9(4):407-411.  1993.</P>
+
+</DIR>
+
+<hr>
+<B><center>
+<a name="appa"></a>
+Appendix A
+<P>
+Twenty Amino Acids Commonly Found in Proteins
+</center>
+</B>
+
+<P>
+<center>
+  <TABLE border="1" cellpadding="10">
+ 
+  <TR><TD>A </TD> <TD>ALA</TD> <TD>Alanine</TD></TR>
+ <TR><TD>V </TD> <TD>VAL</TD> <TD>Valine </TD></TR>
+<TR><TD>L </TD> <TD>LEU</TD> <TD>Leucine</TD></TR>
+<TR><TD>I </TD> <TD>ILE</TD> <TD>Isoleucine</TD></TR>
+<TR><TD>F </TD> <TD>PHE</TD> <TD>Phenylalanine</TD></TR>
+<TR><TD>P </TD> <TD>PRO</TD> <TD>Proline</TD></TR>
+<TR><TD>M </TD> <TD>MET</TD> <TD>Methionine</TD></TR>
+<TR><TD>D </TD> <TD>ASP</TD> <TD>Aspartic Acid</TD></TR>
+<TR><TD>E </TD> <TD>GLU</TD> <TD>Glutamic Acid</TD></TR>
+<TR><TD>K </TD> <TD>LYS</TD> <TD>Lysine</TD></TR>
+<TR><TD>R </TD> <TD>ARG</TD> <TD>Arginine</TD></TR>
+<TR><TD>S </TD> <TD>SER</TD> <TD>Serine</TD></TR>
+<TR><TD>T </TD> <TD>THR</TD> <TD>Threonine</TD></TR>
+<TR><TD>C </TD> <TD>CYS</TD> <TD>Cysteine</TD></TR>
+<TR><TD>N </TD> <TD>ASN</TD> <TD>Asparagine</TD></TR>
+<TR><TD>Q </TD> <TD>GLU</TD> <TD>Glutamine</TD></TR>
+<TR><TD>H </TD> <TD>HIS</TD> <TD>Histidine</TD></TR>
+<TR><TD>Y </TD> <TD>TYR</TD> <TD>Tyrosine</TD></TR>
+<TR><TD>W </TD> <TD>TRP</TD> <TD>Tryptophan</TD></TR>
+<TR><TD>G </TD> <TD>GLY</TD> <TD>Glycine</TD></TR>
+
+</TD></TR>
+</TABLE>
+</center>
+
+</DIR>
+</BODY>
+</HTML>
+
+0
+
+
+

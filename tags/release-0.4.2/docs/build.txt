@@ -1,0 +1,22 @@
+date: 2005-01-19
+
+To build in Windows it requires these software modules:
+* Python 2.4
+* PyLucene 0.9.6
+* pywin32 2.03
+* py2exe 0.5.4
+* Inno Setup version 4.2.6
+
+Run build.bat. It will produce a Windows installer in the output
+directory. The installer have Python interpreter embedded so that the
+whole application is self-contained.
+
+
+To run in Linux it requires these software modules:
+* Python 2.4
+* PyLucene 0.9.6
+
+Launch MindRetrieve using the command:
+
+    python run.py --start
+

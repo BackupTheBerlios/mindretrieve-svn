@@ -3,6 +3,7 @@
 
 import datetime
 import shutil
+import StringIO
 import sys
 
 from minds.config import cfg
@@ -13,27 +14,34 @@ from minds import lucene_logic
 
 NOTIFY_INTERVAL = 100
 
-def reindex(dbdoc, highestId, index_path):
+def reindex(dbdoc, beginId, endId, index_path):
+
+    ah = docarchive.ArchiveHandler('r')
 
     writer = lucene_logic.Writer(index_path)
     writer.writer.minMergeDocs = 1000
 
-    zfp = None
-    for i in xrange(1, highestId+1):
+    for i in xrange(beginId, endId):
+
         docid = '%09d' % i
         if i % NOTIFY_INTERVAL == 1:
             print '%s Reindexing %09d' % (datetime.datetime.now(), i)
-        zfp = docarchive.docarc.get_archive(docid, openedZipFile=zfp, closeIfNotNeeded=True)
-        fp = docarchive.docarc.get_document(zfp, docid)
+
+        zfile, filename = ah._open(docid)
+        try:
+            data = zfile.read(filename)
+        except KeyError:
+            continue        # skip holes
+
+        fp = StringIO.StringIO(data)
         meta, content = distillparse.parseDistillML(fp, distillparse.writeHeader)
         writer.addDocument(docid, meta, content)
-
-    if zfp: zfp.close()
 
     print '%s optimizing' % datetime.datetime.now()
     writer.optimize()
     writer.close()
 
+    ah.close()
 
 
 def main(argv):
@@ -48,11 +56,14 @@ def main(argv):
     index_path = argv[1]
     shutil.rmtree(index_path, True)
 
-    dbdoc = cfg.getPath('archive')
-    highestId = docarchive.docarc._findHighestId()
-    print 'Reindex %s(#%d) -> %s' % (dbdoc, highestId, index_path)
     starttime = datetime.datetime.now()
-    reindex(dbdoc, highestId, index_path)
+    dbdoc = cfg.getPath('archive')
+    idc = docarchive.idCounter
+    idc._findIdRange()
+    beginId = idc.beginId
+    endId   = idc.endId
+    print 'Reindex %s(#%d-%d) -> %s' % (dbdoc, beginId, endId, index_path)
+    reindex(dbdoc, beginId, endId, index_path)
     print 'Reindex finished:', datetime.datetime.now() - starttime
 
 

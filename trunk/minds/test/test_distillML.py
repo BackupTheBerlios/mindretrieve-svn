@@ -28,9 +28,9 @@ class TestDistill(unittest.TestCase):
         self.fp = rspreader.openlog(testdir + 'basictags.html')
         meta = {}
         result = distillML.distill(self.fp, self.buf, meta)
-        self.assertEqual('Basic HTML Sample Document', meta['title'])
-        self.assertEqual('Description: this sample contains all basic HTML tags the converter understands', meta['description'])
-        self.assertEqual('basic HTML, sample', meta['keywords'])
+        self.assertEqual(u'Basic HTML Sample Document', meta['title'])
+        self.assertEqual(u'Description: this sample contains all basic HTML tags the converter understands', meta['description'])
+        self.assertEqual(u'basic HTML, sample', meta['keywords'])
         self.assertEqual(4, len(meta))
 
 
@@ -41,8 +41,8 @@ class TestDistill(unittest.TestCase):
         self.fp = rspreader.openlog(testdir + 'meta_variations.html')
         meta = {}
         result = distillML.distill(self.fp, self.buf, meta)
-        self.assertEqual('word1 word2 word3', meta['title'])            # title span multiple lines
-        self.assertEqual('word1 & word2 <word3>', meta['description'])  # all cap 'DESCRIPTION'; HTML encoding decoded; attr span lines
+        self.assertEqual(u'word1 word2 word3', meta['title'])            # title span multiple lines
+        self.assertEqual(u'word1 & word2 <word3>', meta['description'])  # all cap 'DESCRIPTION'; HTML encoding decoded; attr span lines
         self.assert_(not meta.has_key('keywords'))
         self.assertEqual(3, len(meta))
 

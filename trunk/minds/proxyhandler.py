@@ -105,8 +105,14 @@ class ProxyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 log.warn("No response from %s %s", netloc, path)
                 return
         finally:
-            if soc: soc.close()
-            self.connection.close()
+            try:
+                if soc: soc.close()
+            except Exception, e:
+                log.exception('Unable to close outgoing socket')
+            try:
+                self.connection.close()
+            except Exception, e:
+                log.exception('Unable to close incoming socket')
 
     # interpret response
 

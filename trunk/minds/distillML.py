@@ -346,14 +346,14 @@ def process(fp, out, meta):
 
 def _writeOptionalHeader(fp, meta, header):
     value = meta.get(header)
-    if value: fp.write('%s: %s\n' % (header, value))
+    if value: fp.write(u'%s: %s\n' % (header, value))
 
 
 def writeHeader(fp, meta):
     """ Output meta data to the beginning of archived file """
 
-    fp.write('uri: %s\n'  % meta.get('uri' , ''))
-    fp.write('date: %s\n' % meta.get('date', ''))
+    fp.write(u'uri: %s\n'  % meta.get('uri' , ''))
+    fp.write(u'date: %s\n' % meta.get('date', ''))
     _writeOptionalHeader( fp, meta, 'title'        )
     _writeOptionalHeader( fp, meta, 'description'  )
     _writeOptionalHeader( fp, meta, 'keywords'     )

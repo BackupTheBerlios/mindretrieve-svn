@@ -12,22 +12,35 @@ from minds.config import cfg
 
 log = logging.getLogger('lucene')
 
+def initDirectory(directory):
+    """ initialize a new directory """
+    writer = PyLucene.IndexWriter(directory, PyLucene.StandardAnalyzer(), True)
 
-def initDirectory(pathname=None):
+    version = cfg.get('version', 'number', '?')
+    doc = PyLucene.Document()
+    doc.add(PyLucene.Field('version', version, True, True, False))
+
+    # the date field is not used in this document. However it is added
+    # to avoid an error when using Sort('date') when there is no date
+    # Term in the index.
+    doc.add(PyLucene.Field('date', '', True,  True, False))
+
+    writer.addDocument(doc)
+
+    writer.close()
+
+
+def openDirectory(pathname=None):
     """ pathname - index directory. Create new index if directory
         does not exist. '' or None for RAMDirectory (for testing).
     """
     if not pathname:
         directory = PyLucene.RAMDirectory()
-        # initialize the new directory
-        writer = PyLucene.IndexWriter(directory, PyLucene.StandardAnalyzer(), True)
-        writer.close()
+        initDirectory(directory)
 
     elif not os.path.exists(pathname):
         directory = PyLucene.FSDirectory.getDirectory(pathname, True)
-        # initialize the new directory
-        writer = PyLucene.IndexWriter(directory, PyLucene.StandardAnalyzer(), True)
-        writer.close()
+        initDirectory(directory)
 
     else:
         directory = PyLucene.FSDirectory.getDirectory(pathname, False)
@@ -48,7 +61,7 @@ class Reader(object):
         elif directory:
             self.directory = directory
         else:
-            self.directory = initDirectory(pathname)
+            self.directory = openDirectory(pathname)
 
         self.reader = PyLucene.IndexReader.open(self.directory)
 
@@ -56,6 +69,12 @@ class Reader(object):
     def __getattr__(self, attr):
         """ delegate to the underlying object """
         return getattr(self.reader, attr)
+
+
+    def getVersion(self):
+        tenum = self.reader.terms( PyLucene.Term('version', '') )
+        if tenum.term(): return tenum.term().text()
+        return ''
 
 
     def hasDocument(self, docid):
@@ -80,7 +99,7 @@ class Writer(object):
     """ Create a IndexWriter for adding documents """
 
     def __init__(self, pathname=None):
-        self.directory = initDirectory(pathname)
+        self.directory = openDirectory(pathname)
         self.writer = PyLucene.IndexWriter(self.directory, PyLucene.StandardAnalyzer(), False)
         self.writer.maxFieldLength = 1048576 ########<<< todo: ????
 

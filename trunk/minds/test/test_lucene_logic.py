@@ -34,7 +34,7 @@ class TestLuceneLogic(unittest.TestCase):
             if len(args) == 0:                              # special case for RAM directory
                 args = { 'directory': writer.directory }    # pass the RAM directory for subsequence searching
 
-            if writer.docCount() == 0:
+            if writer.docCount() <= 1:
                 writer.addDocument(u'1', {'uri': u'http://a', 'date': '2004'}, u'content1')
                 writer.addDocument(u'2', {'uri': u'http://a', 'date': '2005'}, u'content2')
         finally:
@@ -42,7 +42,7 @@ class TestLuceneLogic(unittest.TestCase):
 
         reader = lucene_logic.Reader(**args)
         try:
-            self.assertEqual(reader.numDocs(), 2)
+            self.assertEqual(reader.numDocs(), 3)           # 2 document added + 1 version document
             self.assert_(reader.hasDocument(u'1'))
             self.assert_(not reader.hasDocument(u'3'))
         finally:
@@ -78,6 +78,13 @@ class TestLuceneLogic(unittest.TestCase):
         self.assert_(os.path.exists(self.dbindex))
         self._test_index_and_search(pathname=self.dbindex)
 
+
+    def test_version(self):
+        # check for the version document added to new index
+        reader = lucene_logic.Reader()
+        version = cfg.get('version', 'number', '?')
+        self.assertEqual(1, reader.numDocs())
+        self.assertEqual(version, reader.getVersion())
 
 
 if __name__ == '__main__':

@@ -14,7 +14,7 @@ import config
 import httpserver
 import proxyhandler
 import qmsg_processor
-import urifs
+#import urifs
 from minds.util import threadutil
 
 
@@ -85,7 +85,7 @@ def init(config_filename):
 def setup():
     """ module startup """
     setupLogging()
-    urifs.init()
+    #urifs.init()
 
 
 def setupLogging():
@@ -153,6 +153,13 @@ def main():
     log.info('  Platform %s', platform)
     log.info('  pwd: %s, defaultencoding: %s', os.getcwd(), sys.getdefaultencoding())
     log.info('PyLucene %s Lucene %s', PyLucene.VERSION, PyLucene.LUCENE_VERSION)
+
+    # show index version
+    import lucene_logic
+    dbindex = cfg.getPath('archiveindex')
+    reader = lucene_logic.Reader(pathname=dbindex)
+    version = reader.getVersion()
+    log.info('  Index version %s', version)
 
     proxyThread = threading.Thread(target=proxyMain, name='proxy')
     #proxyThread.setDaemon(True)

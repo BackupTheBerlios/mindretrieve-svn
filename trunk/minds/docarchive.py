@@ -164,10 +164,12 @@ class ArchiveHandler(object):
             else:                               # different arc_path,
                 self.close()                    #   must close previously opened zfile
 
-        mode = self.mode
-        if mode == 'w' and os.path.exists(arc_path):
-            mode = 'a'
-        self.zfile = zipfile.ZipFile(arc_path, self.mode, zipfile.ZIP_DEFLATED)
+        # It would be easier if ZipFile can use 'a' to create new archive.
+        # Instead do some checking first.
+        if self.mode == 'w' and os.path.exists(arc_path):
+            self.zfile = zipfile.ZipFile(arc_path, 'a', zipfile.ZIP_DEFLATED)
+        else:
+            self.zfile = zipfile.ZipFile(arc_path, self.mode, zipfile.ZIP_DEFLATED)
         self.arc_path = arc_path
 
         return self.zfile, filename

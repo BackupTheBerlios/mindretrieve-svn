@@ -126,6 +126,7 @@ sTR        = 12
 sTDTH      = 13
 sINPUT     = 14
 sIMG       = 15
+sMisc      = 16
 
 
 starttag_dict = {
@@ -164,7 +165,12 @@ starttag_dict = {
     'img'       : sIMG,
     'br'        : sOUTTAG,
     'hr'        : sOUTTAG,
+
+    # these tags are not processed, but they are counted as a common tag
+    'a'         : sMisc,
+    'span'      : sMisc,
 }
+
 
 # process endtag
 
@@ -191,8 +197,9 @@ endtag_dict = {
 def process(fp, out, meta):
     """ Return has_html, has_frameset """
 
-    has_html    = False
-    has_frameset= False
+    has_html        = False
+    has_frameset    = False
+    has_common_tag  = False
 
     first_td    = False     # state for iterating td inside tr
 
@@ -211,11 +218,13 @@ def process(fp, out, meta):
         if token[0] == DATA:
             out.out(token[1])
 
-
         elif token[0] == TAG:
 
             tag = token[1]
             id = starttag_dict.get(tag,-1)
+
+            if id > 0:
+                has_common_tag = True
 
             if id == sOUTP:
                 out.outTag('p')
@@ -271,6 +280,7 @@ def process(fp, out, meta):
 
             elif id == sHTML:
                 has_html = True
+                out.notifyHtml()
 
             elif id == sBODY:
                 out.outHeader(meta)
@@ -329,7 +339,7 @@ def process(fp, out, meta):
 
     out.close(meta)
 
-    return has_html, has_frameset
+    return has_html, has_frameset, has_common_tag
 
 
 
@@ -370,6 +380,7 @@ class Formatter:
 
         self.header_sent = False
         self.content_size = 0
+        self.htmlTagPos = -1
 
         self.lastTag = None             # immediate last tag, None if last output is text.
         self.lastTrailingSpace = False  # a trailing space not yet output
@@ -390,6 +401,12 @@ class Formatter:
         # No harm if already called.
         self.outHeader(meta)
         self.switchBuffer()
+
+
+    def notifyHtml(self):
+        """ Call this when <html> is encountered """
+        if self.htmlTagPos < 0:                     # ignore if more than 1 <html>
+            self.htmlTagPos = self.content_size
 
 
     def outHeader(self, meta):
@@ -474,6 +491,11 @@ class Formatter:
         return self.buf.getvalue()
 
 
+    def contentBeforeHtml(self):
+        buf = self.buf.getvalue()
+        if self.htmlTagPos < 0:
+            return buf
+        return buf[:self.htmlTagPos]
 
 
 
@@ -499,12 +521,25 @@ JAVASCRIPT_FUNCTION = re.compile('function .*\(')   # move this to magic
 PARSE_ERROR = -1    # exception from parser
 EXDOMAIN    = 1     # excluded domain
 NON_HTML    = 2     # recognized by several detection rules
-FRAMESET    = 3     # reject frameset document
-LOWVISIBLE  = 4     # at least 15 visible characters needed (match a few types of ads; single <img>, etc.)
+JS          = 3     # presume javascript
+FRAMESET    = 4     # reject frameset document
+LOWVISIBLE  = 5     # at least 15 visible characters needed (match a few types of ads; single <img>, etc.)
 
 MIN_VISIBLECHAR = 32    # assert that if a doc has less number of chars, it is not worth indexing.
                         # This catch a lot of ads!
                         # On the other hand it also catch some picture windows with only a short caption.
+
+
+js_rexp = '|'.join([
+"(var\s+\w+\s*=)",              # var pophtml =
+"(^\s*\w+\s*=\s*[\"\'\(])",     # ibHtml1="
+"(document.write\s*\()",        # document.write(
+"(function\s+\w+.*?{)",         # function YADopenWindow(x){
+])
+
+js_pattern = re.compile(js_rexp,re.MULTILINE)
+
+
 
 
 def preparse_filter(first_block, meta):
@@ -554,13 +589,12 @@ def distill(rstream, wstream, meta):
 
     formatter = Formatter(writer)
     try:
-        has_html, has_frameset = process(reader, formatter, meta)
+        has_html, has_frameset, has_common_tag = process(reader, formatter, meta)
     except sgmllib.SGMLParseError, e:
         return (PARSE_ERROR, 'SGMLParseError: %s' % str(e)) # SGMLParseError
     except Exception, e:
         log.exception('Error parsing: %s', reader)          # unknown exception
         return (PARSE_ERROR, str(e))
-
 
     # If it does not have any common tag it is presumed to be non-html
     # misconfigured as such.
@@ -569,24 +603,22 @@ def distill(rstream, wstream, meta):
     # good for indexing. This risk should be low as the document would
     # appear scrambled in the browser if this happends (Well unless it is
     # contain in an iframe this may make some sense?)
-##    if not parser.has_common_tag:
-##        return (NON_HTML, 'unknown')    # todo: want to take a guess on CSS or JS? bet it in magic?
-##
+    if not has_common_tag:
+        return (NON_HTML, 'unknown')    # todo: want to take a guess on CSS or JS? bet it in magic?
+
     if has_frameset:
         return (FRAMESET, '<frameset>')
 
     # do some heurisitic analysis to weed out files that should not be indexed.
     header = formatter.getHeader()
 
-    if not has_html:
+    # check for jsscript. Only two unusually places are checked
+    # 1. If no <html>, the entire data
+    # 2. If there is <html>, data before the <html>
 
-        # <html> tag is a very strong sign that this is indeed a HTML document
-
-        if header.find('document.write') >= 0:  # also document *. *writeln
-            return (NON_HTML, 'application/x-javascript')
-        elif JAVASCRIPT_FUNCTION.search(header) and header.find('{') >= 0:
-            return (NON_HTML, 'application/x-javascript')
-
+    jscheck = formatter.contentBeforeHtml()
+    m = js_pattern.search(jscheck)
+    if m: return (JS, m.group(0)[:30])
 
     # If there is too little content (exclude <img alt>) do not index it
     # Indeed this catches a lot of ads.

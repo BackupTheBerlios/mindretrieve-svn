@@ -80,8 +80,8 @@ def findMetaHttpEquiv(first_block):
         parser.feed(first_block)
     except StopIteration:               # good, found charset
         return parser.charset
-    except sgmllib.SGMLParseError, e:   # todo: we care more about the charset than strictless, relax the error?
-        log.exception('Error Parsing')
+    except sgmllib.SGMLParseError, e:
+        log.warn('Error looking for <meta> encoding "%s"', str(e))   # ParseError not uncommon, just log
     except Exception, e:
         log.exception('Error Parsing')
     return ''

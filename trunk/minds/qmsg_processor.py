@@ -335,7 +335,7 @@ class TransformProcess(object):
             return False
         else:
             filename = os.path.split(outpath)[1]
-            log.debug('transformed %s encoding=%s - %s', filename, meta.get('encoding','?'), minfo.req_path)
+            log.debug('transformed %s (%s) - %s', filename, meta.get('encoding','?'), minfo.req_path)
 
         return True
 

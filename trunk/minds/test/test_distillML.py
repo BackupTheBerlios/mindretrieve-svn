@@ -325,7 +325,9 @@ class TestCharEncoding(unittest.TestCase):
     def test_bad_encoding(self):
 
         self.fp = file(testdir + 'ah_ying_bad.qlog', 'rb')
-        self.assertRaises(UnicodeError, distillML.test_distill, self.fp, self.buf, self.meta)
+
+        result = distillML.test_distill(self.fp, self.buf, self.meta)
+        self.assertEqual(self.meta['encoding'], 'iso-8859-1 [DEFAULT]')     # invalid encoding -> default
 
 
 
@@ -389,29 +391,30 @@ class TestWeeding(unittest.TestCase):
         self.assertEqual((distillML.NON_HTML, 'unknown'), result)
 
 
-#    def testJavascriptBasic(self):
-#        self.fp = rspreader.openlog(testdir + 'javascript(basic).js')
-#        result = distillML.distill(self.fp, self.buf, {})
-#        self.assertEqual((distillML.NON_HTML, 'unknown'), result)
-
-
-#    def testJavascriptSmall(self):
-#        self.fp = rspreader.openlog(testdir + 'javascript(small).js')
-#        result = distillML.distill(self.fp, self.buf, {})
-#        self.assertEqual((distillML.NON_HTML, 'unknown'), result)
-
-
-# can't test this right now
-#    def testJavascriptDocumentWrite(self):      # todo: need to know which rule is matched
-#        self.fp = rspreader.openlog(testdir + 'javascript(document_write).js')
-#        result = distillML.distill(self.fp, self.buf, {})
-#        self.assertEqual((distillML.NON_HTML, 'application/x-javascript'), result)
-
-
-    def testJavascriptFunction(self):      # todo: need to know which rule is matched
-        self.fp = rspreader.openlog(testdir + 'javascript(function).js')
+    def testJavascript(self):
+        self.fp = rspreader.openlog(testdir + 'js/doc_write_html.js')
         result = distillML.distill(self.fp, self.buf, {})
-        self.assertEqual((distillML.NON_HTML, 'application/x-javascript'), result)
+        self.assertEqual((distillML.JS, u'document.write('), result)
+
+        self.fp = rspreader.openlog(testdir + 'js/function.js')
+        result = distillML.distill(self.fp, self.buf, {})
+        self.assertEqual((distillML.JS, u'function YADopenWindow(x){'), result)
+
+        self.fp = rspreader.openlog(testdir + 'js/ibHtml1=.js')
+        result = distillML.distill(self.fp, self.buf, {})
+        self.assertEqual((distillML.JS, u'ibHtml1="'), result)
+
+        self.fp = rspreader.openlog(testdir + 'js/var_with_html.js')
+        result = distillML.distill(self.fp, self.buf, {})
+        self.assertEqual((distillML.JS,  u'var pophtml ='), result)
+
+        self.fp = rspreader.openlog(testdir + 'js/small1.js')
+        result = distillML.distill(self.fp, self.buf, {})
+        self.assertEqual((distillML.NON_HTML, 'unknown'), result)
+
+        self.fp = rspreader.openlog(testdir + 'js/small2.js')
+        result = distillML.distill(self.fp, self.buf, {})
+        self.assertEqual((distillML.NON_HTML, 'unknown'), result)
 
 
     def testLowvisible(self):

@@ -29,14 +29,13 @@ class GeneratorParser(sgmllib.SGMLParser):
     def handle_data(self, data):
         self.stream.append((DATA,data))
 
-    # 30% performance improvement on parsing by short circuiting SGMLParser.unknown_starttag
+    # 30% performance improvement on parsing by short circuiting SGMLParser.unknown_starttag & unknown_endtag
     #def unknown_starttag(self, tag, attrs):
         #print '__%s__' % self._SGMLParser__starttag_text #str(self.__dict__)
     def finish_starttag(self, tag, attrs):
         self.stream.append((TAG, tag, attrs))
         return -1
 
-    # 30% performance improvement on parsing by short circuiting SGMLParser.unknown_endtag
     #def unknown_endtag(self, tag):
     def finish_endtag(self, tag):
         self.stream.append((ENDTAG, tag))
@@ -78,6 +77,13 @@ class GeneratorParser(sgmllib.SGMLParser):
             instead of throwing SGMLParseError.
         """
         try:
+            # below is a workaround of a bug in markupbase.parse_declaration()
+            j = i + 2
+            if self.rawdata[j:j+2] in ("-", ""):         # markupbase wrongly used [j:j+1]
+                return -1
+            elif self.rawdata[j:j+1] == '-':
+                raise sgmllib.SGMLParseError, 'Invalid markup ' + self.rawdata[i:i+4]
+
             return sgmllib.SGMLParser.parse_declaration(self, i)
         except sgmllib.SGMLParseError, e:
             pass

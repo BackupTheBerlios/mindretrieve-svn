@@ -6,6 +6,10 @@ import sys
 
 from toollib import sgmllib         # custom version of sgmllib
 
+# todo: GeneratorParser has two purposes, it fixes some SGMLParser issue and it generates the tokens
+#       Break into 2 classes?
+
+
 DATA    = 1
 TAG     = 2
 ENDTAG  = 3
@@ -25,11 +29,16 @@ class GeneratorParser(sgmllib.SGMLParser):
     def handle_data(self, data):
         self.stream.append((DATA,data))
 
-    def unknown_starttag(self, tag, attrs):
+    # 30% performance improvement on parsing by short circuiting SGMLParser.unknown_starttag
+    #def unknown_starttag(self, tag, attrs):
         #print '__%s__' % self._SGMLParser__starttag_text #str(self.__dict__)
+    def finish_starttag(self, tag, attrs):
         self.stream.append((TAG, tag, attrs))
+        return -1
 
-    def unknown_endtag(self, tag):
+    # 30% performance improvement on parsing by short circuiting SGMLParser.unknown_endtag
+    #def unknown_endtag(self, tag):
+    def finish_endtag(self, tag):
         self.stream.append((ENDTAG, tag))
 
     #def unknown_entityref(self, ref):
@@ -61,11 +70,32 @@ class GeneratorParser(sgmllib.SGMLParser):
     def unknown_decl(self, data):
         pass
 
+    MAX_DECLARATION = 32768
+
+    def parse_declaration(self, i):
+        """ A more lenient version of parse_declaration.
+            In case of invalid declaration, skip everything between <!...>
+            instead of throwing SGMLParseError.
+        """
+        try:
+            return sgmllib.SGMLParser.parse_declaration(self, i)
+        except sgmllib.SGMLParseError, e:
+            pass
+            j = self.rawdata.find('>', i)
+            if j  >= 0:                                         # skip
+                return j+1
+            if len(self.rawdata) < i+self.MAX_DECLARATION:      # incomplete declaration
+                return -1
+            raise e                                             # too much to lookahead, treat as error
+
+
+
+BUFSIZE = 32768
 
 def generate_tokens(fp):
     parser = GeneratorParser()
     while True:
-        data = fp.read(32768)
+        data = fp.read(BUFSIZE)
         if data:
             parser.feed(data)
         else:

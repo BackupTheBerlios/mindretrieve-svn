@@ -28,17 +28,46 @@ text
 """
 
 
-class TestParser(unittest.TestCase):
+class ChunkedStringIO(object):
+    """ Helper to feed SGMLParser with incomplete string chunks """
 
-    #def test0(self):
-    #    buf = StringIO.StringIO(DOC)
-    #    for t in gp.generate_tokens(buf):
-    #        print t
+    def __init__(self, chunks):
+        self.chunks = chunks
 
+    def read(self, bufsize=-1):
+        if not self.chunks:
+            return None
+        return self.chunks.pop(0)
+
+
+
+class BaseTest(unittest.TestCase):
+
+    DEBUG = 0
+
+    def _test_generator(self, doc, expect):
+        fp = StringIO.StringIO(doc)
+        tokens = gp.generate_tokens(fp)
+        self._test_generator1(tokens, expect)
+
+
+    def _test_generator1(self, tokens, expect):
+        k = 0
+        for t in tokens:
+            if self.DEBUG: print t
+            if k < len(expect) and t == expect[k]:
+                k += 1
+        self.assertEqual(expect[k:k+1], [])
+
+
+
+class TestParser(BaseTest):
 
     def test_parse(self):
 
-        expect = [
+        self._test_generator(
+            DOC, [
+
             (gp.TAG,    u'html', []),       # match some start tag
             (gp.DATA,   u'a title'),        # match some text
 
@@ -62,37 +91,90 @@ class TestParser(unittest.TestCase):
 
             (gp.ENDTAG, u'html'),           # match some end tag
 
-            'FINISH',                       # this won't match any token
-        ]
-
-        buf = StringIO.StringIO(DOC)
-        for t in gp.generate_tokens(buf):
-            if t == expect[0]:
-                del expect[0]
-
-        self.assertEqual(expect[0], 'FINISH')
+            ])
 
 
+
+class TestSGMLPatch(BaseTest):
 
     def test_parse_emptytag(self):
 
         # verify workaround of sgmllib's problem in handling empty tag construct. e.g. <br/>, <hr />
-        expect = [
+
+        self._test_generator(
+            "<html><br/><hr /><p>!</html>",
+            [
             (gp.TAG,    u'html', []),
             (gp.TAG,    u'br',   []),       # get the start tag
             (gp.TAG,    u'hr',   []),       # get the start tag
             (gp.TAG,    u'p',    []),       # and next tag
             (gp.DATA,   u'!',      ),       # and some text
             (gp.ENDTAG, u'html'),
-            'FINISH',                       # this won't match any token
-        ]
+            ])
 
-        buf = StringIO.StringIO("<html><br/><hr /><p>!</html>")
-        for t in gp.generate_tokens(buf):
-            if t == expect[0]:
-                del expect[0]
 
-        self.assertEqual(expect[0], 'FINISH')
+    def test_declaration_bad(self):
+
+        # verify the lenient version of sgmllib's declaration parsing
+
+        # there should be no space between '<!' and '--'
+        self._test_generator(
+            "<html>A<! -- bad comment  -- >B</html>",
+            [
+            (gp.TAG,    u'html', []),
+            (gp.DATA,   u'A'       ),   # verify no extra chars from the bad declaration
+            (gp.DATA,   u'B'       ),   # verify no extra chars from the bad declaration
+            (gp.ENDTAG, u'html'),
+            ])
+
+
+        # this <! header > is seen in some website
+        self._test_generator(
+            "<html>A<! header >B</html>",
+            [
+            (gp.TAG,    u'html', []),
+            (gp.DATA,   u'A'       ),   # verify no extra chars from the bad declaration
+            (gp.DATA,   u'B'       ),   # verify no extra chars from the bad declaration
+            (gp.ENDTAG, u'html'),
+            ])
+
+
+    def test_declaration_good(self):
+
+        self._test_generator(
+            "<html>A<!-- good comment -->B</html>",
+            [
+            (gp.TAG,    u'html', []),
+            (gp.DATA,   u'A'       ),
+            (gp.DATA,   u'B'       ),
+            (gp.ENDTAG, u'html'),
+            ])
+
+
+    def test_declaration_incomplete(self):
+
+        # verify that the lenient declaration can handle incompete tags
+
+        doc = " <html>A<!-- bad comment -->B</html>"
+
+        # Note unrelated problem: without the initial space above, there
+        # is problem in parsing the incomplete <html>. Investigate?!
+
+        for i in range(1, len(doc)-1):
+
+            chunks = [doc[:i], doc[i:]]
+            #print chunks
+            fp = ChunkedStringIO(chunks)
+            tokens = gp.generate_tokens(fp)
+
+            self._test_generator1(
+                tokens,
+                [
+                (gp.TAG,    u'html', []),
+                (gp.DATA,   u'A'       ),
+                (gp.DATA,   u'B'       ),
+                (gp.ENDTAG, u'html'),
+                ])
 
 
 

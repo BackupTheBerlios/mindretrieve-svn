@@ -60,13 +60,13 @@ class IdCounter(object):
 
     def __init__(self):
         self.currentIdLock = threading.Lock()
-        # archive status - beginId:endId
+        # archive status - _beginId:_endId
         #   None,None: uninitialized
         #   0,0      : no document
         #   0,1      : 1 document with id 0
         # ...and so on...
-        self.beginId = None
-        self.endId = None
+        self._beginId = None
+        self._endId = None
 
 
     arc_pattern = re.compile('\d{6}.zip$')
@@ -78,8 +78,8 @@ class IdCounter(object):
         apath = cfg.getPath('archive')
         files = filter(self.arc_pattern.match, os.listdir(apath))
         if not files:
-            self.beginId = 0
-            self.endId = 0
+            self._beginId = 0
+            self._endId = 0
             return
 
         first_arc = min(files)
@@ -88,8 +88,8 @@ class IdCounter(object):
         first = self._findId(os.path.join(apath, first_arc), min)
         last  = self._findId(os.path.join(apath, last_arc ), max)
 
-        self.beginId = int(first_arc[:6] + first)   # would be a 9 digit id
-        self.endId   = int(last_arc[:6]  + last )   # would be a 9 digit id
+        self._beginId = int(first_arc[:6] + first)   # would be a 9 digit id
+        self._endId   = int(last_arc[:6]  + last )+1 # would be a 9 digit id
 
 
     def _findId(self, path, min_or_max):
@@ -102,8 +102,7 @@ class IdCounter(object):
             if not files:
                 # This is an odd case when there is a zip but nothing inside
                 # (possibly some exception happened when adding to archive).
-                # Highest really should be xxx000 - 1. Make it 000 here just
-                # for simplicity.
+                # The min and max id is arguably not correct.
                 return '000'
 
             return min_or_max(files)
@@ -117,15 +116,15 @@ class IdCounter(object):
 
         self.currentIdLock.acquire()
         try:
-            if self.endId == None:
+            if self._endId == None:
                 # This is going to be a long operation inside a
                 # synchronization block. Everybody is going to wait
                 # until the lazy initialization finish.
                 self._findIdRange()
-                log.info('Initial archive id range is %s:%s', self.beginId, self.endId)
+                log.info('Initial archive id range is %s:%s', self._beginId, self._endId)
 
-            id = '%09d' % self.endId
-            self.endId += 1
+            id = '%09d' % self._endId
+            self._endId += 1
             return id
 
         finally:
@@ -206,7 +205,7 @@ def main(argv):
         print __doc__
 
     idCounter._findIdRange()
-    print 'idRange [%s:%s]\n' % (idCounter.beginId, idCounter.endId)
+    print 'idRange [%s:%s]\n' % (idCounter._beginId, idCounter._endId)
 
     if len(argv) <= 1:
         sys.exit(-1)

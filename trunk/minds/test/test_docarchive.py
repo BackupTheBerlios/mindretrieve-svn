@@ -83,8 +83,8 @@ class TestIdCounter(BaseTest):
     def _assertRange(self, begin, end):
         ic = docarchive.IdCounter()         # reinitialize IdCounter
         ic._findIdRange()
-        self.assertEqual(ic.beginId, begin)
-        self.assertEqual(ic.endId, end)
+        self.assertEqual(ic._beginId, begin)
+        self.assertEqual(ic._endId, end)
 
 
 
@@ -101,7 +101,7 @@ class TestIdCounter(BaseTest):
         zfile.close()
 
         # This implementation would assume 000001+000 = 1000
-        self._assertRange(1000,1000)
+        self._assertRange(1000,1001)
 
 
 
@@ -111,7 +111,7 @@ class TestIdCounter(BaseTest):
             ('000000002', 'this is file 000000002'),
             ('000001009', 'this is file 000001009'),
         ])
-        self._assertRange(1,1009)
+        self._assertRange(1,1010)
 
 
 
@@ -138,7 +138,7 @@ class TestIdCounter(BaseTest):
         zfile.close()
 
         # _findIdRange filter out invalid filenames
-        self._assertRange(1,99)
+        self._assertRange(1,100)
 
 
 
@@ -148,13 +148,13 @@ class TestIdCounter(BaseTest):
 
         id = ic.getNewId()
         self.assertEqual('000000000', id)
-        self.assertEqual(ic.beginId, 0)
-        self.assertEqual(ic.endId, 1)
+        self.assertEqual(ic._beginId, 0)
+        self.assertEqual(ic._endId, 1)
 
         id = ic.getNewId()
         self.assertEqual('000000001', id)
-        self.assertEqual(ic.beginId, 0)
-        self.assertEqual(ic.endId, 2)
+        self.assertEqual(ic._beginId, 0)
+        self.assertEqual(ic._endId, 2)
 
 
 

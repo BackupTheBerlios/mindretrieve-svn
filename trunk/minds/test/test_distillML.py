@@ -197,6 +197,26 @@ class TestDistill(unittest.TestCase):
 
 
 
+class TestFormatter(unittest.TestCase):
+
+    def setUp(self):
+        self.buf = StringIO.StringIO()
+        self.out = distillML.Formatter(self.buf)
+
+    def test_notifyHtml(self):
+
+        out = self.out
+        out.out('line1')
+        out.notifyHtml()
+        out.out('line2')
+        out.notifyHtml()    # an invalid second <html>
+        out.out('line3')
+
+        self.assertEqual(out.contentBeforeHtml(), 'line1')      # make sure this is not disrupt by second notifyHtml()
+        self.assertEqual(out.getHeader(), 'line1line2line3')
+
+
+
 class TestCharEncoding(unittest.TestCase):
 
     # note: this set of test data includes encoding from both http header and <meta> tag

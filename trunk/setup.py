@@ -40,7 +40,6 @@ def make_sdist(argv):
       ('dist/docs',             'docs'                  ),
       ('dist/lib/htdocs',       'lib/htdocs'            ),
       ('dist/lib/testdocs',     'lib/testdocs'          ),
-      ('dist/lib/testdocs/js',  'lib/testdocs/js'       ),
       ('sitecustomize.py',      'lib/sitecustomize.py'  ),
     ]
 
@@ -130,6 +129,7 @@ else:
             ('docs/img',                glob.glob('docs/website/img/opera_proxy.gif')),
             ('lib/htdocs',              glob.glob('lib/htdocs/*.*')),
             ('lib/testdocs',            glob.glob('lib/testdocs/*.*')),
+            ('lib/testdocs/js',         glob.glob('lib/testdocs/js/*.*')),
             ('lib/testdocs/test_magic', glob.glob('lib/testdocs/test_magic/*.*')),
         ],
         )

@@ -194,5 +194,35 @@ class TestArchiveHandler(BaseTest):
 
 
 
+    def test_append_to_exiting_archive(self):
+        ah = docarchive.ArchiveHandler('w')
+
+        # add files to a new archive
+        ah.add_document('000000000', StringIO.StringIO('this is doc 000000000'))
+        arc_path0 = ah.arc_path
+        ah.close()
+
+        # there is 1 file in the archive
+        zfile = zipfile.ZipFile(arc_path0,'r')
+        self.assertEqual(len(zfile.namelist()), 1)
+        zfile.close()
+
+        # append files to an exiting archive
+        ah.add_document('000000001', StringIO.StringIO('this is doc 000000001'))
+        arc_path = ah.arc_path
+        ah.close()
+
+        # note: there was a bug that the second add overwritten instead of append
+        # Therefore added this test case catch this damaging bug
+
+        # there are 2 files in the archive
+        zfile = zipfile.ZipFile(arc_path0,'r')
+        self.assertEqual(len(zfile.namelist()), 2)
+        self.assertEqual(zfile.read('000'), 'this is doc 000000000')
+        self.assertEqual(zfile.read('001'), 'this is doc 000000001')
+        zfile.close()
+
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -1,7 +1,14 @@
-"""Usage: docarchive id filename
-
-  Add the file as document #id
+"""Usage: docarchive [option] [id|filename]
+    -r  read docid
+    -a  add filename [not implemented]
 """
+
+# todo: describe docarchive file format
+
+# Note: id are generally added consecutively in chronical order.
+# However, users are free to purge documents afterward. Therefore id
+# does not necessary start from 0 nor are they necessary consecutive.
+
 
 import logging
 import os, os.path, sys
@@ -11,15 +18,98 @@ import threading
 import zipfile
 
 from minds.config import cfg
-
+from toollib import zipfile_single
 
 log = logging.getLogger('docarc')
 
-class DocArchive(object):
+
+
+def parseId(id):
+    """ Return arc_path, filename represents by id.
+        e.g. id=123456789 -> $archive/123456.zip/789
+
+        Raises KeyError if malformed
+    """
+    if not id.isdigit() or len(id) != 9:
+        raise KeyError, 'Invalid id: %s' % str(id)
+
+    apath = cfg.getPath('archive')
+    return os.path.join(apath, id[:6]+'.zip'), id[6:]
+
+
+
+def get_document(id):
+    """ Return fp to the content of id.
+        KeyError if arc_path or filename not exist.
+    """
+
+    arc_path, filename = parseId(id)
+
+    if not os.path.exists(arc_path):
+        raise KeyError, 'archive file does not exist %s' % arc_path
+
+    zfile = zipfile_single.ZipFile(file(arc_path,'rb'), 'r')
+    try:
+        return StringIO.StringIO(zfile.read(filename))
+    finally:
+        zfile.close()
+
+
+
+class IdCounter(object):
 
     def __init__(self):
         self.currentIdLock = threading.Lock()
-        self.currentId = None
+        # archive status - beginId:endId
+        #   None,None: uninitialized
+        #   0,0      : no document
+        #   0,1      : 1 document with id 0
+        # ...and so on...
+        self.beginId = None
+        self.endId = None
+
+
+    arc_pattern = re.compile('\d{6}.zip$')
+    filename_pattern = re.compile('\d{3}$')
+
+    def _findIdRange(self):
+        """ Scan the $archive directory for zip files for the begin and end id. """
+
+        apath = cfg.getPath('archive')
+        files = filter(self.arc_pattern.match, os.listdir(apath))
+        if not files:
+            self.beginId = 0
+            self.endId = 0
+            return
+
+        first_arc = min(files)
+        last_arc  = max(files)
+
+        first = self._findId(os.path.join(apath, first_arc), min)
+        last  = self._findId(os.path.join(apath, last_arc ), max)
+
+        self.beginId = int(first_arc[:6] + first)   # would be a 9 digit id
+        self.endId   = int(last_arc[:6]  + last )   # would be a 9 digit id
+
+
+    def _findId(self, path, min_or_max):
+        """ return the min_or_max filename in path (as a 3 dight string) """
+
+        zfile = zipfile.ZipFile(path, 'r')                      # would throw BadZipfile if not a zip file
+        try:
+            files = zfile.namelist()
+            files = filter(self.filename_pattern.match, files)  # filter invalid filename
+            if not files:
+                # This is an odd case when there is a zip but nothing inside
+                # (possibly some exception happened when adding to archive).
+                # Highest really should be xxx000 - 1. Make it 000 here just
+                # for simplicity.
+                return '000'
+
+            return min_or_max(files)
+
+        finally:
+            zfile.close()
 
 
     def getNewId(self):
@@ -27,173 +117,108 @@ class DocArchive(object):
 
         self.currentIdLock.acquire()
         try:
-            if self.currentId == None:
+            if self.endId == None:
                 # This is going to be a long operation inside a
                 # synchronization block. Everybody is going to wait
                 # until the lazy initialization finish.
-                self.currentId = self._findHighestId() + 1
-                log.info('Initials currentId is %s', self.currentId)
-            id = self.currentId
-            self.currentId += 1
+                self._findIdRange()
+                log.info('Initial archive id range is %s:%s', self.beginId, self.endId)
+
+            id = '%09d' % self.endId
+            self.endId += 1
+            return id
+
         finally:
             self.currentIdLock.release()
-        return '%09d' % id
 
 
-    arc_pattern = re.compile('\d{6}.zip')
-
-    def _findHighestId(self):
-        """ Scan db directories for files for the highest id.
-            0 if no file found. Would throw exception if there is
-            unrecoverable file corruption.
-        """
-
-        # scan for files under %dbdoc directory
-        dbdoc = cfg.getPath('archive')
-        files = filter(self.arc_pattern.match, os.listdir(dbdoc))
-        if not files:
-            return 0
-        top_arc = max(files)
-
-        # would throw BadZipfile if not a zip file
-        zfile = zipfile.ZipFile(os.path.join(dbdoc, top_arc), 'r')
-
-        # look in side the zip archive
-        files = zfile.namelist()
-        zfile.close()
-        if files:
-            top = max(files)
-        else:
-            # This is an odd case when there is a zip but nothing inside
-            # (possibly some exception happened when adding to archive).
-            # Highest really should be xxx000 - 1. Make it 000 here just
-            # for simplicity.
-            top = '000'
-
-        if len(top) != 3 or not top.isdigit():
-            raise IOError, 'Invalid file %s in %s' % (top, top_arc)
-
-        return int(top_arc[:6] + top)   # would be a 9 digit id
+idCounter = IdCounter()
 
 
-    def _validateId(self, id):
-        # id=123456789 -> db/doc/123456.zip/789
-        if not id.isdigit() or len(id) != 9:
-            raise ValueError, 'Invalid id: %s' % str(id)
+
+class ArchiveHandler(object):
+    """ Optimize batch reading and writing by reusing opened zipfile if
+        possible. Must call close() at the end.
+
+        Parameter:
+            mode - 'r' for read and 'w' for write
+                   Internally use 'a' instead or 'w' if zip file exist (see zipfile.ZipFile)
+    """
+
+    def __init__(self, mode):
+        if mode not in ['r','w']:
+            raise ValueError, 'Invalid mode %s' % mode
+        self.arc_path = None
+        self.zfile = None
+        self.mode = mode
 
 
-    def get_archive(self, id, openedZipFile=None, closeIfNotNeeded=False):
-        """ Open the zip archive file for the given id. openedZipfFile
-            and closeIfNotNeeded parameters are used to reuse archive
-            handle and reduce the number of times of open.
+    def _open(self, id):
+        """ Return opened zfile, filename represents id """
 
-            @params openedZipfFile - if this corresponds to the archive
-                to be opened, it used as return value instead. Caller
-                can use 'is' to test its identity.
-            @params closeIfNotNeeded - if openedZipFile is not the
-                corresponding archive, close it if this parameter is
-                True.
+        arc_path, filename = parseId(id)
 
-            openedZipFile is only closed when the whole operation can be
-            completed successfully.
-        """
+        if self.arc_path:
+            if self.arc_path == arc_path:       # same arc_path
+                return self.zfile, filename     #   reuse opened zfile
+            else:                               # different arc_path,
+                self.close()                    #   must close previously opened zfile
 
-        self._validateId(id)
+        mode = self.mode
+        if mode == 'w' and os.path.exists(arc_path):
+            mode = 'a'
+        self.zfile = zipfile.ZipFile(arc_path, self.mode, zipfile.ZIP_DEFLATED)
+        self.arc_path = arc_path
 
-        filename = id[:6] + '.zip'
-
-        # check if openedZipFile is the corresponding archive
-        if openedZipFile:
-            openedFilename = os.path.split(openedZipFile.fp.name)[1]
-            if openedFilename == filename:
-                return openedZipFile
-
-        # we need to open a new ZipFile
-        pathname = os.path.join( cfg.getPath('archive'), filename)
-        exists = os.path.exists(pathname)
-        arc = zipfile.ZipFile(pathname, exists and 'a' or 'w', zipfile.ZIP_DEFLATED)
-
-        if openedZipFile and closeIfNotNeeded:
-            # Note: leave the closing of openedZipFile near the end when
-            # exception is not likely to happen in order to guarantee
-            # openedZipFile is only closed when the whole operation is
-            # completed successfully. If this is done too early, exception
-            # may be thrown subsequencely.
-            try:
-                openedZipFile.close()
-            except:
-                log.exception('Error when trying to close openedZipFile %s' % openedFilename)
-
-        return arc
+        return self.zfile, filename
 
 
-    def get_arc_document(self, id):
-        """ Return the archive and a file object represents document
-            #id. Please close the archive after use. Raise ? if id does
-            not refer to an existing document.
-        """
-        arc = self.get_archive(id)
-        try:
-            fp = self.get_document(arc, id)
-        except:
-            arc.close()
-            raise
-        else:
-            return arc, fp
+    def close(self):
+        if self.zfile:
+            self.zfile.close()
+        self.zfile = None
+        self.arc_path = None
 
 
-    def get_document(self, arc, id):
-        """
-        """
-        self._validateId(id)
-
-        filename = id[-3:]
-        # we trust caller that arc matches id[:6]
-
-        # Why does ZipFile not provide a streaming api?
-        # read() gets the whole file and we have to wrap it in StringIO
-        content = arc.read(filename)
-        return StringIO.StringIO(content)
-
-
-    def add_document(self, arc, id, fp):
-        """
-        """
-        self._validateId(id)
-        filename = id[-3:]
-        try:
-            zipinfo = arc.getinfo(filename)
-        except KeyError:    # good, filename not in arc
+    def add_document(self, id, fp):
+        zfile, filename = self._open(id)
+        try:                                        # check if filename is in archive
+            zipinfo = self.zfile.getinfo(filename)
+        except KeyError:                            # good, filename not in arc
             pass
-        else:               # expect KeyError; otherwise an entry is already there
-            raise KeyError, 'Duplicated entry %s in %s' % (filename, arc.fp)
-        arc.writestr(filename, fp.read())
+        else:                                       # expect KeyError; otherwise an entry is already there
+            raise KeyError, 'Duplicated entry %s in %s' % (filename, self.arc_path)
 
-
-docarc = DocArchive()
+        self.zfile.writestr(filename, fp.read())
 
 
 
 ## cmdline testing #####################################################
 
 def main(argv):
-    if len(argv) < 3:
-        print __doc__
-        sys.exit(-1)
 
     from minds import proxy
-    proxy.init('')
+    proxy.init(proxy.CONFIG_FILENAME)
 
-    id = argv[1]
-    id = ('000000000' + id)[-9:]
-    fp = file(argv[2])
+    if len(argv) <= 1:
+        print __doc__
 
-    arc = docarc.get_archive(id)
-    print 'Adding %s as document %s into %s' % (fp.name, id, arc.fp)
-    try:
-        docarc.add_document(arc, id, fp)
-    finally:
-        arc.close()
+    idCounter._findIdRange()
+    print 'idRange [%s:%s]\n' % (idCounter.beginId, idCounter.endId)
+
+    if len(argv) <= 1:
+        sys.exit(-1)
+
+    option = argv[1]
+    if option == '-r':
+        id = argv[2]
+        id = ('000000000' + id)[-9:]
+        arc_path, filename = parseId(id)
+        print get_document(arc_path, filename).read()
+
+    elif option == '-a':
+        filename = argv[2]
+        print 'not implemented'
 
 
 if __name__ == '__main__':

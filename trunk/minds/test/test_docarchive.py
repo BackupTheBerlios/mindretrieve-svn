@@ -5,102 +5,192 @@ import os, os.path, sys
 import shutil
 import StringIO
 import unittest
+import zipfile
 
 from config_help import cfg
 from minds import docarchive
 
 
 
-class TestDocArchive(unittest.TestCase):
+def _add_documents(data):
+    """ Helper to add documents.
+        data is list of (id, content)
+    """
+    ah = docarchive.ArchiveHandler('w')
+    try:
+        for id, content in data:
+            ah.add_document(id, StringIO.StringIO(content))
+    finally:
+        ah.close()
+
+
+
+class BaseTest(unittest.TestCase):
+    """ Clean up the $archive to prepare for testing """
 
     def setUp(self):
+        self.apath = cfg.getPath('archive')
         self.cleanup()
         cfg.setupPaths()
 
-
     def cleanup(self):
-        # hardcode test directory to be removed to avoid deleting real data in config goof
-        shutil.rmtree('testdata/archive', True)
+        assert(self.apath == 'testdata/archive')    # avoid deleting wrong data in config goof
+        shutil.rmtree(self.apath, True)
 
+
+
+class TestDocArchive(BaseTest):
 
     def test_invalideId(self):
-        da = docarchive.docarc
 
-        self.assertRaises(ValueError, da.get_archive, '')
-        self.assertRaises(ValueError, da.get_archive, '123a')       # non-numeric
-        self.assertRaises(ValueError, da.get_archive, '1234567890') # more than 9 digits
+        self.assertRaises(KeyError, docarchive.parseId, '')
+        self.assertRaises(KeyError, docarchive.parseId, '123a')         # non-numeric
+        self.assertRaises(KeyError, docarchive.parseId, '1234567890')   # more than 9 digits
+        self.assertRaises(KeyError, docarchive.parseId, 'x')
 
-        self.assertRaises(ValueError, da.get_archive, 'x')
-        self.assertRaises(ValueError, da.get_document, None, 'x')
-        self.assertRaises(ValueError, da.add_document, None, 'x', None)
+
+    def test_get_document(self):
+
+        _add_documents([
+            ('000000000', 'this is file 000000000'),
+            ('000000002', 'this is file 000000002'),
+        ])
+
+        fp = docarchive.get_document('000000000')
+        self.assertEqual(fp.read(), 'this is file 000000000')
+
+        fp = docarchive.get_document('000000002')
+        self.assertEqual(fp.read(), 'this is file 000000002')
+
+
+    def test_get_document_not_exist(self):
+
+        _add_documents([
+            ('000000000', 'this is file 000000000'),
+            ('000000002', 'this is file 000000002'),
+        ])
+
+        # arc_path 000000.zip exist, filename not found in arc_path
+        self.assertRaises(KeyError, docarchive.get_document, '000000777')
+
+        # arc_path 000222.zip does not exist
+        self.assertRaises(KeyError, docarchive.get_document, '000222777')
+
+
+
+class TestIdCounter(BaseTest):
+
+    def _assertRange(self, begin, end):
+        ic = docarchive.IdCounter()         # reinitialize IdCounter
+        ic._findIdRange()
+        self.assertEqual(ic.beginId, begin)
+        self.assertEqual(ic.endId, end)
+
+
+
+    def test_findIdRange_initial_state(self):
+        self._assertRange(0,0)
+
+
+
+    def test_findIdRange_no_file_in_zip(self):
+
+        # 000001.zip contains no file.
+        arc_path = os.path.join(self.apath, '000001.zip')
+        zfile = zipfile.ZipFile(arc_path, 'w', zipfile.ZIP_DEFLATED)
+        zfile.close()
+
+        # This implementation would assume 000001+000 = 1000
+        self._assertRange(1000,1000)
+
+
+
+    def test_findIdRange(self):
+        _add_documents([
+            ('000000001', 'this is file 000000000'),
+            ('000000002', 'this is file 000000002'),
+            ('000001009', 'this is file 000001009'),
+        ])
+        self._assertRange(1,1009)
+
+
+
+    def test_findIdRange_resist_garbagefile(self):
+        _add_documents([
+            ('000000001', 'this is file 000000000'),
+            ('000000002', 'this is file 000000002'),
+            ('000000099', 'this is file 000000099'),
+        ])
+
+        arc_path = os.path.join(self.apath, '000000.zip')
+        zfile = zipfile.ZipFile(arc_path, 'a', zipfile.ZIP_DEFLATED)
+        zfile.writestr('---', 'filename should be 3 digits')
+        zfile.writestr('aaa', 'filename should be 3 digits')
+        zfile.close()
+
+        # check that zipfile is corrupted with invalid filename in it
+        zfile = zipfile.ZipFile(arc_path, 'r')
+        files = zfile.namelist()
+
+        self.assertEqual(len(files), 5)
+        self.assertEqual(min(files), '---')
+        self.assertEqual(max(files), 'aaa')
+        zfile.close()
+
+        # _findIdRange filter out invalid filenames
+        self._assertRange(1,99)
+
 
 
     def test_getNewId(self):
-        da = docarchive.DocArchive()        # reinitialize DocArchive
-        id = da.getNewId()                  # test getNewId() in fresh database
+
+        ic = docarchive.IdCounter()         # reinitialize from fresh database
+
+        id = ic.getNewId()
+        self.assertEqual('000000000', id)
+        self.assertEqual(ic.beginId, 0)
+        self.assertEqual(ic.endId, 1)
+
+        id = ic.getNewId()
         self.assertEqual('000000001', id)
+        self.assertEqual(ic.beginId, 0)
+        self.assertEqual(ic.endId, 2)
 
 
-    def test_add_and_get(self):
-        da = docarchive.docarc
-
-        # add documents
-        id = '000000123'
-        arc = da.get_archive(id)
-        self.assert_(arc)                       # simple get_archive() test
-        da.add_document(arc, id, StringIO.StringIO('this is a test document1'))
 
 
-        id = '000000124'
-        arc0 = arc
-        arc = da.get_archive(id, arc0, True)
-        self.assert_(arc0 is arc)               # test reuse of arc in get_archive()
-        da.add_document(arc, id, StringIO.StringIO('this is a test document2'))
+class TestArchiveHandler(BaseTest):
+
+    def test_invalid_mode(self):
+        self.assertRaises(ValueError, docarchive.ArchiveHandler, 'a')    # only 'r' and 'w' for mode
 
 
-        id = '000001124'
-        arc0 = arc
-        arc = da.get_archive(id, arc0, True)
-        self.assertNotEqual(arc0, arc)          # test new arc being opened
-        da.add_document(arc, id, StringIO.StringIO('this is a test document3'))
+    def test_add_document(self):
+        ah = docarchive.ArchiveHandler('w')
 
+        # add files to archive
+        ah.add_document('000000000', StringIO.StringIO('this is doc 000000000'))
+        zfile, arc_path = ah.zfile, ah.arc_path
 
-        # try to write to arc0 to make sure get_archive() has closed it for us
-        self.assertRaises(Exception, arc0.writestr, 'dummy', 'dummy data')
+        ah.add_document('000000001', StringIO.StringIO('this is doc 000000001'))
+        # assert 000000.zip remain open
+        self.assert_(zfile == ah.zfile)
+        self.assert_(arc_path == ah.arc_path)
 
+        ah.add_document('000001001', StringIO.StringIO('this is doc 000001001'))
+        # assert 000000.zip is switched
+        self.assert_(zfile != ah.zfile)
+        self.assert_(arc_path != ah.arc_path)
 
-        # test error reinserting to existing id
-        self.assertRaises(KeyError, da.add_document, arc, id, StringIO.StringIO('this is a test document3'))
+        ah.close()
 
-        arc.close()
+        # check two zip files are created
+        self.assert_(os.path.exists(os.path.join(self.apath, '000000.zip')))
+        self.assert_(os.path.exists(os.path.join(self.apath, '000001.zip')))
 
-
-        # get documents
-        id = '000000123'
-        arc, fp = da.get_arc_document(id)       # simple get_arc_document() test
-        self.assertEqual('this is a test document1', fp.read())
-
-        id = '000000124'
-        fp = da.get_document(arc, id)           # simple get_document() test
-        self.assertEqual('this is a test document2', fp.read())
-
-        id = '000000125'                        # test doc not found in get_document()
-        self.assertRaises(KeyError, da.get_document, arc, id)
-
-        arc.close()
-
-        id = '000001125'                        # test doc not found in get_arc_document()
-        self.assertRaises(KeyError, da.get_arc_document, id)
-
-
-        # test getNewId()
-        self.assertEqual(None, da.currentId)    # currentId are still uninitialized
-
-        id = da.getNewId()
-        self.assertEqual('000001125', id)       # this will trigger lazy initialization
-
-        id = da.getNewId()
-        self.assertEqual('000001126', id)
+        # check content
+        fp = docarchive.get_document('000000001')
+        self.assertEqual(fp.read(), 'this is doc 000000001')
 
 
 

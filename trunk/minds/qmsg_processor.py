@@ -359,13 +359,13 @@ def _parseTimestamp(s):
 
 
 def _extract_meta(minfo, timestamp):
-    """ Extract some meta data from the response header, including 
+    """ Extract some meta data from the response header, including
 
-        uri - from request path 
+        uri - from request path
         date - from timestamp
         ETag or last-modified - from http header
         content-type - from http header (for its charset)
-        
+
         The dictionary is case-sensitive and keys are in lowercase.
     """
 
@@ -389,6 +389,8 @@ def _extract_meta(minfo, timestamp):
             meta['etag'] = "W/%s" % minfo.clen                          # use clen as a weak etag
 
     meta['content-type'] = minfo.rsp_headers.get('content-type','')     # content-type
+
+    meta['referer'] = minfo.req_headers.get('referer','')               # referer (from request)
 
     return meta
 

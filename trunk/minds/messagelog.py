@@ -12,14 +12,14 @@ import cStringIO
 import datetime
 import httplib
 import logging
-import os
-import os.path
+import mimetools
+import os, os.path
 import re
 import threading
 import sys
 
 from config import cfg
-import urifs
+from minds import urifs
 from minds.util import fileutil
 from minds.util import httputil
 from minds.util import multiblockfile
@@ -154,8 +154,13 @@ class MessageInfo:
         words = requestline.split()
         if len(words) != 3:
             raise ParseMessageLogError('Invalid request line: %s' % requestline)
-        minfo.setReq(words[0], words[1], {})
+
+        req_headers = dict(mimetools.Message(reqFp))
+
         reqFp.complete()
+
+        minfo.setReq(words[0], words[1], req_headers)
+
 
         # parse response
         rspFp = multiblockfile.MbReader(fp)
@@ -166,8 +171,10 @@ class MessageInfo:
         rspBuf.seek(0)
         rspFp.complete()
 
+
         # read len of content block
         cntFp = multiblockfile.MbReader(fp)
+
 
         # fill in other fields using parseRsp
         minfo.parseRsp(rspBuf, cntFp.clen)
@@ -193,10 +200,10 @@ class MessageInfo:
         return minfo
 
 
-    def _updateUriFs(self):
-        # 11/14/04 todo: this is some experimental code that doesn't do much right now
-        if not self.discard:
-            urifs.open(self.req_path, self.ctype, self.clen)
+#    def _updateUriFs(self):
+#        # 11/14/04 todo: this is some experimental code that doesn't do much right now
+#        if not self.discard:
+#            urifs.open(self.req_path, self.ctype, self.clen)
 
 
     def logmsg(self):

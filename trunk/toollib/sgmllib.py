@@ -12,7 +12,7 @@
 import markupbase
 import re
 
-__all__ = ["SGMLParser"]
+__all__ = ["SGMLParser", "SGMLParseError"]
 
 # Regular expressions used for parsing
 
@@ -23,7 +23,8 @@ incomplete = re.compile('&([a-zA-Z][a-zA-Z0-9]*|#[0-9]*)?|'
                               '![^<>]*)?')
 
 entityref = re.compile('&([a-zA-Z][-.a-zA-Z0-9]*)[^a-zA-Z0-9]')
-charref = re.compile('&#([0-9]+)[^0-9]')
+#charref = re.compile('&#([0-9]+)[^0-9]')
+charref = re.compile('&#([0-9]+|[xX][0-9a-fA-F]+);')
 
 starttagopen = re.compile('<[>a-zA-Z]')
 #shorttagopen = re.compile('<[a-zA-Z][-.a-zA-Z0-9]*/')
@@ -62,6 +63,7 @@ class SGMLParser(markupbase.ParserBase):
 
     def reset(self):
         """Reset this instance. Loses all unprocessed data."""
+        self.__starttag_text = None
         self.rawdata = ''
         self.stack = []
         self.lasttag = '???'
@@ -222,7 +224,6 @@ class SGMLParser(markupbase.ParserBase):
         j = match.end(0)
         return j-i
 
-    __starttag_text = None
     def get_starttag_text(self):
         return self.__starttag_text
 
@@ -303,57 +304,52 @@ class SGMLParser(markupbase.ParserBase):
     # Internal -- finish processing of start tag
     # Return -1 for unknown tag, 0 for open-only tag, 1 for balanced tag
     def finish_starttag(self, tag, attrs):
-        self.unknown_starttag(tag, attrs)
-        return -1
-# optimize away unused feature
-#        try:
-#            method = getattr(self, 'start_' + tag)
-#        except AttributeError:
-#            try:
-#                method = getattr(self, 'do_' + tag)
-#            except AttributeError:
-#                self.unknown_starttag(tag, attrs)
-#                return -1
-#            else:
-#                self.handle_starttag(tag, method, attrs)
-#                return 0
-#        else:
-#            self.stack.append(tag)
-#            self.handle_starttag(tag, method, attrs)
-#            return 1
+        try:
+            method = getattr(self, 'start_' + tag)
+        except AttributeError:
+            try:
+                method = getattr(self, 'do_' + tag)
+            except AttributeError:
+                self.unknown_starttag(tag, attrs)
+                return -1
+            else:
+                self.handle_starttag(tag, method, attrs)
+                return 0
+        else:
+            self.stack.append(tag)
+            self.handle_starttag(tag, method, attrs)
+            return 1
 
     # Internal -- finish processing of end tag
     def finish_endtag(self, tag):
-        self.unknown_endtag(tag)
-# optimize away unused feature
-#        if not tag:
-#            found = len(self.stack) - 1
-#            if found < 0:
-#                self.unknown_endtag(tag)
-#                return
-#        else:
-#           if tag not in self.stack:
-#               try:
-#                   method = getattr(self, 'end_' + tag)
-#               except AttributeError:
-#                   self.unknown_endtag(tag)
-#               else:
-#                   self.report_unbalanced(tag)
-#               return
-#           found = len(self.stack)
-#           for i in range(found):
-#               if self.stack[i] == tag: found = i
-#        while len(self.stack) > found:
-#            tag = self.stack[-1]
-#            try:
-#                method = getattr(self, 'end_' + tag)
-#            except AttributeError:
-#                method = None
-#            if method:
-#                self.handle_endtag(tag, method)
-#            else:
-#                self.unknown_endtag(tag)
-#            del self.stack[-1]
+        if not tag:
+            found = len(self.stack) - 1
+            if found < 0:
+                self.unknown_endtag(tag)
+                return
+        else:
+            if tag not in self.stack:
+                try:
+                    method = getattr(self, 'end_' + tag)
+                except AttributeError:
+                    self.unknown_endtag(tag)
+                else:
+                    self.report_unbalanced(tag)
+                return
+            found = len(self.stack)
+            for i in range(found):
+                if self.stack[i] == tag: found = i
+        while len(self.stack) > found:
+            tag = self.stack[-1]
+            try:
+                method = getattr(self, 'end_' + tag)
+            except AttributeError:
+                method = None
+            if method:
+                self.handle_endtag(tag, method)
+            else:
+                self.unknown_endtag(tag)
+            del self.stack[-1]
 
     # Overridable -- handle start tag
     def handle_starttag(self, tag, method, attrs):
@@ -429,18 +425,18 @@ class TestSGMLParser(SGMLParser):
 
     def handle_data(self, data):
         self.testdata = self.testdata + data
-        if len(`self.testdata`) >= 70:
+        if len(repr(self.testdata)) >= 70:
             self.flush()
 
     def flush(self):
         data = self.testdata
         if data:
             self.testdata = ""
-            print 'data:', `data`
+            print 'data:', repr(data)
 
     def handle_comment(self, data):
         self.flush()
-        r = `data`
+        r = repr(data)
         if len(r) > 68:
             r = r[:32] + '...' + r[-32:]
         print 'comment:', r

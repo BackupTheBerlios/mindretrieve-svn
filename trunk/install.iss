@@ -4,7 +4,7 @@
 [Setup]
 AppId=MindRetrieve
 AppName=MindRetrieve
-AppVerName=MindRetrieve 0.4.1
+AppVerName=MindRetrieve 0.4.2
 AppPublisher=MindRetrieve
 AppPublisherURL=http://mindretrieve.berlios.de/
 AppSupportURL=http://mindretrieve.berlios.de/
@@ -15,7 +15,7 @@ DisableProgramGroupPage=yes
 Compression=lzma
 SolidCompression=yes
 OutputDir=.
-OutputBaseFilename=mindretrieve0.4.1win32
+OutputBaseFilename=mindretrieve0.4.2win32
 
 [Files]
 Source: "h:\bin\py_repos\mindretrieve\trunk\dist\MindRetrieve.exe"; DestDir: "{app}"; Flags: ignoreversion

@@ -26,9 +26,11 @@ Cache-control: no-cache\r
 
     fp = docarchive.get_document(docid)
     distillparse.render(fp, wfile)                  # todo: except 404
-#        d1 = '%09d' % (int(docid) + 1,)
-#        n = '/archive_view?docid=%s' % d1
-#        distillparse._render(fp, wfile, n)         # todo: except 404
+
+    #import random
+    #d1 = '%09d' % random.randint(1,7400)
+    #n = '/archive_view?docid=%s' % d1
+    #distillparse._render(fp, wfile, n)         # todo: except 404
 
 
 if __name__ == "__main__":

@@ -344,17 +344,22 @@ def process(fp, out, meta):
 
 
 
+def _writeOptionalHeader(fp, meta, header):
+    value = meta.get(header)
+    if value: fp.write('%s: %s\n' % (header, value))
+
 
 def writeHeader(fp, meta):
     """ Output meta data to the beginning of archived file """
 
     fp.write('uri: %s\n'  % meta.get('uri' , ''))
     fp.write('date: %s\n' % meta.get('date', ''))
-    if meta.has_key('title'        ): fp.write('title: %s\n'        % meta['title'        ])
-    if meta.has_key('description'  ): fp.write('description: %s\n'  % meta['description'  ])
-    if meta.has_key('keywords'     ): fp.write('keywords: %s\n'     % meta['keywords'     ])
-    if meta.has_key('etag'         ): fp.write('etag: %s\n'         % meta['etag'         ])
-    if meta.has_key('last-modified'): fp.write('last-modified: %s\n'% meta['last-modified'])
+    _writeOptionalHeader( fp, meta, 'title'        )
+    _writeOptionalHeader( fp, meta, 'description'  )
+    _writeOptionalHeader( fp, meta, 'keywords'     )
+    _writeOptionalHeader( fp, meta, 'etag'         )
+    _writeOptionalHeader( fp, meta, 'last-modified')
+    _writeOptionalHeader( fp, meta, 'referer'      )
     fp.write('\n')
 
 
@@ -573,7 +578,7 @@ def distill(rstream, wstream, meta):
         @returns - 0 means accepted. Otherwise a tuple of reason code and an explanation string.
     """
 
-    first_block = rstream.read(8192)
+    first_block = rstream.read(32768)
     rstream.seek(0)                                           # network stream would not support seek!?
 
     result = preparse_filter(first_block, meta)
@@ -622,7 +627,8 @@ def distill(rstream, wstream, meta):
 
     # If there is too little content (exclude <img alt>) do not index it
     # Indeed this catches a lot of ads.
-    if formatter.content_size < 32:
+    # todo: collapse space first?
+    if formatter.content_size < MIN_VISIBLECHAR:
         return (LOWVISIBLE, header[:80])
 
     return 0

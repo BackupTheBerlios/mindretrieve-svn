@@ -73,8 +73,9 @@ class ProxyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         except:
             log.exception("Problem in handling request")
 
-        if self.command != 'CONNECT':
-            messagelog.mlog.dispose(self.minfo, self.logfp, self.starttime)
+        if hasattr(self, 'command'):                    # note: command only assigned in BaseHTTPRequestHandler.handle_one_request()
+            if self.command != 'CONNECT':
+                messagelog.mlog.dispose(self.minfo, self.logfp, self.starttime)
 
 
 
@@ -116,8 +117,8 @@ class ProxyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             log.warn('logOverflow bytes received: %s', bytes_received)
             return
 
-        # ???
-        self.minfo._updateUriFs()
+        ## ???
+        #self.minfo._updateUriFs()
 
 
     def _send_request(self, netloc, fullpath, path, params, query):

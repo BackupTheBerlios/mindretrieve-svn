@@ -20,9 +20,10 @@ class MatchItem:
 
         # lucene data
         self.index      = key   # hits index
-        self.id         = 0     # lucene id
-        self.doc        = ''
-        self.score      = 0
+        self.id         = 0     # id
+        self.doc        = None  # Document
+        self.score      = 0     # adjusted score
+        self.score0     = 0     # original Lucene score
 
         # doument meta-data
         self.docid      = ''
@@ -33,18 +34,19 @@ class MatchItem:
 
         self.load(hits, key)
 
+
     def load(self, hits, key):
         self.id         = hits[key][1]
         self.doc        = hits[key][2]
         self.score      = hits[key][0]
         self.score0     = hits[key][3]
-#        self.doc        = hits.doc(key)
-#        self.score      = hits.score(key)
+
         self.docid      = self.doc.get('docid'      )
         self.date       = self.doc.get('date'       )
         self.uri        = self.doc.get('uri'        )
-        #self.title      = self.doc.get('title'      )
-        #self.description= self.doc.get('description')
+
+        # title & description are filled at hightlight()
+
 
     def highlight(self, analyzer, highlighter):
         maxNumFragmentsRequired = 2
@@ -61,13 +63,7 @@ class MatchItem:
 
 
 
-def _padQueryTxt(query):
-    return 'title:(%s) description:(%s) keywords:(%s) content:(%s)' % (query, query, query, query)
-
-
 def parseQuery(phrase):
-#    phrase = _padQueryTxt(phrase)
-#    query = QueryParser.parse(phrase, "data", StandardAnalyzer())
     query = QueryParser.parse(phrase, "content", StandardAnalyzer())
     return query
 
@@ -75,7 +71,7 @@ def parseQuery(phrase):
 MAXRESULT = 1000
 
 def sortHits(hits, maxDoc):
-
+    """ Return list of (adj score, id, doc, original score) """
     hitList = []
     for i in xrange(min(1000,hits.length())):
         id = hits.id(i)
@@ -119,11 +115,9 @@ def search(query, start, end):
             break
         item = MatchItem(hitList, i)
         item.highlight(analyzer, highlighter)
-
-        #item.explaination = str(searcher.explain(query, hits.id(i))) ###
-        item.explaination = str(searcher.explain(query, item.id)) ###
-
+        #item.explaination = str(searcher.explain(query, item.id))
         result.append(item)
+
     searcher.close()
     return hits.length(), result
 
@@ -158,7 +152,7 @@ def run_search(querystring, start):
 
         print '   %s %0.5f %0.5f %s' % (item.id, item.score, item.score0, item.date.replace('T', ' ')),
 
-        print '\n\n%s' % item.explaination ###
+#        print '\n\n%s' % item.explaination ###
 
         if item.uri:
             print encode(item.uri[:100])

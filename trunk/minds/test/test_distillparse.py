@@ -10,7 +10,7 @@ class TestParseDistillML(unittest.TestCase):
 
     def testMAX_OUTPUT_TAG_LEN(self):
         # </h1> should be the longest tag
-        self.assertEqual(len('</h1>'), distillML.Parser.MAX_OUTPUT_TAG_LEN)
+        self.assertEqual(len('</h1>'), distillML.MAX_OUTPUT_TAG_LEN)
 
 
     def testParse00(self):

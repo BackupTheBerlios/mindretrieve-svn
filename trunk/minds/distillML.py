@@ -2,7 +2,6 @@
 
 options
   -d    distill an HTML or a mlog file
-  -p    parse a distillML archive file
 
 
 This module convert HTML into a distilled format by stripping most tags.
@@ -34,13 +33,33 @@ from toollib import sgmllib         # custom version of sgmllib
 from minds.config import cfg
 from minds import domain_filter
 from minds import encode_tools
+from minds import generator_parser
 from minds import messagelog
 from minds.util import magic
+
+# todo: common tag
+# todo: formatter intelligent
+# todo: parse return tags seen
+# todo: writeHeader ensure no line break
+
+#elif id == sBODY:
+### TODO: hack, body is optional
+### TODO: outtag also start it?
+##  naked html?
+#   hello
+#   <p>2
+#   logic in out?
 
 
 log = logging.getLogger('distill')
 
+DATA    = generator_parser.DATA
+TAG     = generator_parser.TAG
+ENDTAG  = generator_parser.ENDTAG
 
+
+# todo: collapse is not good for asian text.
+# todo: line break turn into a space character separating words
 def _collapse(s):
     """ collapse multiple whitespace as a single space char """
     return ' '.join(s.split())
@@ -64,310 +83,255 @@ def _hasattr(attrs, name):
     return False
 
 
-class Parser(sgmllib.SGMLParser):
 
-    # 24 Character entity references in HTML 4
-    # http://www.w3.org/TR/REC-html40/sgml/entities.html
 
-    # todo: add the whole set using unicode
-    # keep &gt; and &lt; undecoded
-    # 1. do not decode to create new tags to disrupt distillML
-    # 2. keep it unencoded so that it is still readable in a cached document
-    # Alternatively drop it altogether?
-    entityref_map = {
-        'amp' : '&',
-        'gt'  : '&gt;',
-        'lt'  : '&lt;',
-        'nbsp': ' ',
-        'quot': '"',
-    }
+# This is a list of tags should present in any 'normal' HTML
+# document. If none of these are found, the document is assume to be
+# non-html (maybe css, js?)
+#
+# Note: although you'll find a lot of 'p' or 'a' in CSS, they are
+# not parsed as tags as in the <p> or </a> format. tag are space delimited.
+COMMON_TAGS = ' p br hr h1 h2 h3 ul ol li a table tr td div span form input html body head title '
 
-    charref_map = {
-        '187': '>',
-    }
 
-    # This is a list of tags should present in any 'normal' HTML
-    # document. If none of these are found, the document is assume to be
-    # non-html (maybe css, js?)
+# these are the tags that outputs
+TAGS_USED = [
+    'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+    'p', 'ul', 'ol', 'li', 'dl', 'dd', 'dt',
+    'br', 'hr'
+]
+
+# build the variations
+OUTPUT_TAG = ['<%s>' % t for t in TAGS_USED] + \
+             ['</%s>' % t for t in TAGS_USED]
+
+# the longest tag
+MAX_OUTPUT_TAG_LEN = max( map(len, OUTPUT_TAG) )
+
+
+
+# process starttag
+sHTML      =  1
+sHEAD      =  2
+sMETA      =  3
+sTITLE     =  4
+sBODY      =  5
+sFRAMESET  =  6
+sSTYLE     =  7
+sSCRIPT    =  8
+sSELECT    =  9
+sOUTTAG    = 10
+sOUTP      = 11
+sTR        = 12
+sTDTH      = 13
+sINPUT     = 14
+sIMG       = 15
+
+
+starttag_dict = {
+    'html'      : sHTML,
+    'head'      : sHEAD,
+    'meta'      : sMETA,
+    'title'     : sTITLE,
+    'body'      : sBODY,
+    'frameset'  : sFRAMESET,
+    'style'     : sSTYLE,
+    'script'    : sSCRIPT,
+    'select'    : sSELECT,
+
+    # other tags are grouped by how it is processed
+    'h1'        : sOUTTAG,
+    'h2'        : sOUTTAG,
+    'h3'        : sOUTTAG,
+    'h4'        : sOUTTAG,
+    'h5'        : sOUTTAG,
+    'h6'        : sOUTTAG,
+    'p'         : sOUTP,
+    'div'       : sOUTP,
+    'pre'       : sOUTP,
+    'ul'        : sOUTTAG,
+    'ol'        : sOUTTAG,
+    'li'        : sOUTTAG,
+    'dl'        : sOUTTAG,
+    'dd'        : sOUTTAG,
+    'dt'        : sOUTTAG,
+    'form'      : sOUTP,
+    'table'     : sOUTP,
+    'tr'        : sTR,
+    'td'        : sTDTH,
+    'th'        : sTDTH,
+    'input'     : sINPUT,
+    'img'       : sIMG,
+    'br'        : sOUTTAG,
+    'hr'        : sOUTTAG,
+}
+
+# process endtag
+
+eCLOSE_TAG   = 1
+eBREAK_LINE  = 2
+eSHOW_ALT    = 3
+endtag_dict = {
+    'h1'        : eCLOSE_TAG,
+    'h2'        : eCLOSE_TAG,
+    'h3'        : eCLOSE_TAG,
+    'h4'        : eCLOSE_TAG,
+    'h5'        : eCLOSE_TAG,
+    'h6'        : eCLOSE_TAG,
+    'tr'        : eBREAK_LINE,
+    'ul'        : eCLOSE_TAG,
+    'ol'        : eCLOSE_TAG,
+    'li'        : eCLOSE_TAG,
+    'dl'        : eCLOSE_TAG,
+    'dd'        : eCLOSE_TAG,
+    'dt'        : eCLOSE_TAG,
+}
+
+
+def process(fp, out, meta):
+    """ Return has_html, has_frameset """
+
+    has_html    = False
+    has_frameset= False
+
+    first_td    = False     # state for iterating td inside tr
+
+    iterator = generator_parser.generate_tokens(fp)
+
+    # General HTML format
+    # <html>
+    #   <head>
+    #   <body>
     #
-    # Note: although you'll find a lot of 'p' or 'a' in CSS, they are
-    # not parsed as tags as in the <p> or </a> format. tag are space delimited.
-    COMMON_TAGS = ' p br hr h1 h2 h3 ul ol li a table tr td div span form input html body head title '
+    # However all elements are optional.
+    # It is better to use a flat, stateless loop to process elements
 
-    WAIT_HEAD   = 1
-    IN_HEAD     = 2
-    IN_TITLE    = 3     # IN_TITLE must happen only when IN_HEAD
-    IN_BODY     = 4     # either we find a <body> or we assume it is body where the tag is omitted.
-    IN_IGNORE   = 5     # in tags like <script>
+    for token in iterator:
 
-    state_name = {
-        WAIT_HEAD: 'wait',
-        IN_HEAD  : 'head',
-        IN_TITLE : 'title',
-        IN_BODY  : 'body',
-        IN_IGNORE: 'ignore',
-    }
-
-    # these are the tags that outputs
-    TAGS_USED = [
-        'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-        'p', 'ul', 'ol', 'li', 'dl', 'dd', 'dt',
-        'br', 'hr'
-    ]
-
-    # build the variations
-    OUTPUT_TAG = ['<%s>' % t for t in TAGS_USED] + \
-                 ['</%s>' % t for t in TAGS_USED]
-
-    # the longest tag
-    MAX_OUTPUT_TAG_LEN = max( map(len, OUTPUT_TAG) )
+        if token[0] == DATA:
+            out.out(token[1])
 
 
+        elif token[0] == TAG:
 
-    def __init__(self, out):
-        sgmllib.SGMLParser.__init__(self)
-        self.out = out
-        self.reset()
+            tag = token[1]
+            id = starttag_dict.get(tag,-1)
 
+            if id == sOUTP:
+                out.outTag('p')
 
-    def reset(self):
-        sgmllib.SGMLParser.reset(self)
+            elif id == sOUTTAG:
+                out.outTag(tag)
 
-        self.meta = {}                  # collect title, description, keywords as meta data
-        self.data = []
-        self.state = self.WAIT_HEAD
-        self.first_td = True
+            elif id == sTR:
+                first_td = True
 
-        self.has_frameset = False
-        self.has_html_body = False
-        self.has_common_tag = False
-
-
-    def parse(self, reader, meta):
-        """ The main action. """
-
-        if meta != None:
-            self.meta = meta
-
-        while True:
-            data = reader.read(65536)
-            if not data: break
-            self.feed(data)
-
-
-    def flushdata(self):
-        if self.data:
-            self.out.out(self.data)
-            self.data = []
-
-
-    def getposStr(self):
-        return '%03d %03d' % self.getpos()
-
-
-    def _checkCommonTag(self, tag):
-        tag = ' ' + tag + ' '                  # space delimit it
-        if self.COMMON_TAGS.find(tag) >= 0:
-            self.has_common_tag = True
-
-
-    def changeState(self, tag):
-
-        if self.state == self.WAIT_HEAD:
-            if tag == 'html':
-                pass
-            elif tag == 'head':
-                self.state = self.IN_HEAD
-                self.data = []
-            else:
-                self.out.outHeader(self.meta)
-                self.state = self.IN_BODY                           # any tag other <head> or <html> -> IN_BODY
-                self.data = []
-
-        elif self.state == self.IN_HEAD:
-            if tag == 'title':
-                self.state = self.IN_TITLE
-                self.data = []
-            if tag == 'body' or tag == '/head':                     # perhaps a missing </head>
-                self.out.outHeader(self.meta)
-                self.state = self.IN_BODY
-                self.data = []
-
-        elif self.state == self.IN_TITLE:
-            if tag == '/title':
-                self.meta['title'] = _collapse(' '.join(self.data))
-                self.data = []
-                self.state = self.IN_HEAD
-            elif tag == '/head' or tag == 'body':                   # This handles a missing </title>
-                self.meta['title'] = _collapse(' '.join(self.data))
-                self.data = []
-
-                self.out.outHeader(self.meta)
-                self.state = self.IN_BODY
-
-        elif self.state == self.IN_BODY:
-            if tag in ['script', 'select', 'style']:
-                self.state = self.IN_IGNORE
-
-        elif self.state == self.IN_IGNORE:                           # todo: nested IGNORE? not welformed?
-            if tag in ['/script', '/select', '/style']:
-                self.state = self.IN_BODY
-
-        else:
-            raise RuntimeError, 'Invalid state %s' % self.state
-
-
-    def unknown_starttag(self, tag, attrs):
-
-        if not self.has_common_tag:
-            self._checkCommonTag(tag)
-
-        self.changeState(tag)
-
-        if self.state == self.IN_BODY:
-            self.flushdata()
-
-        if tag == 'meta':
-            name = _getvalue(attrs,'name').lower()
-            content = _getvalue(attrs,'content')
-            if name == 'description':
-                self.meta['description'] = saxutils.unescape(_collapse(content))
-            elif name == 'keywords':
-                self.meta['keywords'] = saxutils.unescape(_collapse(content))
-
-        elif tag == 'html':
-            self.has_html_body = True
-
-        elif tag == 'body':
-            self.has_html_body = True
-
-        elif tag == 'frameset':
-            self.has_frameset = True
-
-        elif tag in ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']:
-            self.out.outTag(tag)
-
-        elif tag in ['p', 'div', 'pre']:
-            self.out.outTag('p')
-
-        elif tag in ['ul', 'ol', 'li', 'dl', 'dd', 'dt']:
-            self.out.outTag(tag)
-
-        elif tag in ['form', 'table']:
-            self.out.outTag('p')
-
-        elif tag in ['tr']:
-            self.first_td = True
-
-        elif tag in ['td','th']:
-            if self.first_td:
-                self.first_td = False
-            else:
-                self.data.append('   ')
-
-        elif tag == 'input':
-
-            itype = _getvalue(attrs, 'type')
-
-            if itype == 'checkbox':
-                if _hasattr(attrs,'checked'):
-                    self.out.out('[*] ')
+            elif id == sTDTH:
+                if first_td:
+                    first_td = False
                 else:
-                    self.out.out('[ ] ')
+                    out.out('   ')
 
-            elif itype == 'radio':
-                if _hasattr(attrs,'checked'):
-                    self.out.out('(*) ')
+            elif id == sINPUT:
+
+                attrs = token[2]
+                itype = _getvalue(attrs, 'type')
+
+                if itype == 'checkbox':
+                    if _hasattr(attrs,'checked'):
+                        out.out('[*] ')
+                    else:
+                        out.out('[ ] ')
+
+                elif itype == 'radio':
+                    if _hasattr(attrs,'checked'):
+                        out.out('(*) ')
+                    else:
+                        out.out('( ) ')
+
+                elif itype == 'image':
+                    alt = _getvalue(attrs, 'alt') or _getvalue(attrs, 'value')
+                    out.outAlt(saxutils.unescape(alt))
+
+                elif itype == 'password':
+                    out.outAlt('***')
+
+                elif itype == 'hidden':
+                    pass
+
                 else:
-                    self.out.out('( ) ')
+                    value = _getvalue(attrs, 'value')
+                    out.outAlt(saxutils.unescape(value))
 
-            elif itype == 'image':
-                alt = _getvalue(attrs, 'alt') or _getvalue(attrs, 'value')
-                self.out.outAlt(saxutils.unescape(alt))
+            elif id == sIMG:
+                attrs = token[2]
+                alt = _getvalue(attrs, 'alt')
+                if alt:
+                    out.outAlt(saxutils.unescape(alt))
 
-            elif itype == 'password':
-                self.out.outAlt('***')
+            elif id == sHTML:
+                has_html = True
 
-            elif itype == 'hidden':
-                pass
+            elif id == sBODY:
+                out.outHeader(meta)
 
-            else:
-                value = _getvalue(attrs, 'value')
-                self.out.outAlt(saxutils.unescape(value))
+            elif id == sFRAMESET:
+                has_frameset = True
 
-        # todo: wrap the button text with [].
-        #elif tag == 'button':
-        #    pass
+            elif id == sTITLE:
+                title = ''
+                for token in iterator:
+                    if token[0] == DATA:
+                        title += token[1]
+                    elif token in [
+                        (ENDTAG, 'title'),  # only </title> is valid
+                        (ENDTAG, 'head'),   # in case no </title>
+                        (TAG, 'body'),      # in case no </title>
+                        ]:
+                        break
+                meta['title'] = _collapse(title)
 
-        elif tag == 'br':
-            self.out.outTag('br')
+            elif id == sMETA:
+                attrs = token[2]
+                name = _getvalue(attrs,'name').lower()
+                content = _getvalue(attrs,'content')
+                if name == 'description':
+                    meta['description'] = saxutils.unescape(_collapse(content))
+                elif name == 'keywords':
+                    meta['keywords'] = saxutils.unescape(_collapse(content))
 
-        elif tag == 'img':
-            alt = _getvalue(attrs, 'alt')
-            if alt:
-                self.out.outAlt(saxutils.unescape(alt))
+            elif id == sSCRIPT:
+                for token in iterator:
+                    if token == (ENDTAG, 'script'):
+                        break
 
-        elif tag == 'hr':
-            self.out.outTag('hr')
+            elif id == sSTYLE:
+                for token in iterator:
+                    if token == (ENDTAG, 'style'):
+                        break
 
-
-    def unknown_endtag(self, tag):
-
-        self.changeState('/'+tag)
-
-        if tag in ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']:
-            self.flushdata()
-            self.out.outTag('/'+tag)
-
-        elif tag in ['tr']:
-            self.flushdata()
-            self.out.outTag('br')
-
-        elif tag in ['ul', 'ol', 'li', 'dl', 'dd', 'dt']:
-            self.flushdata()
-            self.out.outTag('/'+tag)
-
-        elif tag == 'textarea':
-            value = _collapse(' '.join(self.data))
-            self.data = []
-            self.out.outAlt(value)
-
-        elif tag in ['body' or 'html']:
-            self.flushdata()
-
-
-    def handle_data(self, data):
-        if self.state in [self.WAIT_HEAD, self.IN_BODY, self.IN_TITLE]:
-            self.data.append(data)
+            elif id == sSELECT:
+                for token in iterator:
+                    if token == (ENDTAG, 'select'):
+                        break
 
 
-    def handle_charref(self, name):
-        c = self.charref_map.get(name,'')
-        if c: self.handle_data(c)
-        # OK to drop special symbols because we can't index it
+        elif token[0] == ENDTAG:
+
+            tag = token[1]
+            id = endtag_dict.get(tag,-1)
+
+            if id == eCLOSE_TAG:
+                out.outTag('/'+tag)
+
+            elif id == eBREAK_LINE:
+                out.outTag('br')
+
+    out.close(meta)
+
+    return has_html, has_frameset
 
 
-    def handle_entityref(self, name):
-        c = self.entityref_map.get(name,'')
-        if c: self.handle_data(c)
-
-
-
-class DebugParser(Parser):
-
-    def unknown_starttag(self, tag, attrs):
-        print '[%6s] <%s>' % (self.state_name.get(self.state,'?'), tag)
-        Parser.unknown_starttag(self, tag, attrs)
-
-
-    def unknown_endtag(self, tag):
-        print '[%6s] </%s>' % (self.state_name.get(self.state,'?'), tag)
-        Parser.unknown_endtag(self, tag)
-
-
-    def handle_data(self, data):
-        print '[%6s] %s' % (self.state_name.get(self.state,'?'), data)
-        Parser.handle_data(self, data)
 
 
 
@@ -388,69 +352,68 @@ def writeHeader(fp, meta):
 class Formatter:
 
     SPACE = ' '
+    HEADER_LEN = 256                    # collect the beginning of output
 
-    def __init__(self, wfile, header_len=0, visiblechar_needed=0):
+    # Note that initially we buffer output to 'buf' until:
+    #
+    # 1. header is output, and
+    # 2. Certain amount of text is collected (HEADER_LEN)
+    #
+    # Once switchBuffer() is called the output will be sent directly to
+    # the supplied wfile.
 
-        self.wfile = wfile
+    def __init__(self, wfile):
+
+        self.actual_wfile = wfile
+        self.buf = StringIO.StringIO()
+        self.wfile = self.buf           # temporary output to 'buf'
 
         self.header_sent = False
+        self.content_size = 0
 
-        # these parameters help to analysis the HTML document
-        self.visiblechar_needed = visiblechar_needed
-        self.header_count = header_len
-        self.header = StringIO.StringIO()
-
-        self.lastTag = None             # immediate last tag
+        self.lastTag = None             # immediate last tag, None if last output is text.
         self.lastTrailingSpace = False  # a trailing space not yet output
                                         # note: At EOF if the trailing space is not used, drop it.
 
+    def switchBuffer(self):
+        # Note that we won't switch until header is sent.
+        # This mean any html without </head> or <body> to signal completion
+        # of HEAD section would stuck in buffered mode and is less efficient.
+        if self.actual_wfile and self.header_sent:
+            self.actual_wfile.write(self.wfile.getvalue())
+            self.wfile = self.actual_wfile
+            self.actual_wfile = None
+
+
+    def close(self, meta):
+        # make sure actions below are carried out.
+        # No harm if already called.
+        self.outHeader(meta)
+        self.switchBuffer()
+
 
     def outHeader(self, meta):
-        writeHeader(self.wfile, meta)
-        self.header_sent = True
-
-
-    def countCharacters(self, txt):
-        """ Do some statistics on the output """
-
-        # check how much it fulfills the visible character counter
-        if self.visiblechar_needed > 0:
-            for c in txt:
-                if c not in string.whitespace:
-                    self.visiblechar_needed -= 1
-                    if self.visiblechar_needed <= 0:
-                        break
-
-        if self.header_count > 0:
-            h = txt.lstrip()
-            self.header.write(h[:self.header_count])
-            self.header_count -= len(h)    # could go negative
+        if not self.header_sent:
+            writeHeader(self.actual_wfile, meta)
+            self.header_sent = True
 
 
     def out(self, txt):
 
         if not txt: return
 
-        if hasattr(txt,'append'):   # txt is a list of text?
-            txt = ''.join(txt)
-            if not txt: return
-
-        if not self.header_sent: return
-
         # specifically check for heading and trailing space
         # because _collapse() aggressively remove whitespace at both ends
         # also to collapse space between calls to out()
         has_heading_space  = txt[:1] in string.whitespace
         has_trailing_space = txt[-1:] in string.whitespace
-        txt = _collapse(txt)
-
+#        txt = _collapse(txt)
+        txt = ' '.join(txt.split())
         # txt is entirely whitespace?
         if not txt:
             if not self.lastTag:    # if has lastTag, ignore this space
                 self.lastTrailingSpace = True
             return
-
-        self.countCharacters(txt)
 
         # output one space if any of the condition below is true
         # note: lastTag and lastTrailingSpace is mutually exclusive
@@ -460,6 +423,10 @@ class Formatter:
             self.lastTrailingSpace = False
 
         self.wfile.write(txt)
+        self.content_size += len(txt)
+        if self.actual_wfile:
+            if self.content_size > self.HEADER_LEN:
+                self.switchBuffer()
 
         # don't output trailing space yet.
         self.lastTrailingSpace = has_trailing_space
@@ -467,8 +434,6 @@ class Formatter:
 
 
     def outAlt(self, txt):
-
-        if not self.header_sent: return
 
         if self.lastTrailingSpace:
             self.wfile.write(self.SPACE)
@@ -483,8 +448,6 @@ class Formatter:
 
 
     def outTag(self, tag):
-
-        if not self.header_sent: return
 
         # collapse tags
         if (tag == 'p' or tag == 'br') and tag == self.lastTag:
@@ -508,11 +471,9 @@ class Formatter:
 
 
     def getHeader(self):
-        return self.header.getvalue()
+        return self.buf.getvalue()
 
 
-    def isVisible(self):
-        return self.visiblechar_needed <= 0
 
 
 
@@ -544,7 +505,6 @@ LOWVISIBLE  = 4     # at least 15 visible characters needed (match a few types o
 MIN_VISIBLECHAR = 32    # assert that if a doc has less number of chars, it is not worth indexing.
                         # This catch a lot of ads!
                         # On the other hand it also catch some picture windows with only a short caption.
-                        # todo: should we include title & description as part of content?
 
 
 def preparse_filter(first_block, meta):
@@ -585,16 +545,16 @@ def distill(rstream, wstream, meta):
     if result:
         return result
 
-    encoding, source = encode_tools.determineEncoding(meta, first_block)
+    encoding, source = encode_tools.determineEncodingLenient(meta, first_block)
     Reader = encode_tools.getreader(encoding, source)
     reader = Reader(rstream, 'replace')
     writer = codecs.getwriter('utf8')(wstream,'replace')
 
     meta['encoding'] = '%s [%s]' % (encoding, source)
-    formatter = Formatter(writer, header_len=256, visiblechar_needed=MIN_VISIBLECHAR)
-    parser = Parser(formatter)
+
+    formatter = Formatter(writer)
     try:
-        parser.parse(reader, meta)
+        has_html, has_frameset = process(reader, formatter, meta)
     except sgmllib.SGMLParseError, e:
         return (PARSE_ERROR, 'SGMLParseError: %s' % str(e)) # SGMLParseError
     except Exception, e:
@@ -609,22 +569,28 @@ def distill(rstream, wstream, meta):
     # good for indexing. This risk should be low as the document would
     # appear scrambled in the browser if this happends (Well unless it is
     # contain in an iframe this may make some sense?)
-    if not parser.has_common_tag:
-        return (NON_HTML, 'unknown')    # todo: want to take a guess on CSS or JS? bet it in magic?
-
-    if parser.has_frameset:
+##    if not parser.has_common_tag:
+##        return (NON_HTML, 'unknown')    # todo: want to take a guess on CSS or JS? bet it in magic?
+##
+    if has_frameset:
         return (FRAMESET, '<frameset>')
 
     # do some heurisitic analysis to weed out files that should not be indexed.
     header = formatter.getHeader()
 
-    if not parser.has_html_body:
+    if not has_html:
+
+        # <html> tag is a very strong sign that this is indeed a HTML document
+
         if header.find('document.write') >= 0:  # also document *. *writeln
             return (NON_HTML, 'application/x-javascript')
         elif JAVASCRIPT_FUNCTION.search(header) and header.find('{') >= 0:
             return (NON_HTML, 'application/x-javascript')
 
-    if formatter.visiblechar_needed > 0:
+
+    # If there is too little content (exclude <img alt>) do not index it
+    # Indeed this catches a lot of ads.
+    if formatter.content_size < 32:
         return (LOWVISIBLE, header[:80])
 
     return 0
@@ -648,7 +614,7 @@ def distillTxt(rstream, wstream, meta):
     if result:
         return result
 
-    encoding, source = encode_tools.determineEncoding(meta, first_block)
+    encoding, source = encode_tools.determineEncodingLenient(meta, '')
     Reader = encode_tools.getreader(encoding, source)
     reader = Reader(rstream, 'replace')
     writer = codecs.getwriter('utf8')(wstream,'replace')
@@ -671,9 +637,13 @@ from minds.util import rspreader
 def test_distill(fp, wfile, meta):
 
     # build meta from rsp_header
-    minfo = messagelog.MessageInfo.parseMessageLog(fp)
-    meta.clear()
-    meta.update(minfo.rsp_headers)
+    try:
+        minfo = messagelog.MessageInfo.parseMessageLog(fp)
+    except:
+        pass    # assume it is html file (not mlog)
+    else:
+        meta.clear()
+        meta.update(minfo.rsp_headers)
 
     # read content
     fp.seek(0)
@@ -681,18 +651,6 @@ def test_distill(fp, wfile, meta):
 
     return distill(fp, wfile, meta)
 
-
-def test_parse(rfile):
-    meta = {}
-    formatter = Formatter(sys.stdout, header_len=256, visiblechar_needed=MIN_VISIBLECHAR)
-    parser = DebugParser(formatter)
-    try:
-        parser.parse(rfile, meta)
-    except sgmllib.SGMLParseError, e:
-        return (PARSE_ERROR, 'HTMLParseError: %s' % str(e)) # SGMLParseError
-    except Exception, e:
-        log.exception('Error parsing: %s', rfile)           # unknown exception
-        return (PARSE_ERROR, str(e))
 
 
 def main(argv):
@@ -716,12 +674,6 @@ def main(argv):
         print >>sys.stderr, '-'*72
         print >>sys.stderr, 'Meta:',
         pprint.pprint(meta, sys.stderr)
-
-    elif option == '-p':
-        fp = rspreader.openlog(fp)
-        result = test_parse(fp)
-        print >>sys.stderr
-        print >>sys.stderr, '-'*72
         print >>sys.stderr, 'Result:', result
 
     else:

@@ -83,11 +83,11 @@ def parseDistillML(rstream, writeHeader=None, bufsize=32768):
         # STATE: in potential tag, cpos at '<'
 
         # make sure we have enough character for a possible tag
-        if lt + distillML.Parser.MAX_OUTPUT_TAG_LEN > len(data):
+        if lt + distillML.MAX_OUTPUT_TAG_LEN > len(data):
             data = data[cpos:] + reader.read(bufsize)
             cpos = 0
 
-        for t in distillML.Parser.OUTPUT_TAG:
+        for t in distillML.OUTPUT_TAG:
             if data.startswith(t, cpos):
                 cpos += len(t)          # recognized tag, drop it and move pass the '>'
                 break

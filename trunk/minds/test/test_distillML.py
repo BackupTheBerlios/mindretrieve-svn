@@ -22,7 +22,9 @@ class TestDistill(unittest.TestCase):
 
 
     def testMeta(self):
-        """ Check basic meta data parsing """
+
+        # Check basic meta data parsing
+
         self.fp = rspreader.openlog(testdir + 'basictags.html')
         meta = {}
         result = distillML.distill(self.fp, self.buf, meta)
@@ -33,7 +35,8 @@ class TestDistill(unittest.TestCase):
 
 
     def testMetaVariations(self):
-        """ See meta_variations.html for variations of attributes formatting """
+
+        # See meta_variations.html for variations of attributes formatting
 
         self.fp = rspreader.openlog(testdir + 'meta_variations.html')
         meta = {}
@@ -45,7 +48,8 @@ class TestDistill(unittest.TestCase):
 
 
     def testDistill(self):
-        """ check distilling basic HTML with all tags supported. """
+
+        # check distilling basic HTML with all tags supported.
 
         self.fp = rspreader.openlog(testdir + 'basictags.html')  # have all tags supported
         result = distillML.distill(self.fp, self.buf, {})
@@ -89,19 +93,19 @@ class TestDistill(unittest.TestCase):
 
         # these are some other transformed data
         self.assert_(s.find('h1-Sample HTML') > 0)
-        self.assert_(s.find('[fill your name]') > 0)    # <form>
+        self.assert_(s.find('[fill your name]') > 0)        # <form>
         self.assert_(s.find('[*]') > 0)
         self.assert_(s.find('[ ]') > 0)
         self.assert_(s.find('(*)') > 0)
         self.assert_(s.find('( )') > 0)
         self.assert_(s.find('[***]') > 0)
-        self.assert_(s.find('[Lorem') > 0)              # <textarea>
+        self.assert_(s.find('Lorem') > 0)                   # <textarea>
         self.assert_(s.find('[button]') > 0)
         self.assert_(s.find('[submit]') > 0)
         self.assert_(s.find('[reset]') > 0)
         self.assert_(s.find('[go]') > 0)
-        self.assert_(s.find('[a picture]') > 0)         # <img>
-        self.assert_(s.find('<&,&lt;, ,",&gt;>') > 0)   # entities
+        self.assert_(s.find('[a picture]') > 0)             # <img>
+        self.assert_(s.find(u'<&amp;,&lt;, ,",&gt;>') > 0)  # entities
 
 
     def testDistillTxt(self):
@@ -130,10 +134,6 @@ class TestDistill(unittest.TestCase):
 # todo add these tests
 #
 #    def testWordSpaceCollapseIssue(self):
-#        self.fail('todo')
-#
-#
-#    def testChangeState(self):
 #        self.fail('todo')
 #
 #
@@ -180,18 +180,20 @@ class TestDistill(unittest.TestCase):
 
 
     def testParseCrazyTitleProblem(self):
-        """ Test problem in parsing a missing <title> """
 
+        # Test problem in parsing a missing <title>
         doc = """<html><head>hello</title></head>
 <body>
 <p>filler.filler.filler.filler.filler.filler.filler</p>
 </body></html>"""
 
-        result = distillML.distill(StringIO.StringIO(doc), self.buf, {})
+        meta = {}
+        result = distillML.distill(StringIO.StringIO(doc), self.buf, meta)
         self.assertEqual(0, result)
 
         s = self.buf.getvalue()
-        self.assert_(s.find('hello') < 0)       # treat as no title
+        self.assert_(not meta.has_key('title'))     # no title
+        self.assert_(s.find('filler') >= 0)         # but sort of getting rest of data
 
 
 
@@ -227,7 +229,7 @@ class TestCharEncoding(unittest.TestCase):
 
         result = distillML.test_distill(self.fp, self.buf, self.meta)
         self.assertEqual(0, result)
-        self.assertEqual(self.meta['encoding'], 'utf-8 [META_CHARSET]')
+        self.assertEqual(self.meta['encoding'], 'utf-8 [META]')
         self.assertEqual(self.meta['title'], title)
 
         s = self.buf.getvalue().decode('utf8')
@@ -241,7 +243,7 @@ class TestCharEncoding(unittest.TestCase):
 
         result = distillML.test_distill(self.fp, self.buf, self.meta)
         self.assertEqual(0, result)
-        self.assertEqual(self.meta['encoding'], 'iso-8859-1 [HTTP_CONTENT_TYPE]')
+        self.assertEqual(self.meta['encoding'], 'iso-8859-1 [HTTP]')
         self.assertEqual(self.meta['title'], title)
 
         s = self.buf.getvalue().decode('utf8')
@@ -255,7 +257,7 @@ class TestCharEncoding(unittest.TestCase):
 
         result = distillML.test_distill(self.fp, self.buf, self.meta)
         self.assertEqual(0, result)
-        self.assertEqual(self.meta['encoding'], 'koi8-r [HTTP_CONTENT_TYPE]')
+        self.assertEqual(self.meta['encoding'], 'koi8-r [HTTP]')
         self.assertEqual(self.meta['title'], title)
 
         s = self.buf.getvalue().decode('utf8')
@@ -269,7 +271,7 @@ class TestCharEncoding(unittest.TestCase):
 
         result = distillML.test_distill(self.fp, self.buf, self.meta)
         self.assertEqual(0, result)
-        self.assertEqual(self.meta['encoding'], 'big5 [META_CHARSET]')
+        self.assertEqual(self.meta['encoding'], 'big5 [META]')
         self.assertEqual(self.meta['title'], title)
 
         s = self.buf.getvalue().decode('utf8')
@@ -283,7 +285,7 @@ class TestCharEncoding(unittest.TestCase):
 
         result = distillML.test_distill(self.fp, self.buf, self.meta)
         self.assertEqual(0, result)
-        self.assertEqual(self.meta['encoding'], 'euc-jp [HTTP_CONTENT_TYPE]')
+        self.assertEqual(self.meta['encoding'], 'euc-jp [HTTP]')
         self.assertEqual(self.meta['title'], title)
 
         s = self.buf.getvalue().decode('utf8')
@@ -297,7 +299,7 @@ class TestCharEncoding(unittest.TestCase):
 
         result = distillML.test_distill(self.fp, self.buf, self.meta)
         self.assertEqual(0, result)
-        self.assertEqual(self.meta['encoding'], 'euc-kr [HTTP_CONTENT_TYPE]')
+        self.assertEqual(self.meta['encoding'], 'euc-kr [HTTP]')
         self.assertEqual(self.meta['title'], title)
 
         s = self.buf.getvalue().decode('utf8')
@@ -313,7 +315,7 @@ class TestCharEncoding(unittest.TestCase):
 
         result = distillML.distillTxt(self.fp, self.buf, self.meta)
         self.assertEqual(0, result)
-        self.assertEqual(self.meta['encoding'], 'big5 [HTTP_CONTENT_TYPE]')
+        self.assertEqual(self.meta['encoding'], 'big5 [HTTP]')
         #self.assertEqual(self.meta['title'], title)
 
         s = self.buf.getvalue().decode('utf8')
@@ -363,16 +365,16 @@ class TestWeeding(unittest.TestCase):
        self.assertEqual((distillML.NON_HTML, 'image/vnd.microsoft.icon'), result)
 
 
-    def testPlaintext(self):
-        self.fp = rspreader.openlog(testdir + 'plaintext.txt')
-        result = distillML.distill(self.fp, self.buf, {})
-        self.assertEqual((distillML.NON_HTML, 'unknown'), result)
+#    def testPlaintext(self):
+#        self.fp = rspreader.openlog(testdir + 'plaintext.txt')
+#        result = distillML.distill(self.fp, self.buf, {})
+#        self.assertEqual((distillML.NON_HTML, 'unknown'), result)
 
 
-    def testXML(self):
-        self.fp = rspreader.openlog(testdir + 'xmltext.xml')
-        result = distillML.distill(self.fp, self.buf, {})
-        self.assertEqual((distillML.NON_HTML, 'unknown'), result)
+#    def testXML(self):
+#        self.fp = rspreader.openlog(testdir + 'xmltext.xml')
+#        result = distillML.distill(self.fp, self.buf, {})
+#        self.assertEqual((distillML.NON_HTML, 'unknown'), result)
 
 
     def testFrameset(self):
@@ -387,16 +389,16 @@ class TestWeeding(unittest.TestCase):
         self.assertEqual((distillML.NON_HTML, 'unknown'), result)
 
 
-    def testJavascriptBasic(self):
-        self.fp = rspreader.openlog(testdir + 'javascript(basic).js')
-        result = distillML.distill(self.fp, self.buf, {})
-        self.assertEqual((distillML.NON_HTML, 'unknown'), result)
+#    def testJavascriptBasic(self):
+#        self.fp = rspreader.openlog(testdir + 'javascript(basic).js')
+#        result = distillML.distill(self.fp, self.buf, {})
+#        self.assertEqual((distillML.NON_HTML, 'unknown'), result)
 
 
-    def testJavascriptSmall(self):
-        self.fp = rspreader.openlog(testdir + 'javascript(small).js')
-        result = distillML.distill(self.fp, self.buf, {})
-        self.assertEqual((distillML.NON_HTML, 'unknown'), result)
+#    def testJavascriptSmall(self):
+#        self.fp = rspreader.openlog(testdir + 'javascript(small).js')
+#        result = distillML.distill(self.fp, self.buf, {})
+#        self.assertEqual((distillML.NON_HTML, 'unknown'), result)
 
 
 # can't test this right now

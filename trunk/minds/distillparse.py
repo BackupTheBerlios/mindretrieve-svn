@@ -174,13 +174,12 @@ def main(argv):
     option = argv[1]
     path_or_id = argv[2]
 
-    zfile = None
     fp = None
     try:
         if os.path.exists(path_or_id):
             fp = file(path_or_id, 'rb')
         else:
-            zfile, fp = docarchive.docarc.get_arc_document(path_or_id)
+            fp = docarchive.get_document(path_or_id)
 
         if option == '-s':
             stripTags(fp, sys.stdout)
@@ -192,7 +191,6 @@ def main(argv):
 
     finally:
         if fp: fp.close()
-        if zfile: zfile.close()
 
 
 if __name__ == '__main__':

@@ -379,10 +379,10 @@ class TestQmsg(unittest.TestCase):
         self.logdir = cfg.getPath('logs')
         self.assertEqual(self.logdir,'testlogs')
 
-        id = docarchive.docarc.getNewId()
+        id = docarchive.idCounter.getNewId()
         self.assert_(int(id) < 999000, id)              # don't expect this to happen for test data; just double check.
 
-        docarchive.docarc.currentId = 999000            # prepared docarc to start output from id #999000
+        docarchive.idCounter.endId = 999000             # prepared docarc to start output from id #999000
 
         self._cleanup()
 
@@ -403,7 +403,7 @@ class TestQmsg(unittest.TestCase):
         arcpath = os.path.join(self.dbdoc, '000999.zip')
         if os.path.exists(arcpath):
             os.remove(arcpath)
-        docarchive.docarc = docarchive.DocArchive()     # reinstantiate to reset its highestId
+        docarchive.idCounter = docarchive.IdCounter()   # reinstantiate to reset its id range
 
 
 
@@ -421,11 +421,10 @@ class TestQmsg(unittest.TestCase):
 
 
     def _check_archive_doc(self, docid, *signatures):
-        arc, fp = docarchive.docarc.get_arc_document(docid)     # test docid exists (no exception)
+        fp = docarchive.get_document(docid)             # test docid exists (i.e. no exception)
         data = fp.read(1024)
-        arc.close()
         for s in signatures:
-            self.assert_(0 <= data.find(s), s)                  # have signatures
+            self.assert_(0 <= data.find(s), s)          # have signatures
 
 
 
@@ -496,7 +495,7 @@ class TestQmsg(unittest.TestCase):
         self.assertEqual(1, indexed)
         self.assertEqual(2, discarded)
 
-        self.assertEqual(999001, int(docarchive.docarc.getNewId())) # test 1 archive id being used
+        self.assertEqual(999001, int(docarchive.idCounter.getNewId())) # test 1 archive id being used
 
 
 
@@ -518,7 +517,7 @@ class TestQmsg(unittest.TestCase):
 
         self.assertEqual(3, numIndexed)
 
-        self.assertEqual(999003, int(docarchive.docarc.getNewId())) # test only 3 archive id being used
+        self.assertEqual(999003, int(docarchive.idCounter.getNewId())) # test only 3 archive id being used
 
         searcher = lucene_logic.Searcher(pathname=self.dbindex)
 

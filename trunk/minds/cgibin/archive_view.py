@@ -24,14 +24,11 @@ Cache-control: no-cache\r
 \r
 """)
 
-    zfile, fp = docarchive.docarc.get_arc_document(docid)
-    try:
-        distillparse.render(fp, wfile)                  # todo: except 404
+    fp = docarchive.get_document(docid)
+    distillparse.render(fp, wfile)                  # todo: except 404
 #        d1 = '%09d' % (int(docid) + 1,)
 #        n = '/archive_view?docid=%s' % d1
-#        distillparse._render(fp, wfile, n)                  # todo: except 404
-    finally:
-        zfile.close()
+#        distillparse._render(fp, wfile, n)         # todo: except 404
 
 
 if __name__ == "__main__":

@@ -37,14 +37,11 @@ class MatchItem:
 
     def highlight(self, analyzer, highlighter):
         maxNumFragmentsRequired = 2
-        zfile, fp = docarchive.docarc.get_arc_document(self.docid)
-        try:
-            meta, content = distillparse.parseDistillML(fp)
-            tokenStream = analyzer.tokenStream('content', StringIO.StringIO(content))
-            self.description = highlighter.getBestFragments(tokenStream, content, maxNumFragmentsRequired, "...")
-            self.title = meta.get('title','')
-        finally:
-            zfile.close()
+        fp = docarchive.get_document(self.docid)
+        meta, content = distillparse.parseDistillML(fp)
+        tokenStream = analyzer.tokenStream('content', StringIO.StringIO(content))
+        self.description = highlighter.getBestFragments(tokenStream, content, maxNumFragmentsRequired, "...")
+        self.title = meta.get('title','')
 
 
 

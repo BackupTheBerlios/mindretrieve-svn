@@ -399,7 +399,7 @@ class IndexProcess(object):
     def __init__(self):
         self.writer = None
         self.searcher = None
-        self.arc = None
+        self.arcHandler = None
         self.freshdocs = {}
         self.numIndexed = 0
         self.numDiscarded = 0
@@ -418,7 +418,7 @@ class IndexProcess(object):
 
     def _finish(self):
         if self.writer:     self.writer.close()
-        if self.arc:        self.arc.close()
+        if self.arcHandler: self.arcHandler.close()
         if self.searcher:   self.searcher.close()
 
 
@@ -431,6 +431,7 @@ class IndexProcess(object):
         log.info('Indexing %s documents starting from %s' % (len(qtxts), qtxts[0]))
 
         self._open()
+        self.arcHandler = docarchive.ArchiveHandler('w')
         try:
             for filename in qtxts:
 
@@ -478,10 +479,9 @@ class IndexProcess(object):
                 return False
 
             # add this document in the archive
-            id = docarchive.docarc.getNewId()
             fp.seek(0)
-            self.arc = docarchive.docarc.get_archive(id, self.arc, True)
-            docarchive.docarc.add_document(self.arc, id, fp)
+            id = docarchive.idCounter.getNewId()
+            self.arcHandler.add_document(id, fp)
 
             # add this document into the index
             self.writer.addDocument(id, meta, content)

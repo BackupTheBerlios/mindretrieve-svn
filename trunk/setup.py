@@ -35,12 +35,13 @@ def addscript(tf, name, arcname):
 def make_sdist(argv):
 
     files = [
-      ('dist/config.ini',   'config.ini'            ),
-      ('dist/license.txt',  'license.txt'           ),
-      ('dist/docs',         'docs'                  ),
-      ('dist/lib/htdocs',   'lib/htdocs'            ),
-      ('dist/lib/testdocs', 'lib/testdocs'          ),
-      ('sitecustomize.py',  'lib/sitecustomize.py'  ),
+      ('dist/config.ini',       'config.ini'            ),
+      ('dist/license.txt',      'license.txt'           ),
+      ('dist/docs',             'docs'                  ),
+      ('dist/lib/htdocs',       'lib/htdocs'            ),
+      ('dist/lib/testdocs',     'lib/testdocs'          ),
+      ('dist/lib/testdocs/js',  'lib/testdocs/js'       ),
+      ('sitecustomize.py',      'lib/sitecustomize.py'  ),
     ]
 
     files += [(f, 'lib/'+f) for f in glob.glob('minds/*.py')]

@@ -168,7 +168,7 @@ def openlog(path_or_fp):
     try:
         multiblockfile.MbReader(fp)
     except IOError, e:                  # don't work, treat as regular file
-        print e
+        #print e
         fp.seek(0)
         return fp
     else:                               # if no exception it is most likely mlog file

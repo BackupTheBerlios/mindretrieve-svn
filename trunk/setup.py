@@ -127,6 +127,7 @@ else:
             ('docs/img',                glob.glob('docs/website/img/firefox_proxy.gif')),
             ('docs/img',                glob.glob('docs/website/img/ie_proxy.gif')),
             ('docs/img',                glob.glob('docs/website/img/opera_proxy.gif')),
+            ('.',                       ['lib/msvcr71.dll',]),
             ('lib/htdocs',              glob.glob('lib/htdocs/*.*')),
             ('lib/testdocs',            glob.glob('lib/testdocs/*.*')),
             ('lib/testdocs/js',         glob.glob('lib/testdocs/js/*.*')),

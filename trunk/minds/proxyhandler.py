@@ -88,22 +88,30 @@ class ProxyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     # verify request
 
         (scm, netloc, path, params, query, fragment) = urlparse.urlparse( self.path, 'http')
-#        if scm != 'http' or fragment or not netloc:
-#            self.send_error(400, "bad url %s" % self.path)
-#            return
 
     # proxy connection
 
         soc = None
         try:
-            soc = self._send_request(netloc, self.path, path, params, query)
-            if not soc:
-                log.warn("Failed to connect to %s", netloc)
+            try:
+                soc = self._send_request(netloc, self.path, path, params, query)
+                if not soc:
+                    #already logged
+                    #log.warn("Failed to connect to %s", netloc)
+                    return
+                rspBuf, header_size, bytes_received = self._transfer_data(soc)
+                if header_size <= 0:
+                    log.warn("No response from %s %s", netloc, path)
+                    return
+
+            except socket.error, e:
+                # socket.error is common enough that we don't want to print the stack trace
+                # e.g.
+                #   (10053, 'Software caused connection abort')
+                #   (10054, 'Connection reset by peer')
+                log.warn('socket.error: %s' % str(e))
                 return
-            rspBuf, header_size, bytes_received = self._transfer_data(soc)
-            if header_size <= 0:
-                log.warn("No response from %s %s", netloc, path)
-                return
+
         finally:
             try:
                 if soc: soc.close()
@@ -321,23 +329,33 @@ class ProxyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
         soc = self._connect_to(self.path)
         if not soc:
-            log.warn("Failed to connect to %s", self.path)
+            #already logged
+            #log.warn("Failed to connect to %s", self.path)
             return
 
         # just tunnel for now
         try:
-            log.debug('Connect - %s', self.path)
-            self.wfile.write(self.protocol_version +
-                             " 200 Connection established\r\n")
-            self.wfile.write("Proxy-agent: %s\r\n" % self.version_string())
-            self.wfile.write("\r\n")
+            try:
+                log.debug('Connect - %s', self.path)
+                self.wfile.write(self.protocol_version +
+                                 " 200 Connection established\r\n")
+                self.wfile.write("Proxy-agent: %s\r\n" % self.version_string())
+                self.wfile.write("\r\n")
 
-            proxy_pump = self._proxy_pump(self.connection, soc)
-            clen = 0
-            for cData, sData in proxy_pump:
-                if sData:
-                    clen += len(sData)
-            #log.debug('Tunnel ended clen %s for %s', clen, self.path)
+                proxy_pump = self._proxy_pump(self.connection, soc)
+                clen = 0
+                for cData, sData in proxy_pump:
+                    if sData:
+                        clen += len(sData)
+                #log.debug('Tunnel ended clen %s for %s', clen, self.path)
+
+            except socket.error, e:
+                # socket.error is common enough that we don't want to print the stack trace
+                # e.g.
+                #   (10053, 'Software caused connection abort')
+                #   (10054, 'Connection reset by peer')
+                log.warn('socket.error: %s' % str(e))
+                return
 
         finally:
             soc.close()

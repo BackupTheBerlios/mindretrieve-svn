@@ -4,7 +4,7 @@
 [Setup]
 AppId=MindRetrieve
 AppName=MindRetrieve
-AppVerName=MindRetrieve 0.4.0
+AppVerName=MindRetrieve 0.4.1
 AppPublisher=MindRetrieve
 AppPublisherURL=http://mindretrieve.berlios.de/
 AppSupportURL=http://mindretrieve.berlios.de/
@@ -15,11 +15,11 @@ DisableProgramGroupPage=yes
 Compression=lzma
 SolidCompression=yes
 OutputDir=.
-OutputBaseFilename=mindretrieve0.4.0win32
+OutputBaseFilename=mindretrieve0.4.1win32
 
 [Files]
-Source: "h:\bin\py_repos\proxy\dist\MindRetrieve.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "H:\bin\py_repos\proxy\dist\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
+Source: "h:\bin\py_repos\mindretrieve\trunk\dist\MindRetrieve.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "H:\bin\py_repos\mindretrieve\trunk\dist\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 ;[InstallDelete]

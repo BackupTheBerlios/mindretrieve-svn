@@ -1,0 +1,28 @@
+body    { font-family: verdana, arial, helvetica, sans-serif; font-size: 80%; }
+table   { font-size: 100% }    /* hack? without this table cells won't inherit body's font-size */
+th      { text-align: left; font-weight: 800 }
+h1      { color: #ffff33; background-color: #0033ff; padding: 0.5ex; margin-top: 0 }
+
+pre     { font-size: 10pt; font-family: "Courier New", Courier, Monaco, monospace ; }
+
+
+#navigationBar {
+}
+
+#navigationBar a {
+    text-decoration: none;
+    font-weight: bold;
+}
+
+#navigationBar a:hover {
+    text-decoration: underline;
+}
+
+#navigationCurrent {
+    font-weight: bold;
+}
+
+#homepagelink {
+    float: right;
+    font-weight: normal;
+}

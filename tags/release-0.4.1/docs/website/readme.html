@@ -1,0 +1,161 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3c.org/TR/html4/loose.dtd">
+<html>
+<head>
+<title>MindRetrieve - Readme</title>
+<meta name="description" content="MindRetrieve - Search The Web You Have Seen" />
+<style>
+body    { font-family: verdana, arial, helvetica, sans-serif;
+          margin-left: 2em;
+          margin-right1: 5cm;
+          width: 45em;
+        }
+h1      { font-size: 18pt; color: #ffff33; background-color: #0033ff; padding: 0.5ex; margin-top: 0 }
+h2      { font-size: 14pt; color: #0033cc; }
+h3      { font-size: 10pt; color: #0033cc; margin-bottom: 0 }
+p       { font-size: 10pt; }
+li      { font-size: 10pt; }
+#instructions { background-color: #dddddd; padding: 0.5ex 1em 1ex 1em; }
+#instructions p { margin-top:0.2ex }
+.code { background-color: #dddddd; padding: 0.5ex 1em 1.5ex 1em; }
+}
+</style>
+</head>
+
+<body>
+<h1>MindRetrieve - Search The Web You Have Seen</h1>
+<p>MindRetrieve is a personal search engine. Unlike general purpose search
+engines that intent to index and search every web page in the world,
+MindRetrieve focus on a small but very special area. That is the web that
+you have seen.
+
+<p>Everyday we read a large amount of information from the world wide
+web. The truth is most of them does not register. We often search for
+similar topics time after time. It is time consuming. Often after much
+work we find that we are looking at the same old documents like a déjà
+vu. MindRetrieve is here to help you to find information buried deep in your
+memory.</p>
+
+<p>MindRetrieve is a lightweight, cross-platform, open source application
+available under the BSD license. It works with all popular web browsers.
+
+<h2>Installation</h2>
+<h3>Windows Installation</h3>
+<p>Download and run the <a
+href="https://developer.berlios.de/project/showfiles.php?group_id=2905">Windows
+installer</a>. Then configure your web browser to use MindRetrieve as
+the http proxy at port 8051. Instructions for some popular web browsers
+are listed below.</p>
+
+<div id="instructions">
+<h3>Internet Explorer 6.0</h3> <p class="browser_instruction">Choose the
+Tools | Internet Options menu. Click the [Connections] tab. Then click
+the [LAN Settings...] button. Check the [Use a proxy server...]
+checkbox. Put 'localhost' for address and '8051' for port. Also check
+Bypass proxy for local address.(<a href='img/ie_proxy.gif'>screen
+shot</a>)</p>
+
+<h3>Mozilla Firefox 1.0</h3>
+<p class="browser_instruction">Choose the Tools | Options menu. Click
+the [Connections Settings] button. Select the 'Manual proxy
+configuration' radio box. Put 'localhost' in the HTTP Proxy field ands
+SSL Proxy field. Put '8051' in the port field. (<a
+href='img/firefox_proxy.gif'>screen shot</a>)</p>
+
+<h3>Opera 7.5</h3>
+<p class="browser_instruction">Open the Preferences
+dialog box. Choose network and click the [Proxy Servers] button. Check
+the HTTP and HTTPS checkboxes. Put 'localhost' and '8051' in each row.
+(<a href='img/opera_proxy.gif'>screen shot</a>)</p>
+
+</div>
+
+<p><i>Note if your company of ISP or your company already requires you
+to manually configure a proxy to their server, you should set them up as
+a chain of proxies. Setup you browser's proxy to MindRetrieve with the
+instruction above. Then configure the ISP's proxy in the http_proxy
+entry in the http section of in the <b>config.ini</b> file. For example,
+if the original proxy is proxy.abc.com at port 1234, edit the entry as
+below:</i></p>
+
+<div class="code"><pre>
+Config.ini
+
+  [http]
+  http_proxy=<u>http://proxy.abc.com:1234/</u>
+</div>
+
+<h3>Linux Installation</h3>
+<p>First download and install the dependent software components:
+<ul>
+<li><a href='http://www.python.org/download/'>Python 2.4</a>
+<li><a href='http://pylucene.osafoundation.org/'>PyLucene 0.9.6</a>
+</ul>
+
+<p>Download and install the <a
+href="https://developer.berlios.de/project/showfiles.php?group_id=2905">linux
+tarball</a>. Configure the browser's proxy setting using the procedure
+above. Then start the MindRetrieve engine using this command
+
+<pre>    python run.py --start &amp;</pre>
+
+<p>To stop it, use this command
+
+<pre>    python run.py --start</pre>
+
+<h2>Getting Started</h2>
+
+<p>MindRetrieve is now ready to listen and index web traffic for you. For
+example, start with a visit to MindRetrieve's <a
+href='http://mindretrieve.berlios.de/'>home page</a>. You
+may want to click you browser's reload button to ensure it loads a fresh
+copy after you have installed MindRetrieve.</p>
+
+<p>Next open and bookmark the MindRetrieve <a href='http://localhost:8050/'
+rev="bookmark">start page [http://localhost:8050]</a>. From
+there you will be able to search all previously loaded web pages.
+Usually an automatic indexing happens in the background periodically.
+For instant gratification, click 'config' and 'index now' to index the
+page you have just visited.</p>
+
+<p>Let's enter the word 'personal search engine' in the start page. You
+should find the MindRetrieve home page, which you have just visited
+moments ago. That's it. Happy browsing and searching! Remember to use
+the bookmark to back to MindRetrieve's start page. </p>
+
+<h2>Uninstallation</h2>
+<p>Should you want to uninstall MindRetrieve, first undo the proxy
+configuration from your web browser. For Windows version, use Add/Remove
+Program from the Control Panel to uninstall MindRetrieve. Finally if you
+want to permanently remove all data collected, simply delete all
+remaining files under the directory where you have MindRetrieve installed.
+
+</p>
+
+
+<h2>Privacy</h2>
+<p>MindRetrieve works by archiving and indexing all web
+messages<sup>*</sup> that go through it. We find this make some very
+powerful application. However if you have concern on your web traffic
+being archived in any way at all, you should not install and use this
+application. </p>
+
+<p>We recognize that your web history is very sensitive private data. In
+particular it has lucrative commercial value to advertisers. This
+application does not share or transfer your data in any form (unless you
+explicitly request it to do so). This is where MindRetrieve stands out from
+other similar applications. You do not have to believe in any deceptive
+privacy statements. As an open source application its operations can be
+independently audited. </p>
+
+<p><small><sup>*</sup><cite>MindRetrieve does not read or store https messages.</cite></small></p>
+
+<h2>Contact Information</h2>
+<p>For all feedback or issues, please contact me at tungwaiyip at
+users.berlios.de. Also look forward for an upcoming mailing list.</p>
+
+<p>Version: 0.4.0 (2004-01-22)</p>
+
+<p style="margin-bottom: 1cm"></p>
+
+</body>
+</html>

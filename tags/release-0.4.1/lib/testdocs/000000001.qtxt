@@ -1,0 +1,101 @@
+uri: http://www.getopt.org/luke/
+date: 2004-12-20T16:08:40Z
+etag: "d00b7-2491-40d75aea"
+
+
+<h1>Luke - Lucene Index Toolbox</h1>Lucene is an Open Source, mature and high-performance Java search engine. It is highly flexible, and scalable from hundreds to millions of documents.<br>
+Luke is a handy development and diagnostic tool, which accesses already existing Lucene indexes and allows you to display and modify their contents in several ways:
+<ul>
+<li>browse by document number, or by term</li>
+<li>view documents / copy to clipboard</li>
+<li>retrieve a ranked list of most frequent terms</li>
+<li>execute a search, and browse the results</li>
+<li>analyze search results</li>
+<li>selectively delete documents from the index</li>
+<li>reconstruct the original document fields, edit them and re-insert to the index</li>
+<li>optimize indexes</li>
+<li>and much more...</li></ul>
+<p>Latest versions of Luke are also extensible through a plugin mechanism. I started this project because I needed a tool like this. I decided to distribute it Open Source to express my gratitude to the Lucene team for creating such a high-quality product. Lucene is one of the landmark proofs that Open Source paradigm can result in high-quality and free products.<br>
+
+<h2>Java WebStart version</h2>
+<p>Java Web Start version: launch Luke now.
+<p>NOTE: use this link if you want to make sure you use the right version of Java VM and Java WebStart.
+<h2>Download - source and binary</h2>
+<p>Current version is 0.5. It has been released on Jun 22, 2004. You can download the binary JARs here (360kB):
+<ul>
+<li>A standalone JAR, containing Luke and Lucene 1.4-rc4:<br>
+lukeall.jar<br>
+There are no external dependencies. This version can be run simply by java -jar lukeall.jar, or double-click in Windows.</li>
+<li>As two separate JARs, one containing Luke and the other pristine Lucene 1.4-rc4 JAR (just signed, so that it can be used with Java WS):<br>
+luke.jar<br>
+lucene.jar (1.4-rc4)<br>
+Remember to put both JARs on your classpath, e.g.: java -classpath luke.jar;lucene.jar org.getopt.luke.Luke</li></ul><br>
+You can download the source code here (90kB): luke.zip<br>
+
+<p>Changes in v. 0.5:
+<p>This release introduces many changes and new, unique features:
+<ul>
+<li>NEW: Added support for Term Vectors.</li>
+<li>NEW: Added a plugin framework - plugins found on classpath are detected automatically and added to the new "Plugins" tab. Note however that for now plugins do NOT work when using Java WebStart.</li>
+<li>NEW: A sample plugin provided, based on Mark Harwood's "tool for analyzing analyzers".</li>
+<li>NEW: all tables support resizable columns now. Some dialogs are also resizable.</li>
+<li>NEW: Added Reconstruct functionality. Using this function users can reconstruct the content of all (also unstored) fields of a document. This function uses a brute-force approach, so it may be slow for larger indexes (&gt; 500,000 docs).</li>
+<li>NEW: Added "pseudo-edit" functionality. New document editor dialog allows to modify reconstructed documents, and add or replace the original ones.</li>
+<li>FIX: problems with MRU list solved, and a framework for handling preferences introduced.</li>
+<li>FIX: the list of available Analyzers is now dynamically populated from the classpath, using the same method as in the AnalyzerTool plugin.</li>
+<li>FIX: restructured source repository and added Ant build script.</li></ul>
+<p>Please note that as a result of the package name changes, the main class is org.getopt.luke.Luke, and NOT as before luke.Luke.
+<p>I felt that all these changes merited a slight change in name, from "Lucene Index Browser" to "Lucene Index Toolbox", as this seems to better reflect the current functionality of the tool.<br>
+
+<p>Changes in v. 0.45:
+<ul>
+<li>Added more details to the Overview panel.</li>
+<li>Add support for undeleting all deleted documents.</li>
+<li>Add Boost column to Document view.</li>
+<li>Use nicer formatting for numbers in the Explain window.</li>
+<li>Fix for not updating the parsed query view when pressing Search.</li>
+<li>Fix the JNLP file to require J2SE 1.3+.</li>
+<li>By popular demand, add a single self-contained JAR to the binary distribution.</li>
+<li>Minor restructuring to increase reuse.</li></ul><br>
+
+<p>Changes in v. 0.4:
+<ul>
+<li>Use Lucene 1.3-FINAL. The WebStart version has been changed, so that it uses two separate JARs - one contains Luke, the other Lucene.</li>
+<li>Added support for compound index format. It's also possible to change the format during optimization.</li>
+<li>visualization of the query parsing. When you change the Analyzer or default field, or perform a Search, you can see the QueryParser's idea of what the final query looks like. Suggested by Erik Hatcher.</li>
+<li>added functionality to view the explanation for a hit.</li>
+<li>bugfix for broken behavior: when selecting "Show All Docs" on the "Documents" view, the program would use a QueryParser, whereas it should simply construct a primitive TermQuery. This bug could result in mysterious "No Results" on the search page. Spotted by Erik Hatcher.</li></ul>
+<p>I'll update the screenshots in a few days ...<br>
+
+<p>Changes in v. 0.3:
+<ul>
+<li>Add several enhancements and bugfixes contributed by Ryan Cox:
+<ul>
+<li>drop-down choice with most recently used indexes</li>
+<li>list of files in an index</li>
+<li>information about relative index changes after optimization</li>
+<li>timing of searches</li>
+<li>Bugfix: reload field list after opening another index</li></ul></li>
+<li>various small UI cleanups</li></ul><br>
+
+<p>Changes in v. 0.2:
+<ul>
+<li>Add Java WebStart version.</li>
+<li>Add Read-Only mode.</li>
+<li>Fix spinbox bug (really a bug in the Thinlet toolkit - fixed there).</li>
+<li>Allow to browse hidden directories.</li>
+<li>Add a combobox to choose the default field for searching.</li>
+<li>Other minor code cleanups.</li></ul>
+<h2>License</h2>Luke is covered by Apache Software License, which means that it's free for any use, including commercial use. It comes with full source code included (see section above). Notice however that the Thinlet library is covered by GNU Library (Lesser) Public License, which puts different restrictions on that portion of the program.<br>
+If you feel inclined, I would appreciate a short email note, in case you find this program useful, or if you want to redistribute it in a software collection. Although it's not required by the license, it gives me some idea of how people use it, and what features are most useful to them...<br>
+
+<h2>Bug reports</h2>Hopefully, there will be none! :-) Ok, let's be realistic... if you notice a bug, or if you come up with a useful feature request, or even better - with patches that implement new functionality - please contact the author (Andrzej Bialecki, ab at getopt dot org). Thank you in advance for your comments and contributions!<br>
+
+<h2>Screenshots</h2>That's what tiggers love the most...<br>
+The following screenshot present the overview screen, just after you open an index.<br>
+The screenshot below shows you the document panel, where you can browse through documents sequentially, or select groups of documents by terms, which they contain.<br>
+The next screenshot shows you the Search panel, where you can enter search expressions in the standard Lucene QueryParser syntax. However, notice that you can select analyzer used to parse the query - either one of the predefined ones, or your own class in a classpath. You can also select the default field (this field is used when there is no specific field qualifier in your search expression).<br>
+You can also see in the "Parsed query view" area how the choice of analyzer affects the final query. In this case, please note how the phrase "more and more" has changed.<br>
+The screenshot below shows a dialog containing the explanation for a hit. The Explanation tree shows how various term matches and normalizations resulted in the final document score for the current query.<br>
+Please note how the fuzzy query expanded the term "book" into "books" (and, not visible here, "bookstore", "bookstores", etc...), adjusting the weight of this hit.<br>
+Last modified: Jan 17, 2004<br>

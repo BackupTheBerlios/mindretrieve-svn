@@ -1,0 +1,32 @@
+659
+                 
+GET http://ad.doubleclick.net/adi/sf.gate/news;sect=news__art_topban;zip=;kw=WAR;width=468;height=60;sz=468x60;ord=26472? HTTP/1.0
+User-Agent: Opera/7.54 (Windows NT 5.0; U)  [en]
+Host: ad.doubleclick.net
+Accept: text/html, application/xml;q=0.9, application/xhtml+xml, image/png, image/jpeg, image/gif, image/x-xbitmap, */*;q=0.1
+Accept-Language: en
+Accept-Charset: windows-1252, utf-8, utf-16, iso-8859-1;q=0.6, *;q=0.1
+Accept-Encoding: deflate, gzip, x-gzip, identity, *;q=0
+Referer: http://sfgate.com/cgi-bin/article.cgi?f=/news/a/2004/10/13/international0747EDT0476.DTL
+Cookie: id=8000002ac944043
+Cookie2: $Version=1
+Proxy-Connection: close
+
+
+
+209
+                 
+HTTP/1.0 200 OK
+Server: DCLK-AdSvr
+Content-Type: text/html
+Content-Length: 395
+Cache-Control: private, no-cache="Set-Cookie"
+Date: Wed, 13 Oct 2004 15:38:48 GMT
+Expires: Wed, 13 Oct 2004 15:43:48 GMT
+
+
+
+395
+                 
+<HTML><head><title>Affordable Art. Fun Party. CO4 on Oct. 15.</title></head><BODY BGCOLOR=#FFFFFF><a target="_top" href="http://ad.doubleclick.net/click;h=v3|31a3|0|0|%2a|z;11325884;0-0;0;3553323;1-468|60;7275042|7292938|1;;~sscs=%3fhttp://www.sfacgallery.org"><img src="http://sfgate.com/place-ads/oas/C04_468x60.gif" border=0 alt="Affordable Art. Fun Party. CO4 on Oct. 15."></a></BODY></HTML>
+

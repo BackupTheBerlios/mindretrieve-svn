@@ -1,0 +1,21 @@
+utf8
+Movie Review - Ah Ying
+半邊人 (Ah Ying)
+iso-8859-1
+Versión 2.0 de la documentación del Servidor de HTTP Apache - Servidor HTTP Apache
+<h2>Documentación adicional
+koi8-r
+Докуменатция к HTTP серверу Apache версии 2.0 - HTTP сервер Apache
+<h2>Справочные материалы
+big5
+Yahoo! 新聞
+1月 10日 星期一
+euc-jp
+Apache HTTP サーバ バージョン 2.0 ドキュメント - Apache HTTP サーバ
+<h2>How-To / チュートリアル
+euc-kr
+Apache HTTP Server Version 2.0 문서 - Apache HTTP Server
+<h2>How-To / 투토리얼
+big5
+
+《半邊人》

@@ -382,7 +382,7 @@ class TestQmsg(unittest.TestCase):
         id = docarchive.idCounter.getNewId()
         self.assert_(int(id) < 999000, id)              # don't expect this to happen for test data; just double check.
 
-        docarchive.idCounter.endId = 999000             # prepared docarc to start output from id #999000
+        docarchive.idCounter._endId = 999000            # prepared docarc to start output from id #999000
 
         self._cleanup()
 
@@ -404,7 +404,6 @@ class TestQmsg(unittest.TestCase):
         if os.path.exists(arcpath):
             os.remove(arcpath)
         docarchive.idCounter = docarchive.IdCounter()   # reinstantiate to reset its id range
-
 
 
     def _fetch_qlogs(self, files):
@@ -430,7 +429,6 @@ class TestQmsg(unittest.TestCase):
 
     def testTransformDocs(self):
 
-        print '\n@testTransformDocs'
         TEST_FILES = [
             '200(getopt_org).mlog',         # 1
             'gif.qlog',                     # 2 - weed
@@ -472,8 +470,6 @@ class TestQmsg(unittest.TestCase):
 
     def test_discarded_archived(self):
 
-        print '\n@test_discarded_archived'
-
         # add a doc to index that matches creative_commons.qlog's etag
         writer = lucene_logic.Writer(self.dbindex)
         writer.addDocument('1',
@@ -500,8 +496,6 @@ class TestQmsg(unittest.TestCase):
 
 
     def test_indexDocs(self):
-
-        print '\n@test_indexDocs'
 
         files = ['000000001.qtxt', '000000004.qtxt', '000000006.qtxt']
         for f in files:
@@ -552,6 +546,95 @@ class TestQmsg(unittest.TestCase):
         self._check_archive_doc('000999001', 'Slashdot: News for nerds, stuff that matters')
         self._check_archive_doc('000999002', 'All rights reserved.', 'date: 2000-01-01T12:34:56Z')
 
+
+
+    def test_backgroundIndexTask(self):
+
+        TEST_FILES = [
+            '200(getopt_org).mlog',         # 1
+            'gif.qlog',                     # 2 - weed
+            'empty_response.mlog',          # 3 - bad
+            'gzipped(slashdot).mlog',       # 4
+            'favicon.ico_text(nutch).mlog', # 5 - weed txt
+            'plaintext.mlog',               # 6
+        ]
+        queued = self._fetch_qlogs(TEST_FILES)
+
+        transformed, indexed, discarded = qmsg_processor.backgroundIndexTask(True)
+        self.assertEqual((transformed, indexed, discarded), (3,3,3))
+
+        self._check_archive_doc('000999000', 'Luke - Lucene Index Toolbox', 'uri: http://www.getopt.org/luke/')
+        self._check_archive_doc('000999001', 'Slashdot: News for nerds, stuff that matters')
+        self._check_archive_doc('000999002', 'All rights reserved.')
+
+
+
+    def test_backgroundIndexTask1(self):
+
+        # break the process into two batches
+
+        TEST_FILES = [
+            '200(getopt_org).mlog',         # 1
+            'gif.qlog',                     # 2 - weed
+            'empty_response.mlog',          # 3 - bad
+        ]
+        queued = self._fetch_qlogs(TEST_FILES)
+
+        transformed, indexed, discarded = qmsg_processor.backgroundIndexTask(True)
+        self.assertEqual((transformed, indexed, discarded), (1,1,2))
+
+        self._check_archive_doc('000999000', 'Luke - Lucene Index Toolbox', 'uri: http://www.getopt.org/luke/')
+
+        # second batch
+        TEST_FILES = [
+            'gzipped(slashdot).mlog',       # 4
+            'favicon.ico_text(nutch).mlog', # 5 - weed txt
+            'plaintext.mlog',               # 6
+        ]
+        queued = self._fetch_qlogs(TEST_FILES)
+
+        transformed, indexed, discarded = qmsg_processor.backgroundIndexTask(True)
+        self.assertEqual((transformed, indexed, discarded), (2,2,1))
+
+        self._check_archive_doc('000999000', 'Luke - Lucene Index Toolbox', 'uri: http://www.getopt.org/luke/')
+        self._check_archive_doc('000999001', 'Slashdot: News for nerds, stuff that matters')
+        self._check_archive_doc('000999002', 'All rights reserved.')
+
+
+
+    def test_backgroundIndexTask2(self):
+
+        # break the process into two batches, simulate restart engine
+
+        TEST_FILES = [
+            '200(getopt_org).mlog',         # 1
+            'gif.qlog',                     # 2 - weed
+            'empty_response.mlog',          # 3 - bad
+        ]
+        queued = self._fetch_qlogs(TEST_FILES)
+
+        transformed, indexed, discarded = qmsg_processor.backgroundIndexTask(True)
+        self.assertEqual((transformed, indexed, discarded), (1,1,2))
+
+        self._check_archive_doc('000999000', 'Luke - Lucene Index Toolbox', 'uri: http://www.getopt.org/luke/')
+
+        # simulate restarting engine by reinstantiate idCounter
+        docarchive.idCounter = docarchive.IdCounter()
+
+        # second batch
+        TEST_FILES = [
+            'gzipped(slashdot).mlog',       # 4
+            'favicon.ico_text(nutch).mlog', # 5 - weed txt
+            'plaintext.mlog',               # 6
+        ]
+        queued = self._fetch_qlogs(TEST_FILES)
+
+        transformed, indexed, discarded = qmsg_processor.backgroundIndexTask(True)
+        self.assertEqual((transformed, indexed, discarded), (2,2,1))
+
+        self._check_archive_doc('000999000', 'Luke - Lucene Index Toolbox', 'uri: http://www.getopt.org/luke/')
+        self._check_archive_doc('000999001', 'Slashdot: News for nerds, stuff that matters')
+        self._check_archive_doc('000999002', 'All rights reserved.')
 
 
 def main(argv):

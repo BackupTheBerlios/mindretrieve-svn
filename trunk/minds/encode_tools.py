@@ -12,7 +12,9 @@ Precedence rules
 import codecs
 import logging
 import sys
+import StringIO
 
+from minds import generator_parser
 from toollib import sgmllib         # custom version of sgmllib
 from util import rspreader
 
@@ -51,40 +53,42 @@ def _getvalue(attrs, name):
     return ''
 
 
-class Parser(sgmllib.SGMLParser):
-    """ Find the charset from http-equiv tag in the format of
-            <META http-equiv="Content-Type" content="text/html; charset=big5">
-    """
-
-    def __init__(self):
-        sgmllib.SGMLParser.__init__(self)
-        self.reset()
-
-    def reset(self):
-        sgmllib.SGMLParser.reset(self)
-        self.charset = ''
-
-    def unknown_starttag(self, tag, attrs):
-        if tag != 'meta':
-            return
-        if _getvalue(attrs,'http-equiv').lower() != 'content-type':
-            return
-        self.charset = findCharSet(_getvalue(attrs,'content'))
-        raise StopIteration()
+#class Parser(sgmllib.SGMLParser):
+#    """ Find the charset from http-equiv tag in the format of
+#            <META http-equiv="Content-Type" content="text/html; charset=big5">
+#    """
+#
+#    def __init__(self):
+#        sgmllib.SGMLParser.__init__(self)
+#        self.reset()
+#
+#    def reset(self):
+#        sgmllib.SGMLParser.reset(self)
+#        self.charset = ''
+#
+#    def unknown_starttag(self, tag, attrs):
+#        if tag != 'meta':
+#            return
+#        if _getvalue(attrs,'http-equiv').lower() != 'content-type':
+#            return
+#        self.charset = findCharSet(_getvalue(attrs,'content'))
+#        raise StopIteration()
 
 
 
 def findMetaHttpEquiv(first_block):
-    parser = Parser()
+    fp = StringIO.StringIO(first_block)
     try:
-        parser.feed(first_block)
-    except StopIteration:               # good, found charset
-        return parser.charset
+        for token in generator_parser.generate_tokens(fp):
+            if token[:2] == (generator_parser.TAG, 'meta'):
+                http_equiv = _getvalue(token[2],'http-equiv').lower()
+                if http_equiv == 'content-type':
+                    attrs = token[2]
+                    return findCharSet(_getvalue(attrs,'content'))
     except sgmllib.SGMLParseError, e:
         log.warn('Error looking for <meta> encoding "%s"', str(e))   # ParseError not uncommon, just log
-    except Exception, e:
-        log.exception('Error Parsing')
     return ''
+
 
 
 def determineEncoding(meta, first_block):
@@ -103,7 +107,7 @@ def determineEncoding(meta, first_block):
     # todo: need to handle XHTML
 
     # try meta http-equiv
-    charset =findMetaHttpEquiv(first_block)
+    charset = findMetaHttpEquiv(first_block)
     if charset:
         return charset, META_CHARSET
 

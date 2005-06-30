@@ -29,44 +29,34 @@ COLUMNS = [
 
 NUM_COLUMN = len(COLUMNS)
 
-(
-ID         ,    # 0
-NAME       ,    # 1
-DESCRIPTION,    # 2
-COMMENT    ,    # 3
-LABELIDS   ,    # 4
-FLAGS      ,    # 5
-CREATED    ,    # 6
-MODIFIED   ,    # 7
-ARCHIVED   ,    # 8
-URL        ,    # 9
-) = range(NUM_COLUMN)
+#(
+#ID         ,    # 0
+#NAME       ,    # 1
+#DESCRIPTION,    # 2
+#COMMENT    ,    # 3
+#LABELIDS   ,    # 4
+#FLAGS      ,    # 5
+#CREATED    ,    # 6
+#MODIFIED   ,    # 7
+#ARCHIVED   ,    # 8
+#URL        ,    # 9
+#) = range(NUM_COLUMN)
 
-
-
-def scanLine(reader):
-    for lineno, line in enumerate(reader):
-        line = line.rstrip()
-        if line and not line.startswith('#'):
-            yield lineno, line
 
 
 def load(rstream):
 
-    reader = codecs.getreader('utf8')(rstream,'replace')
-    lineScanner = scanLine(reader)
-
     wlib = weblib.WebLibrary()
 
-    lineno, header = lineScanner.next()
+    ###lineno, header = lineScanner.next()
 
-    for lineno, line in lineScanner:
+    for lineno, row in dsv.parse(rstream):
         try:
-            parseLine(wlib, line)
+            parseLine(wlib, row)
         except KeyError, e:
-            log.warn('line %s - %s', lineno+1, e)
+            log.warn('line %s - %s', lineno, e)
         except ValueError, e:
-            log.warn('line %s - %s', lineno+1, e)
+            log.warn('line %s - %s', lineno, e)
 
     for item in wlib.webpages:
         weblib.setTags(item, wlib)
@@ -78,37 +68,35 @@ def load(rstream):
 
 
 
-def parseLine(wlib, line):
+def parseLine(wlib, row):
     """ raise ValueError or KeyError for parsing problem """
-
-    data = parseFields(line)
 
     # TODO: field validation
 
-    if data[ID][0:1] == '+':
+    if row.id[0:1] == '+':
         label = weblib.Label(
-            id          = int(data[ID][1:]),
-            name        = data[NAME],
+            id          = int(row.id[1:]),
+            name        = row.name,
         )
         wlib.addLabel(label)
 
     else:
-        labelIds = []
-        _labelIds = data[LABELIDS].strip()
-        if _labelIds:
-            labelIds = [int(id) for id in _labelIds.split(',')]
+        if row.labelids:
+            labelIds = [int(id) for id in row.labelids.split(',')]
+        else:
+            labelIds = []
 
         entry = weblib.WebPage(
-            id          = int(data[ID]),
-            name        = data[NAME         ],
-            description = data[DESCRIPTION  ],
-            comment     = data[COMMENT      ],
-            labelIds    = labelIds           ,
-            flags       = data[FLAGS        ],
-            created     = data[CREATED      ],
-            modified    = data[MODIFIED     ],
-            archived    = data[ARCHIVED     ],
-            url         = data[URL          ],
+            id          = int(row.id),
+            name        = row.name,
+            description = row.description,
+            comment     = row.comment,
+            labelIds    = labelIds,
+            flags       = row.flags,
+            created     = row.created,
+            modified    = row.modified,
+            archived    = row.archived,
+            url         = row.url,
         )
         wlib.addWebPage(entry)
 
@@ -131,7 +119,7 @@ def save(wstream, wlib):
 
     writer.write('#encoding=UTF8\n')
     writer.write('#version=0.5\n')
-    header = dsv.encode(COLUMNS)
+    header = dsv.encode_fields(COLUMNS)
     writer.write(header)
     writer.write('\n')
 
@@ -139,7 +127,7 @@ def save(wstream, wlib):
 
         id = '+%d' % item.id
 
-        data = dsv.encode([id, item.name] + [''] * (NUM_COLUMN-2))
+        data = dsv.encode_fields([id, item.name] + [''] * (NUM_COLUMN-2))
 
         writer.write(data)
         writer.write('\n')
@@ -150,7 +138,7 @@ def save(wstream, wlib):
         id = str(item.id)
         labelIds = ','.join(map(str,item.labelIds))
 
-        data = dsv.encode([
+        data = dsv.encode_fields([
             id              ,
             item.name       ,
             item.description,

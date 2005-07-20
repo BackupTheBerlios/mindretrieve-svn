@@ -62,6 +62,10 @@ class MatchItem:
             self.title = meta.get('title','')
 
 
+    def __str__(self):
+        return 'matchItem<%s,%s,%s>' % (self.id, self.docid, self.uri)
+
+
 
 def parseQuery(phrase):
     query = QueryParser.parse(phrase, "content", StandardAnalyzer())
@@ -114,7 +118,10 @@ def search(query, start, end):
         if i >= hits.length():
             break
         item = MatchItem(hitList, i)
-        item.highlight(analyzer, highlighter)
+        try:
+            item.highlight(analyzer, highlighter)
+        except Exception, e:
+            log.exception('Error highlighting %s' % item);
         #item.explaination = str(searcher.explain(query, item.id))
         result.append(item)
 

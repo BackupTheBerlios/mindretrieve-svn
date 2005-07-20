@@ -3,7 +3,6 @@ import codecs
 import os, sys
 
 from minds.config import cfg
-from minds import search
 from minds.util import pagemeter
 import searchTmpl
 
@@ -45,6 +44,8 @@ def main(rfile, wfile, env):
 
     form = cgi.FieldStorage(fp=rfile, environ=env)
     qform = QueryForm(form)
+
+    from minds import search
 
     error_msg = ''
     num_match = 0

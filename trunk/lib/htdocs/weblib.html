@@ -1,0 +1,127 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3c.org/TR/html4/loose.dtd">
+<html>
+<head>
+<title>MindRetrieve - Configuration</title>
+<link rel="stylesheet" href="main.css" type="text/css">
+<style>
+
+  #content         {
+    margin-top: 0cm;
+    padding-left: 0.2cm;
+    Xborder: thin solid black;
+  }
+  #content ul     {
+    list-style-type: none;
+    padding: 0;
+    margin-left: 0;
+  }
+  .category h3      { margin-top: 0;
+                      margin-bottom: 0;
+                      margin-left: -0.3em;
+                      padding-left: 0.3em;
+                      width: 30em;
+                      background-color: #ccc;
+                    }
+  .category ul      { margin-top: 0.2cm; }
+  .category a       { text-decoration: none; }
+  .category a:hover { text-decoration: underline; }
+
+  #rightPane        {
+    float:right;
+    width: 15em;
+    margin-top: 0.2cm;
+    padding: 0.2cm;
+    background-color: #3c3;
+    Xborder: thin solid black;
+  }
+  #rightPane ul     {
+    list-style-type: none;
+    padding: 0;
+    margin-left: 0;
+  }
+  #rightPane a      { text-decoration: none; }
+  #rightPane a:hover{ text-decoration: underline; background-color: #ccc; }
+
+
+
+</style>
+</head>
+
+<body>
+
+<h1>MindRetrieve</h1>
+
+
+
+<!-- content -->
+<div id='content'>
+
+    <!-- right panel -->
+    <div id='rightPane'>
+    <ul node='con:tagList'>
+      <li><a href='/weblib'>Top</a></li>
+      <li node='rep:tagItem'><a node='con:link' href='#'>Tag1</a></li>
+      <li node='rep:tagItem'><a node='con:link' href='#'>Tag2</a></li>
+    </ul>
+    </div>
+
+<h2 node='con:mainTag'>TagA, TagB</h2>
+
+<div node='rep:category' class='category'>
+  <h3 node='con:tag'>Tag1, tag2</h3>
+  <ul>
+    <li node='rep:bookmark'>
+      <a node='con:edit' href='#'><img style="top:3px;position:relative;" src='img/edit.gif' height="16" width="16" /></a>
+      <a node='con:link' href='#'>link title</a>
+    </li>
+    <li node='rep:bookmark'>
+      <a node='con:edit' href='#'><img style="top:3px;position:relative;" src='img/edit.gif' height="16" width="16" /></a>
+      <a node='con:link' href='#'>link title</a>
+    </li>
+    <li node='rep:bookmark'>
+      <a node='con:edit' href='#'><img style="top:3px;position:relative;" src='img/edit.gif' height="16" width="16" /></a>
+      <a node='con:link' href='#'>link title</a>
+    </li>
+  </ul>
+</div>
+
+<div node='rep:category' class='category'>
+  <h3 node='con:tag'>Tag1, tag2</h3>
+  <ul>
+    <li node='rep:bookmark'>
+      <a node='con:edit' href='#'><img style="top:3px;position:relative;" src='img/edit.gif' height="16" width="16" /></a>
+      <a node='con:link' href='#'>link title</a>
+    </li>
+    <li node='rep:bookmark'>
+      <a node='con:edit' href='#'><img style="top:3px;position:relative;" src='img/edit.gif' height="16" width="16" /></a>
+      <a node='con:link' href='#'>link title</a>
+    </li>
+    <li node='rep:bookmark'>
+      <a node='con:edit' href='#'><img style="top:3px;position:relative;" src='img/edit.gif' height="16" width="16" /></a>
+      <a node='con:link' href='#'>link title</a>
+    </li>
+  </ul>
+</div>
+
+
+</div>
+
+
+
+<hr style='margin-top: 12ex' size='2' noshade='1'/>
+
+<div id='navigationBar'>
+
+<div id='homepagelink'>
+Copyright &copy; 2005 <a href='http://mindretrieve.berlios.de/'>MindRetrieve</a>
+</div>
+
+<a href='/'>Home</a>
+| <a href='/library'>Library</a>
+| <span id='navigationCurrent'>Config</span>
+| <a href='/help'>Help</a>
+
+</div>
+
+</body>
+</html>

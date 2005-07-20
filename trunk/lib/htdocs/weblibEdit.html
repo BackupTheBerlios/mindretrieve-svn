@@ -1,0 +1,71 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3c.org/TR/html4/loose.dtd">
+<html>
+<head>
+<title>MindRetrieve - Configuration</title>
+<link rel="stylesheet" href="/main.css" type="text/css">
+<style>
+</style>
+</head>
+
+<body>
+
+<h1>MindRetrieve</h1>
+
+
+<form node='con:form' method='GET' action='weblib/id'>
+<input type='hidden' node='con:id' name='id' value=''/>
+<table>
+<tr>
+    <td>Title</td>
+    <td><input type='text' node='con:name' name='t' size='100' /></td>
+</tr>    
+<tr>
+    <td>Address</td>
+    <td><input type='text' node='con:url' name='u' size='100' /></td>
+</tr>    
+<tr>
+    <td>Description</td>
+    <td><textarea node='con:description' name='ds' cols='80' rows='6'></textarea></td>
+</tr>
+<tr>
+    <td>Labels</td>
+    <td><input type='text' node='con:labels' name='labels' size='50' />
+        <span style="margin-left:1em">Related Tags&nbsp;<input type='text' node='con:related' name='related' size='30' />
+    </td>
+</tr>    
+<tr>
+    <td>Modified</td>
+    <td><input type='text' node='con:modified' name='modified' size='15' />
+        <span style="margin-left:1em">Last Used&nbsp;<input type='text' node='con:lastused' name='lastused' size='15' />
+        <span style="margin-left:1em">Cached&nbsp;<input type='text' node='con:cached' name='cached' size='15' />
+    </td>
+</tr>    
+<tr>
+    <td></td>
+    <td>
+        <input type='submit' name='action' value='OK'      />
+        <input type='submit' name='action' value='Delete'  />
+        <input type='submit' name='action' value='Cancel'  />
+    </td>
+</tr>    
+</table>
+</form>
+
+
+<hr style='margin-top: 12ex' size='2' noshade='1'/>
+
+<div id='navigationBar'>
+
+<div id='homepagelink'>
+Copyright &copy; 2005 <a href='http://mindretrieve.berlios.de/'>MindRetrieve</a>
+</div>
+
+<a href='/'>Home</a>
+| <a href='/bookmark'>Library</a>
+| <span id='navigationCurrent'>Config</span>
+| <a href='/help'>Help</a>
+
+</div>
+
+</body>
+</html>

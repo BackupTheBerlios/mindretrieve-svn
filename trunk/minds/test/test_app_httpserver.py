@@ -1,6 +1,7 @@
 """
 """
 
+import StringIO
 import unittest
 
 from config_help import cfg
@@ -44,6 +45,54 @@ class TestMisc(unittest.TestCase):
             app_httpserver._convertPath2Module(r'/minds/admin/snoop.py'),
             ('minds.admin.snoop','snoop'),
         )
+
+
+
+class TestCGIFileFilter(unittest.TestCase):
+
+    DATA1 = """date:04/19/05\r
+\r
+line1
+line2
+"""
+    DATA2 = """line3
+line4"""
+
+    def setUp(self):
+        self.buf = StringIO.StringIO()
+        self.fp = app_httpserver.CGIFileFilter(self.buf)
+
+
+    def test1(self):
+        self.fp.write('\r\n\r\n')
+        self.assertEqual(self.buf.getvalue(), 'HTTP/1.0 200 OK\r\n\r\n\r\n')
+
+
+    def test_nodirective(self):
+        self.fp.write(self.DATA1)
+        self.fp.write(self.DATA2)
+        self.assertEqual(self.buf.getvalue(), 'HTTP/1.0 200 OK\r\n' +
+             self.DATA1 + self.DATA2)
+
+
+    def test_status(self):
+        self.fp.write('404 not found\r\n')
+        self.fp.write(self.DATA1)
+        self.fp.write(self.DATA2)
+        self.assertEqual(self.buf.getvalue(), 'HTTP/1.0 404 not found\r\n'
+            + self.DATA1 + self.DATA2)
+
+
+    def test_location(self):
+        self.fp.write('loCATion : http://abc.com/index.html\r\n')
+        self.fp.write(self.DATA1)
+        self.fp.write(self.DATA2)
+        self.assertEqual(self.buf.getvalue(),
+"""HTTP/1.0 302 Found\r
+loCATion : http://abc.com/index.html\r
+""" + \
+            self.DATA1 + self.DATA2)
+
 
 
 if __name__ == '__main__':

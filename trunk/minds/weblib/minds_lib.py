@@ -1,4 +1,4 @@
-"""Usage: minds_bm.py input_file output_file
+"""Usage: minds_lib.py input_file output_file
 """
 
 import codecs
@@ -15,41 +15,24 @@ log = logging.getLogger('wlib.minds')
 
 
 COLUMNS = [
-'id',           # 0
-'name',         # 1
-'description',  # 2
-'comment',      # 3
-'labelIds',     # 4
-'flags',        # 5
-'created',      # 6
-'modified',     # 7
-'archived',     # 8
-'url',          # 9
+'id',           # 00
+'name',         # 01
+'description',  # 02
+'labelIds',     # 03
+'relatedIds',   # 04
+'modified',     # 05
+'lastused',     # 06
+'cached',       # 07
+'archived',     # 08
+'flags',        # 09
+'url',          # 10
 ]
 
 NUM_COLUMN = len(COLUMNS)
 
-#(
-#ID         ,    # 0
-#NAME       ,    # 1
-#DESCRIPTION,    # 2
-#COMMENT    ,    # 3
-#LABELIDS   ,    # 4
-#FLAGS      ,    # 5
-#CREATED    ,    # 6
-#MODIFIED   ,    # 7
-#ARCHIVED   ,    # 8
-#URL        ,    # 9
-#) = range(NUM_COLUMN)
-
-
 
 def load(rstream):
-
     wlib = weblib.WebLibrary()
-
-    ###lineno, header = lineScanner.next()
-
     for lineno, row in dsv.parse(rstream):
         try:
             parseLine(wlib, row)
@@ -57,15 +40,8 @@ def load(rstream):
             log.warn('line %s - %s', lineno, e)
         except ValueError, e:
             log.warn('line %s - %s', lineno, e)
-
-    for item in wlib.webpages:
-        weblib.setTags(item, wlib)
-
-    for item in wlib.labels:
-        weblib.inferRelation(item)
-
+    wlib.fix()
     return wlib
-
 
 
 def parseLine(wlib, row):
@@ -85,16 +61,22 @@ def parseLine(wlib, row):
             labelIds = [int(id) for id in row.labelids.split(',')]
         else:
             labelIds = []
+            
+        if row.relatedids:
+            relatedIds = [int(id) for id in row.relatedids.split(',')]
+        else:
+            relatedIds = []
 
         entry = weblib.WebPage(
             id          = int(row.id),
             name        = row.name,
             description = row.description,
-            comment     = row.comment,
             labelIds    = labelIds,
+            relatedIds  = relatedIds,
             flags       = row.flags,
-            created     = row.created,
             modified    = row.modified,
+            lastused    = row.lastused,
+            cached      = row.cached,
             archived    = row.archived,
             url         = row.url,
         )
@@ -137,18 +119,20 @@ def save(wstream, wlib):
 
         id = str(item.id)
         labelIds = ','.join(map(str,item.labelIds))
+        relatedIds = ','.join(map(str,item.labelIds))
 
         data = dsv.encode_fields([
             id              ,
             item.name       ,
             item.description,
-            item.comment    ,
+#            item.comment    ,
             labelIds        ,
-            item.flags      ,
-            item.created    ,
+            relatedIds      ,
             item.modified   ,
-#            item.archived   ,  ###TODO: clean up
-            ''              ,
+            item.lastused   ,
+            item.cached     ,
+            item.archived   ,
+            item.flags      ,
             item.url        ,
             ])
         writer.write(data)

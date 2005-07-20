@@ -39,6 +39,7 @@ from toollib import HTMLTemplate
 from minds.config import cfg
 from minds import cgibin
 from minds import config
+from minds.util import fileutil
 
 log = logging.getLogger('app')
 
@@ -136,8 +137,9 @@ class AppHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
         env = self.makeEnviron(script_name, path_info, query_string)
 
-        # todo: too early to commit
-        self.send_response(200, "OK")
+        #self.send_response(200, "OK")
+
+        parsed_wfile = CGIFileFilter(self.wfile)
 
         #don't support decoded_query in command line
         # decoded_query = query.replace('+', ' ')
@@ -149,7 +151,14 @@ class AppHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             if not mod:
                 self.send_error(404, "Not found %s" % self.path)
                 return
-            mod.main(self.rfile, self.wfile, env)
+
+            # reloading good for development time
+            try:
+                reload(mod)
+            except: # todo: HACK HACK reload does not work in py2exe service version. But it is OK not to reload.
+                pass
+
+            mod.main(self.rfile, parsed_wfile, env)
         except Exception:
             log.exception("CGI execution error: %s" % script_name)
 
@@ -284,23 +293,91 @@ def forwardTmpl(wfile, env, tmpl, renderMod, *args):
 
     # e.g. SCRIPT_NAME='/admin/snoop.py', tmpl='tmpl/home.html'
 
-    scriptname = env.get('SCRIPT_NAME','')                          # '/admin/snoop.py'
-    scriptpath, scriptfile = os.path.split(scriptname.lstrip('/'))  # 'admin', 'snoop'
+    #scriptname = env.get('SCRIPT_NAME','')                          # '/admin/snoop.py'
+    #scriptpath, scriptfile = os.path.split(scriptname.lstrip('/'))  # 'admin', 'snoop'
 
     tmplPathname = os.path.join(cfg.getPath('docBase'), tmpl)
 
     # invoke tmpl's render() method
     fp = file(tmplPathname)
-###    mod = importModuleByPath(tmplPathname)
-
-    # reloading good for development time
-    try:
-        reload(renderMod)
-    except: # todo: HACK HACK reload does not work in py2exe service version. But it is OK not to reload.
-        pass
 
     template = HTMLTemplate.Template(renderMod.render, fp.read())
     wfile.write(template.render(*args))
+
+
+## TODO: clean up
+## cleaned up version of forwardTmpl()
+#def forwardTmpl1(wfile, tmpl, render, *args):
+#
+#    tmplPathname = os.path.join(cfg.getPath('docBase'), tmpl)
+#    fp = file(tmplPathname,'rb')
+#
+#    template = HTMLTemplate.Template(render, fp.read())
+#
+#    wfile.write(template.render(*args))
+
+
+
+class CGIFileFilter(fileutil.FileFilter):
+    """ Used to wrap the output file for the CGI program.
+        Looking for server directive and send corresponding HTTP status
+        for the CGI program.
+        Only check for server directive in the first line.
+        The rest of output is pass thru.
+    """
+
+    def __init__(self,fp):
+        super(CGIFileFilter, self).__init__(fp)
+        self.buf = []
+        self.parsed = False
+
+
+    def write(self,str):
+        if self.parsed:
+            self.fp.write(str)
+        else:
+            self.buf.append(str)
+            if '\n' in str:
+                self._parseLines()
+
+
+    def writelines(self,sequence):
+        raise NotImplementedError()
+        #if self.parsed:
+        #    self.fp.writelines(sequence)
+        #else:
+        #    for line in sequence:
+        #        self.write(line)
+
+
+    def _parseLines(self):
+        lines = ''.join(self.buf).split('\n',1)
+        self._parseLine(lines[0])
+        self.parsed = True
+        self.fp.write('\n'.join(lines[1:]))
+
+
+    def _parseLine(self, line):
+
+        if len(line) >= 3:
+            if line[:3].isdigit():
+                self.fp.write('HTTP/1.0 ')
+                self.fp.write(line)
+                self.fp.write('\n')
+                return
+
+        nv = line.split(':')
+        if nv[0].strip().lower() == 'location':
+            self.fp.write('HTTP/1.0 302 Found\r\n')
+            self.fp.write(line)
+            self.fp.write('\n')
+            return
+
+        self.fp.write('HTTP/1.0 200 OK\r\n')
+        self.fp.write(line)
+        self.fp.write('\n')
+
+
 
 
 

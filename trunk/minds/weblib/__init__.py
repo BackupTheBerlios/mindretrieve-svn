@@ -4,6 +4,7 @@
 """
 
 import codecs
+import datetime
 import sets
 import sys
 
@@ -34,6 +35,7 @@ class WebPage(object):
         self.__dict__.update(locals())
         del self.self
         self.labels = []
+        self.related = []
 
     def __str__(self):
         return self.name
@@ -110,6 +112,20 @@ class WebLibrary(object):
         self.name2label[low_name] = entry
 
 
+    def newWebPage(self, name='', url='', description=''):
+        """ Create a minimal WebPage for user to fill in. 
+            @return: a WebPage
+        """
+        modified = datetime.date.today().isoformat()
+        lastused = modified
+        return WebPage(
+            name        =name,
+            url         =url,
+            description =description,
+            modified    =modified,
+            lastused    =lastused,
+        )
+        
     def deleteWebPage(self, item):
         if not item:
             raise KeyError, 'Invalid item for deleteWebPage()'
@@ -165,8 +181,13 @@ def getMainBm():
 
 # experimental
 def setTags(item, wlib):
-    labels = [wlib.id2entry[id] for id in item.labelIds if wlib.id2entry.has_key(id)]
+    id2entry = wlib.id2entry
+    labels = [id2entry[id] for id in item.labelIds if id2entry.has_key(id)]
     labels.sort()
+    related = [id2entry[id] for id in item.relatedIds if id2entry.has_key(id)]
+    related.sort()
+    # TODO: remove labelIds and relatedIds to avoid duplicated data?
+    # TODO: don't sort to retain order?
     item.labels = labels
     for folder in labels:
         folder.related = {}

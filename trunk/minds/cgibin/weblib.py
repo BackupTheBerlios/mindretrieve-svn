@@ -115,8 +115,7 @@ def doGetResource(wfile, form, rid, view):
     wlib = weblib.getMainBm()
     item = wlib.id2entry.get(rid, None)
     if not item:
-        item = weblib.WebPage(
-            id          = -1,
+        item = wlib.newWebPage(
             name        = form.getfirst('t',''),
             url         = form.getfirst('u',''), 
             description = form.getfirst('ds',''),
@@ -128,9 +127,13 @@ def doPutResource(wfile, form, rid, view):
     wlib = weblib.getMainBm()
     item = wlib.id2entry.get(rid, weblib.WebPage())
 
-    labels = form.getfirst('labels','')
-    labels, unknown = weblib.parseLabels(wlib, labels)
-    labelIds = [l.id for l in labels]
+    _labels = form.getfirst('labels','')
+    item.labels, unknown = weblib.parseLabels(wlib, _labels)
+    labelIds = [l.id for l in item.labels]
+
+    _related = form.getfirst('related','')
+    item.related, unknown = weblib.parseLabels(wlib, _related)
+    relatedIds = [l.id for l in item.related]
     #TODO: unknown should be new labels
 
     item.name        = form.getfirst('t','')
@@ -138,7 +141,10 @@ def doPutResource(wfile, form, rid, view):
     item.description = form.getfirst('ds','')
     item.comment     = form.getfirst('comment','')
     item.labelIds    = labelIds
+    item.relatedIds  = relatedIds
     item.modified    = form.getfirst('modified','')
+    item.lastused    = form.getfirst('lastused','')
+    item.cached      = form.getfirst('cached','')
 
     if item.id < 0:
         log.info('Adding WebPage %s' % unicode(item))
@@ -148,7 +154,7 @@ def doPutResource(wfile, form, rid, view):
     
     wlib.fix()
     store.save(wlib)
-    redirect(wfile, labels)
+    redirect(wfile, item.labels)
 
 
 def doDeleteResource(wfile, form, rid, view):
@@ -285,14 +291,15 @@ class RenderWeblibEdit(response.ResponseTemplate):
         form.atts['action'] = '/%s/%s' % (BASEURL, id)
 
         if item:
-            labels = [wlib.id2entry[id].name for id in item.labelIds if wlib.id2entry.has_key(id)]
             form.id         .atts['value'] = unicode(item.id)
             form.name       .atts['value'] = item.name
             form.url        .atts['value'] = item.url
             form.description.content       = item.description
-            form.comment.content           = item.comment
-            form.labels     .atts['value'] = ', '.join(labels)
+            form.labels     .atts['value'] = ', '.join([l.name for l in item.labels])
+            form.related    .atts['value'] = ', '.join([l.name for l in item.related])
             form.modified   .atts['value'] = item.modified
+            form.lastused   .atts['value'] = item.lastused
+            form.cached     .atts['value'] = item.cached  
 
 
 if __name__ == "__main__":

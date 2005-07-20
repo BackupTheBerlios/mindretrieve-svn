@@ -9,6 +9,7 @@ import indexnow
 import library
 import search
 import snoop
+import weblib
 
 cgi_registry = {
   ''             : home,
@@ -23,4 +24,5 @@ cgi_registry = {
   'library'      : library,
   'search'       : search,
   'snoop'        : snoop,
+  'weblib'       : weblib,
 }

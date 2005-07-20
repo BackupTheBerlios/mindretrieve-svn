@@ -1,8 +1,10 @@
-"""
+""" __init__.py [cmd] [args]
+    query:  labels
+    cats:   labels
 """
 
 import codecs
-from pprint import pprint
+import sets
 import sys
 
 import util
@@ -11,38 +13,33 @@ from minds.util import dsv
 
 # TODO: how do I make sure WebPage fields is the right type? e.g. id is int.
 
+# date fields: modified, cached, accessed
+# field remove commented?
+
 class WebPage(object):
 
     def __init__(self, id=-1,
         name        ='',
         url         ='',
         description ='',
-        comment     ='',
         labelIds    =[],
+        relatedIds  =[],
+        modified    ='',
+        lastused    ='',
+        cached      ='',
+        archived    ='',
         flags       ='',
-        created     =None,
-        modified    =None,
-        archived    =None,
     ):
-        self.id         = id
-        self.name       = name
-        self.url        = url
-        self.description= description
-        self.comment    = comment
-        self.labelIds   = labelIds
-        self.flags      = flags
-        self.created    = created
-        self.modified   = modified
-        self.archived   = archived
-
+        # put all parameter values as instance variable
+        self.__dict__.update(locals())
+        del self.self
+        self.labels = []
 
     def __str__(self):
         return self.name
 
-
     def __repr__(self):
-        return u'%s (%s) %s' % (self.name, ', '.join(map(str,self.labelIds)), self.url)
-
+        return u'%s (%s) %s' % (self.name, ', '.join(map(unicode,self.labels)), self.url)
 
 
 class Label(object):
@@ -51,8 +48,9 @@ class Label(object):
         self.id         = id
         self.name       = name
 
-        self.isTag      = []
-        self.related    = {}
+        self.isTag      = []    # isTag is intersection of all labels for all items
+        self.related    = {}    # relatedLabel -> count, relatedLabels is union of all label for all items
+                                # Then inferRelation() would make it a list of tuples???
         self.num_item   = 0
 
     def __str__(self):
@@ -62,25 +60,33 @@ class Label(object):
         return unicode(self)
 
 
-
 class WebLibrary(object):
 
     def __init__(self):
-        self.lastId = 0
+        self._lastId = 0
         self.webpages = []
         self.labels = []
         self.id2entry = {}
         self.name2label = {}
 
 
-    def addEntry(self, entry):
+    def fix(self):
+        """ call this when finished loading """
+        for item in self.webpages:
+            setTags(item, self)
+            
+        for item in self.labels:
+            inferRelation(item)
+
+
+    def _addEntry(self, entry):
 
         if entry.id < 0:                # generate new id
-            self.lastId += 1
-            entry.id = self.lastId
+            self._lastId += 1
+            entry.id = self._lastId
 
-        elif entry.id > self.lastId:    # id supplied, maintain self.lastId
-            self.lastId = id
+        elif entry.id > self._lastId:   # id supplied, maintain self._lastId
+            self._lastId = entry.id
 
         if self.id2entry.has_key(entry.id):
             raise KeyError('Duplicated %s id "%s"' % (str(entry), entry.id))
@@ -89,7 +95,7 @@ class WebLibrary(object):
 
 
     def addWebPage(self, entry):
-        self.addEntry(entry)
+        self._addEntry(entry)
         self.webpages.append(entry)
 
 
@@ -99,11 +105,22 @@ class WebLibrary(object):
         if self.name2label.has_key(low_name):
             raise KeyError('Duplicated label %s' % low_name)
 
-        self.addEntry(entry)
+        self._addEntry(entry)
         self.labels.append(entry)
         self.name2label[low_name] = entry
 
 
+    def deleteWebPage(self, item):
+        if not item:
+            raise KeyError, 'Invalid item for deleteWebPage()'
+        if not self.id2entry.has_key(item.id):
+            raise KeyError, 'Item not found in id2entry: %s' % item
+        if item not in self.webpages:
+            raise KeyError, 'Item not found in webpages: %s' % item
+        del self.id2entry[item.id]
+        self.webpages.remove(item)
+        
+        
     def getLabel(self, name):
         return self.name2label.get(name.lower(), None)
 
@@ -111,7 +128,7 @@ class WebLibrary(object):
 
 def parseLabels(wlib, label_names):
     """ Parse comma separated tag names.
-        Return list of labels and list of unknown tag names.
+        @return: list of labels and list of unknown tag names.
     """
     labels = []
     unknown = []
@@ -122,21 +139,23 @@ def parseLabels(wlib, label_names):
             labels.append(label)
         else:
             unknown.append(name)
-
+    labels.sort()        
     return labels, unknown
 
 
-
+def sortLabels(labels):
+    lst = [(label.name.lower(), label) for label in labels]
+    lst.sort()
+    return [lbl for _,lbl in lst]
+    
+    
 wlib = None
-
-#TODO: use config?
 
 def getMainBm():
     global wlib
     if not wlib:
-        import minds_bm
-        fp = file('weblib.dat','rb')
-        wlib = minds_bm.load(fp)
+        import store
+        wlib = store.load()
     return wlib
 
 
@@ -145,12 +164,16 @@ def getMainBm():
 # Query
 
 # experimental
-def setTags(self, wlib):
-    tags = [wlib.id2entry[id] for id in self.labelIds]
-    for folder in tags:
+def setTags(item, wlib):
+    labels = [wlib.id2entry[id] for id in item.labelIds if wlib.id2entry.has_key(id)]
+    labels.sort()
+    item.labels = labels
+    for folder in labels:
+        folder.related = {}
         folder.num_item += 1
-        for relatedTag in tags:
-            if relatedTag == folder: continue
+        for relatedTag in labels:
+            if relatedTag == folder: 
+                continue
             count = folder.related.setdefault(relatedTag,0)
             folder.related[relatedTag] = count+1
 
@@ -161,69 +184,81 @@ def inferRelation(self):
     self.isTag = [tag for count, tag in self.related if count == self.num_item]
 
 
-
-def query(wlib, labelIds):
-
+def query(wlib, labels):
+    """ @return: cat_list, related
+            cat_list: tuple of labels -> list of items,
+    """
     cat_list = {}
-
+    related = sets.Set()
     for item in wlib.webpages:
-        if isinstance(item, Label):
+        if util.diff(labels, item.labels):
             continue
-        if util.diff(labelIds, item.labelIds):
-            continue
-        cat = util.diff(item.labelIds, labelIds)
+        cat = util.diff(item.labels, labels)
         cat2bookmark = cat_list.setdefault(tuple(cat),[])
         cat2bookmark.append(item)
-
-    return cat_list
-
-
-
-def listCatList(wlib,lst):
-    for key, value in sorted(lst.items()):
-        tags = [wlib.id2entry[id].name for id in key]
-        print '\n' + u','.join(tags)
-        for item in value:
-            print '  ' + unicode(item)
+        related.union_update(item.labels)
+    return cat_list, tuple(related)
 
 
+def queryMain(wlib):
+    """ @return: cat_list, related where
+            cat_list: tuple of labels -> list of items,
+    """
+    items = []
+    related = sets.Set()
+    for item in wlib.webpages:
+        if not item.labels:
+            items.append(item)    
+    return {tuple(): items}, wlib.labels[:]
+
+
+# ----------------------------------------------------------------------
+# Command line
+
+from pprint import pprint
 
 def doQuery(wlib, tags):
     labels,unknown = parseLabels(wlib, tags)
     if unknown:
-        print 'unknown labels', unknown
-        return
+        print 'Ignore unknown labels', unknown
 
-    cat_list = query(wlib, [l.id for l in labels])
+    cat_list, related = query(wlib, labels)
 
     pprint(labels)
-    pprint(cat_list)
-    return
-
     listCatList(wlib,cat_list)
-    fp = file('x.out','wb')
-    writer = codecs.getwriter('utf8')(fp,'replace')
+    pprint(sortLabels(related))
 
+
+def listCatList(wlib,lst):
+    for key, value in sorted(lst.items()):
+        sys.stdout.write('\n' + u','.join(map(unicode, key)) + '\n')
+        for item in value:
+            print '  ' + unicode(item)
 
 
 def show(wlib):
     for item in wlib.webpages:
-        tags = [wlib.id2entry[id].name for id in item.labelIds]
+        tags = [label.name for label in item.labels]
         print '%s (%s)' % (item.name, ','.join(tags))
-
 
 
 def main(argv):
 
-    import minds_bm
+    import store
+    import minds_lib
 
-    fp = file(argv[1])
-    wlib = minds_bm.load(fp)
+    wlib = store.load()
 
-    if len(argv) > 2:
-        doQuery(wlib, argv[2])
-    else:
+    if len(argv) <= 1:
         show(wlib)
+        sys.exit(0)
+        
+    cmd = argv[1]    
+    args = ''
+    if len(argv) > 2:
+        args = argv[2]
+        
+    doQuery(wlib, args)
 
 
 if __name__ == '__main__':

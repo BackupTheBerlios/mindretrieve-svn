@@ -37,6 +37,10 @@ def run(argv):
 
 
 def main(argv):
+    if len(argv) <= 1:
+        print __doc__
+        sys.exit(-1)
+        
     option = argv[1]
 
     if 'lib' not in sys.path:

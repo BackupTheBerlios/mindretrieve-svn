@@ -4,6 +4,7 @@
 <title>MindRetrieve - Configuration</title>
 <link rel="stylesheet" href="/main.css" type="text/css">
 <style>
+    .error_message { color:red }
 </style>
 </head>
 
@@ -13,14 +14,18 @@
 
 
 <form node='con:form' method='GET' action='weblib/id'>
+<input type='hidden' name='filled' value='1'/>
 <input type='hidden' node='con:id' name='id' value=''/>
-<table>
+<table cellspacing='5'>
+<tr node='con:error'>
+    <td colspan='2'><span node='con:message' class='error_message'>Please correct the error.</span></td>
+</tr>    
 <tr>
-    <td>Title</td>
+    <td>*Title</td>
     <td><input type='text' node='con:name' name='t' size='100' /></td>
 </tr>    
 <tr>
-    <td>Address</td>
+    <td>*Address</td>
     <td><input type='text' node='con:url' name='u' size='100' /></td>
 </tr>    
 <tr>

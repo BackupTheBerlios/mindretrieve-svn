@@ -37,6 +37,24 @@ class WebPage(object):
         self.labels = []
         self.related = []
 
+    def __copy__(self):
+        item = WebPage(
+            id          = self.id           ,
+            name        = self.name         ,
+            url         = self.url          ,
+            description = self.description  ,
+            labelIds    = self.labelIds[:]  ,
+            relatedIds  = self.relatedIds[:],
+            modified    = self.modified     ,
+            lastused    = self.lastused     ,
+            cached      = self.cached       ,
+            archived    = self.archived     ,
+            flags       = self.flags        ,
+        )    
+        item.labels  = self.labels[:]
+        item.related = self.related[:]   
+        return item
+        
     def __str__(self):
         return self.name
 
@@ -70,15 +88,6 @@ class WebLibrary(object):
         self.labels = []
         self.id2entry = {}
         self.name2label = {}
-
-
-    def fix(self):
-        """ call this when finished loading """
-        for item in self.webpages:
-            setTags(item, self)
-            
-        for item in self.labels:
-            inferRelation(item)
 
 
     def _addEntry(self, entry):
@@ -141,6 +150,15 @@ class WebLibrary(object):
         return self.name2label.get(name.lower(), None)
 
 
+    def fix(self):
+        """ call this when finished loading """
+        for item in self.webpages:
+            setTags(item, self)
+            
+        for item in self.labels:
+            inferRelation(item)
+
+
 
 def parseLabels(wlib, label_names):
     """ Parse comma separated tag names.
@@ -150,6 +168,8 @@ def parseLabels(wlib, label_names):
     unknown = []
     for name in label_names.split(','):
         name = name.strip()
+        if not name:
+            continue    
         label = wlib.getLabel(name)
         if label:
             labels.append(label)
@@ -189,6 +209,7 @@ def setTags(item, wlib):
     # TODO: remove labelIds and relatedIds to avoid duplicated data?
     # TODO: don't sort to retain order?
     item.labels = labels
+    item.related = related
     for folder in labels:
         folder.related = {}
         folder.num_item += 1
@@ -254,19 +275,21 @@ def listCatList(wlib,lst):
     for key, value in sorted(lst.items()):
         sys.stdout.write('\n' + u','.join(map(unicode, key)) + '\n')
         for item in value:
-            print '  ' + unicode(item)
+            tags = [label.name for label in item.labels]
+            related = [label.name for label in item.related]
+            print '  %s (%s) (%s)' % (unicode(item), ','.join(tags), ','.join(related))
 
 
 def show(wlib):
     for item in wlib.webpages:
         tags = [label.name for label in item.labels]
-        print '%s (%s)' % (item.name, ','.join(tags))
+        related = [label.name for label in item.related]
+        print '%s (%s) (%s)' % (item.name, ','.join(tags), ','.join(related))
 
 
 def main(argv):
 
     import store
-    import minds_lib
 
     wlib = store.load()
 

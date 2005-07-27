@@ -1,6 +1,7 @@
 """
 """
 
+import datetime
 import codecs
 import logging
 import sys
@@ -11,7 +12,7 @@ from minds.config import cfg
 
 log = logging.getLogger('wlib.opera')
 
-FOLDER, URL, DASH = range(1,4)
+FOLDER, URL, SEPERATOR, DASH = range(1,5)
 
 
 def _parse_namevalue(nv):
@@ -58,6 +59,10 @@ def parseRecords(rstream):
             name, attrs = _parseAttr(lineReader)
             yield lineno, URL, name, attrs
 
+        elif line == '#seperator':
+            name, attrs = _parseAttr(lineReader)
+            yield lineno, SEPERATOR, None, None
+
         elif line == '-':
             yield lineno, DASH, None, None
 
@@ -76,9 +81,7 @@ def load(rstream):
     for lineno, type, name, attrs in recordParser:
 
         if type == FOLDER:
-
             if not attrs.has_key('trashfolder'):
-
                 if not name:
                     log.warn('Invalid name line %s', lineno+1)
                     continue
@@ -105,26 +108,39 @@ def load(rstream):
                         if trash_count == 0:
                             break
 
-
         elif type == URL:
-
             if not name:
                 log.warn('Invalid name line %s', lineno+1)
                 continue
 
             labelIds = [label.id for label in folder_stack]
 
+            try:
+                _modified = int(attrs.get('created',''))
+                _modified = datetime.date.fromtimestamp(_modified)
+                modified = _modified.isoformat()
+            except:
+                modified = ''
+
+            try:
+                _lastused = int(attrs.get('visited',''))
+                _lastused = datetime.date.fromtimestamp(_lastused)
+                lastused = _lastused.isoformat()
+            except:
+                lastused = ''
+
             webpage = weblib.WebPage(
                 name        = name,
                 url         = attrs.get('url',''),
                 description = attrs.get('description',''),
-                #comment     = attrs.get('shortname', ''),           # note: space compressed
                 labelIds    = labelIds,
-                modified    = attrs.get('created',''),
-                lastused    = attrs.get('visited',''),
+                modified    = modified,
+                lastused    = lastused,
             )
             wlib.addWebPage(webpage)
 
+        elif type == SEPERATOR:
+            pass
 
         elif type == DASH:
             if len(folder_stack) == 0:

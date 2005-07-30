@@ -5,16 +5,19 @@
 <link rel="stylesheet" href="/main.css" type="text/css">
 <style>
     .error_message { color:red }
+    .date_field { padding-left: 0.5em; padding-right: 0.5em; background-color: #eee; }
+    .date_padding { padding-left: 8em; background-color: #eee; }
 </style>
 </head>
+
 
 <body>
 
 <h1>MindRetrieve</h1>
 
-
-<form node='con:form' method='GET' action='weblib/id'>
+<form node='con:form' id='edit_form' method='GET' action='weblib/id'>
 <input type='hidden' name='filled' value='1'/>
+<input type='hidden' name='create_tags' value=''/>
 <input type='hidden' node='con:id' name='id' value=''/>
 <table cellspacing='5'>
 <tr node='con:error'>
@@ -40,9 +43,15 @@
 </tr>    
 <tr>
     <td>Modified</td>
-    <td><input type='text' node='con:modified' name='modified' size='15' />
-        <span style="margin-left:1em">Last Used&nbsp;<input type='text' node='con:lastused' name='lastused' size='15' />
-        <span style="margin-left:1em">Cached&nbsp;<input type='text' node='con:cached' name='cached' size='15' />
+    <td>
+        <span class='date_field' node='con:modified_txt'>1999-09-09<span node='con:padding' class='date_padding'></span></span>
+        <span style="margin-left:1em">Last Used&nbsp;</span>
+        <span class='date_field' node='con:lastused_txt'>1999-09-09<span node='con:padding' class='date_padding'></span></span>
+        <span style="margin-left:1em">Cached&nbsp;</span>
+        <span class='date_field' node='con:cached_txt'><span node='con:padding' class='date_padding'></span></span>
+        <input type='hidden' node='con:modified' name='modified' size='15' />
+        <input type='hidden' node='con:lastused' name='lastused' size='15' />
+        <input type='hidden' node='con:cached' name='cached' size='15' />
     </td>
 </tr>    
 <tr>
@@ -71,6 +80,27 @@ Copyright &copy; 2005 <a href='http://mindretrieve.berlios.de/'>MindRetrieve</a>
 | <a href='/help'>Help</a>
 
 </div>
+
+
+<!-- Script to handle posting with new tags -->
+<script node='con:new_tags'>
+  new_tags = '';
+</script>
+
+<script>
+function ask_save_new_tags() {
+  msg = 'The tags (' + new_tags + ') have not been used before. Save with the new tags?';
+  if (confirm(msg)) {
+      form = document.getElementById('edit_form');
+      form.elements['create_tags'].value = '1';
+      form.submit();
+  }
+}
+if (new_tags) {
+  ask_save_new_tags();
+}
+</script>
+
 
 </body>
 </html>

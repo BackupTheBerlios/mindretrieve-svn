@@ -72,6 +72,7 @@ class Bean(object):
         
         # tags not known
         self.newTags = sets.Set()
+        self.create_tags = self.form.getfirst('create_tags','')
         
         self.errors = []
         
@@ -91,20 +92,9 @@ class Bean(object):
                 lastused    = form.getfirst('lastused',''),
                 cached      = form.getfirst('cached',''),
             )
-
-            _labels = form.getfirst('labels','')
-            item.labels, unknown_labels = weblib.parseLabels(wlib, _labels)
-            item.labelIds = [l.id for l in item.labels]
-
-            _related = form.getfirst('related','')
-            item.related, unknown_related = weblib.parseLabels(wlib, _related)
-            item.relatedIds = [l.id for l in item.related]
-            
             self.item = item
-            self.labels = _labels
-            self.related = _related
-            self.newTags.union_update(unknown_labels)
-            self.newTags.union_update(unknown_related)
+
+            self._parseTags()
 
         else:    
             item = wlib.id2entry.get(rid, None)
@@ -122,15 +112,33 @@ class Bean(object):
             self.labels  = ', '.join([l.name for l in item.labels])
             self.related = ', '.join([l.name for l in item.related])
         
-    
+
+    def _parseTags(self):
+        wlib = weblib.getMainBm()
+
+        _labels = self.form.getfirst('labels','')
+        self.item.labels, unknown_labels = weblib.parseLabels(wlib, _labels)
+        self.item.labelIds = [l.id for l in self.item.labels]
+
+        _related = self.form.getfirst('related','')
+        self.item.related, unknown_related = weblib.parseLabels(wlib, _related)
+        self.item.relatedIds = [l.id for l in self.item.related]
+        
+        self.labels = _labels
+        self.related = _related
+        self.newTags = sets.Set()
+        self.newTags.union_update(unknown_labels)
+        self.newTags.union_update(unknown_related)
+        print '##'+str(self.newTags)   
+        
     def validate(self):
         if not self.item.name:
             self.errors.append('Please enter a name.')    
         if not self.item.url:
             self.errors.append('Please enter an address.')    
-        if self.newTags:
+        if self.newTags and not self.create_tags:
             tags = u', '.join(self.newTags)
-            self.errors.append('These tags are not previous used: ' + tags)                
+            self.errors.append('These tags are not previous used: ' + tags)
         return not self.errors
 
 
@@ -143,11 +151,14 @@ class Bean(object):
     
 def main(rfile, wfile, env):
 
-    method, rid, label, view, query, form = parseURL(rfile, env)
+    method, action, rid, label, view, query, form = parseURL(rfile, env)
 
-    log.debug('method %s rid %s view %s [action %s]', method, rid, view, form.getfirst('action','n/a'))
+    log.debug('method %s action %s rid %s view %s', method, action, rid, view)
 
-    if rid == None:
+    if action == 'cancel':
+        redirect(wfile,'')
+        
+    elif rid == None:
         queryWebLib(wfile, env, label, query)
         
     else:    
@@ -165,6 +176,7 @@ def parseURL(rfile, env):
     """ 
     @return method, rid, label, view, query, form
         method - 'GET', 'PUT', 'DELETE' 
+        action - the value from the submit button
         rid - None: n/a; '_': new item; int: resource id                
         label - string of comma seperated tags
         view - view parameter ('XML', '', etc. ???)
@@ -191,6 +203,11 @@ def parseURL(rfile, env):
         method = 'PUT'
     elif action == 'delete':
         method = 'DELETE'
+    elif form.getfirst('create_tags',''):
+        # note: in this case the javascript:form.submit() has trouble setting
+        # a value for the action <input>. We assume create_tags implies PUT.
+        method = 'PUT'
+        
     method = method.upper()
 
     # other parameters
@@ -198,7 +215,7 @@ def parseURL(rfile, env):
     view   = form.getfirst('view', '')
     query  = form.getfirst('query','')
 
-    return method, rid, label, view, query, form
+    return method, action, rid, label, view, query, form
 
 
 
@@ -213,6 +230,15 @@ def doPutResource(wfile, bean, view):
     if not bean.validate():
         RenderWeblibEdit(wfile).output(bean)
         return
+        
+    if bean.newTags:
+        assert bean.create_tags
+        for t in bean.newTags:
+            l = weblib.Label(name=unicode(t))
+            wlib.addLabel(l)
+        # reparse after created tags    
+        bean._parseTags()
+        assert not bean.newTags
         
     item = bean.item
     # is it an existing item?
@@ -403,6 +429,20 @@ class RenderWeblibEdit(response.ResponseTemplate):
             form.modified   .atts['value'] = item.modified
             form.lastused   .atts['value'] = item.lastused
             form.cached     .atts['value'] = item.cached  
+
+            if item.modified: 
+                form.modified_txt.content = item.modified
+                form.modified_txt.padding.omit()
+            if item.lastused: 
+                form.lastused_txt.content = item.lastused
+                form.lastused_txt.padding.omit()
+            if item.cached:   
+                form.cached_txt.content = item.cached  
+                form.cached_txt.modified.padding.omit()
+
+        if bean.newTags:
+            tags = u', '.join(bean.newTags)
+            node.new_tags.content = "  new_tags = '%s';" % tags
 
 
 if __name__ == "__main__":

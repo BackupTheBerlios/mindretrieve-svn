@@ -65,6 +65,10 @@ class WebPage(object):
 class Label(object):
 
     def __init__(self, id=-1, name=''):
+        
+        if not name:
+            raise RuntimeError('Label name required')
+            
         self.id         = id
         self.name       = name
 
@@ -87,7 +91,7 @@ class WebLibrary(object):
         self.webpages = []
         self.labels = []
         self.id2entry = {}
-        self.name2label = {}
+        self.name2label = {}    # lower name -> Tag
 
 
     def _addEntry(self, entry):
@@ -152,6 +156,9 @@ class WebLibrary(object):
 
     def fix(self):
         """ call this when finished loading """
+        for item in self.labels:
+            item.related = {}   # HACK HACK
+
         for item in self.webpages:
             setTags(item, self)
             

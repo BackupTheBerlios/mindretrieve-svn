@@ -97,7 +97,7 @@ class Bean(object):
             self._parseTags()
 
         else:    
-            item = wlib.id2entry.get(rid, None)
+            item = wlib.webpages.getById(rid)
             if item:
                 # make a copy of existing item    
                 item = item.__copy__()
@@ -242,9 +242,9 @@ def doPutResource(wfile, bean, view):
         
     item = bean.item
     # is it an existing item?
-    if bean.rid >= 0 and wlib.id2entry.has_key(bean.rid):
+    if bean.rid >= 0 and wlib.webpages.getById(bean.rid):
         # update existing item from bean
-        item0 = wlib.id2entry[bean.rid]
+        item0             = wlib.webpages.getById(bean.rid)
         item0.name        = item.name       
         item0.url         = item.url        
         item0.description = item.description
@@ -268,7 +268,7 @@ def doPutResource(wfile, bean, view):
 
 def doDeleteResource(wfile, bean, view):
     wlib = weblib.getMainBm()
-    item = wlib.id2entry.get(bean.rid, None)
+    item = wlib.webpages.getById(bean.rid)
     if item:
         log.info('Deleting WebPage %s' % unicode(item))
         labels = item.labels      

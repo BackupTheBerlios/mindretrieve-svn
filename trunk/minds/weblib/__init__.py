@@ -87,42 +87,20 @@ class Label(object):
 class WebLibrary(object):
 
     def __init__(self):
-        self._lastId = 0
-        self.webpages = []
-        self.labels = []
-        self.id2entry = {}
-        self.name2label = {}    # lower name -> Tag
-
-
-    def _addEntry(self, entry):
-
-        if entry.id < 0:                # generate new id
-            self._lastId += 1
-            entry.id = self._lastId
-
-        elif entry.id > self._lastId:   # id supplied, maintain self._lastId
-            self._lastId = entry.id
-
-        if self.id2entry.has_key(entry.id):
-            raise KeyError('Duplicated %s id "%s"' % (str(entry), entry.id))
-
-        self.id2entry[entry.id] = entry
+        self.webpages = util.IdList()
+        self.labels = util.IdNameList()
+#        self._lastId = 0
+#        self.webpages = []
+#        self.id2entry = {}
+#        self.name2label = {}    # lower name -> Tag
 
 
     def addWebPage(self, entry):
-        self._addEntry(entry)
         self.webpages.append(entry)
 
 
     def addLabel(self, entry):
-
-        low_name = entry.name.lower()
-        if self.name2label.has_key(low_name):
-            raise KeyError('Duplicated label %s' % low_name)
-
-        self._addEntry(entry)
         self.labels.append(entry)
-        self.name2label[low_name] = entry
 
 
     def newWebPage(self, name='', url='', description=''):
@@ -138,20 +116,14 @@ class WebLibrary(object):
             modified    =modified,
             lastused    =lastused,
         )
+
         
     def deleteWebPage(self, item):
-        if not item:
-            raise KeyError, 'Invalid item for deleteWebPage()'
-        if not self.id2entry.has_key(item.id):
-            raise KeyError, 'Item not found in id2entry: %s' % item
-        if item not in self.webpages:
-            raise KeyError, 'Item not found in webpages: %s' % item
-        del self.id2entry[item.id]
         self.webpages.remove(item)
-        
-        
+
+
     def getLabel(self, name):
-        return self.name2label.get(name.lower(), None)
+        return self.labels.getByName(name)
 
 
     def fix(self):
@@ -208,10 +180,11 @@ def getMainBm():
 
 # experimental
 def setTags(item, wlib):
-    id2entry = wlib.id2entry
-    labels = [id2entry[id] for id in item.labelIds if id2entry.has_key(id)]
+    labels = [wlib.labels.getById(id) for id in item.labelIds]
+    labels = filter(None, labels)
     labels.sort()
-    related = [id2entry[id] for id in item.relatedIds if id2entry.has_key(id)]
+    related = [wlib.labels.getById(id) for id in item.relatedIds]
+    related = filter(None, related)
     related.sort()
     # TODO: remove labelIds and relatedIds to avoid duplicated data?
     # TODO: don't sort to retain order?
@@ -253,13 +226,11 @@ def queryMain(wlib):
     """ @return: cat_list, related where
             cat_list: tuple of labels -> list of items,
     """
-    items = []
-    related = sets.Set()
-    for item in wlib.webpages:
-        if not item.labels:
-            items.append(item)    
-    return {tuple(): items}, wlib.labels[:]
-
+    items = [item for item in wlib.webpages if not item.labels]
+    labels = [l for l in wlib.labels]
+    return {tuple(): items}, labels
+        
+    
 
 # ----------------------------------------------------------------------
 # Command line

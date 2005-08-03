@@ -1,6 +1,5 @@
-""" __init__.py [cmd] [args]
-    query:  labels
-    cats:   labels
+""" __init__.py [options] [args]
+    -q:     query
 """
 
 import codecs
@@ -89,10 +88,6 @@ class WebLibrary(object):
     def __init__(self):
         self.webpages = util.IdList()
         self.labels = util.IdNameList()
-#        self._lastId = 0
-#        self.webpages = []
-#        self.id2entry = {}
-#        self.name2label = {}    # lower name -> Tag
 
 
     def addWebPage(self, entry):
@@ -126,6 +121,12 @@ class WebLibrary(object):
         return self.labels.getByName(name)
 
 
+    def visit(self, item):
+        from minds.weblib import store
+        item.lastused = datetime.date.today().isoformat()
+        store.save(self)
+        
+                
     def fix(self):
         """ call this when finished loading """
         for item in self.labels:
@@ -182,12 +183,9 @@ def getMainBm():
 def setTags(item, wlib):
     labels = [wlib.labels.getById(id) for id in item.labelIds]
     labels = filter(None, labels)
-    labels.sort()
     related = [wlib.labels.getById(id) for id in item.relatedIds]
     related = filter(None, related)
-    related.sort()
     # TODO: remove labelIds and relatedIds to avoid duplicated data?
-    # TODO: don't sort to retain order?
     item.labels = labels
     item.related = related
     for folder in labels:
@@ -200,26 +198,42 @@ def setTags(item, wlib):
             folder.related[relatedTag] = count+1
 
 #experimental
-def inferRelation(self):
-    self.related = [(count,folder) for folder, count in self.related.items()]
-    self.related.sort(reverse=True)
-    self.isTag = [tag for count, tag in self.related if count == self.num_item]
+def inferRelation(tag):
+    tag.related = [(count,folder) for folder, count in tag.related.items()]
+    tag.related.sort(reverse=True)
+    tag.isTag = [tag for count, tag in tag.related if count == tag.num_item]
 
 
-def query(wlib, labels):
-    """ @return: cat_list, related
+def query(wlib, querytxt, labels):
+    """ @return: cat_list, related, most_visited
             cat_list: tuple of labels -> list of items,
     """
     cat_list = {}
     related = sets.Set()
+    
+    most_visited = None
+    querytxt = querytxt.lower()
+
+    if not querytxt and not labels:
+        cat_list, related = queryMain(wlib)
+        return cat_list, related, most_visited 
+    
     for item in wlib.webpages:
         if util.diff(labels, item.labels):
             continue
+        if querytxt:
+            if querytxt not in item.name.lower():
+                continue
+                
+        if not most_visited or item.lastused > most_visited.lastused:
+            most_visited = item
+                
         cat = util.diff(item.labels, labels)
         cat2bookmark = cat_list.setdefault(tuple(cat),[])
         cat2bookmark.append(item)
         related.union_update(item.labels)
-    return cat_list, tuple(related)
+        
+    return cat_list, tuple(related), most_visited 
 
 
 def queryMain(wlib):
@@ -237,16 +251,17 @@ def queryMain(wlib):
 
 from pprint import pprint
 
-def doQuery(wlib, tags):
+def doQuery(wlib, querytxt, tags):
     labels,unknown = parseLabels(wlib, tags)
     if unknown:
         print 'Ignore unknown labels', unknown
 
-    cat_list, related = query(wlib, labels)
+    cat_list, related, most_visited = query(wlib, querytxt, labels)
 
     pprint(labels)
     listCatList(wlib,cat_list)
     pprint(sortLabels(related))
+    print 'Most visited:', most_visited
 
 
 def listCatList(wlib,lst):
@@ -275,12 +290,14 @@ def main(argv):
         show(wlib)
         sys.exit(0)
         
-    cmd = argv[1]    
-    args = ''
-    if len(argv) > 2:
-        args = argv[2]
+    querytxt = ''    
+    if argv[1] == '-q':
+        querytxt = argv[2]
+        del argv[:2]
         
-    doQuery(wlib, args)
+    tags = len(argv) > 1 and argv[1] or ''
+        
+    doQuery(wlib, querytxt, tags)
 
 
 if __name__ == '__main__':

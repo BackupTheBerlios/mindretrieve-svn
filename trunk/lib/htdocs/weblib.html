@@ -42,7 +42,12 @@
   #rightPane a      { text-decoration: none; }
   #rightPane a:hover{ text-decoration: underline; background-color: #ccc; }
 
-
+  .go_hint          { 
+    margin-top: 1ex; 
+    font-size: smaller;  
+    color: #999;
+  }
+  .go_hint a        { color: #999}
 
 </style>
 </head>
@@ -66,6 +71,14 @@
     </div>
 
 <p>Drag this <a node='con:bookmarklet' href=''>MindRetrieve</a> bookmarklet to your toolbar.</p>
+
+<form action='weblib' method='get'>
+  <input type='text' name='query' value="%query" size="50" node="con:querytxt" /> 
+  <input type='submit' name='submit' value='Search' />
+  &nbsp;<input type='submit' name='submit' value='>' />
+  <span node='con:go_hint' class='go_hint'>Go to <a node='con:address' href='#'>website</a>.</span>
+</form>
+
 
 <h2 node='con:mainTag'>TagA, TagB</h2>
 

@@ -51,7 +51,7 @@ domain.3=
 domain.4=
 
 [version]
-number=0.4.2
+number=0.4.3
 created=2005-02-21
 copyright=2005
 """

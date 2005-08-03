@@ -21,6 +21,8 @@ weblib                      show home page
 
 weblib?label=xx,yy          show label
 
+weblib?query=xx&label=yy    search xx
+
 weblib/_                    show edit screen        PUT weblib/_
 weblib/%id                                          PUT weblib/%id            
                                                     redirect weblib?label=xx,yy    
@@ -30,10 +32,11 @@ weblib/%id                                          PUT weblib/%id
                                                     DELETE weblib/%id
                                                     redirect weblib?label=xx,yy    
 
+weblib/%id/go;http://xyz  Redirect to page
+
 weblib/%id/cache
 weblib/%id/cache&cid=
 
-weblib?query=xx             ?    
 """
 
 BOOKMARKLET = """
@@ -50,7 +53,7 @@ javascript:
             ds=ma['content'].value;
         }
     }
-    d.location='http://%s/weblib/_?u='+escape(u)+'&t='+escape(t)+'&ds='+escape(ds);
+    d.location='http://%s/weblib/_?u='+encodeURIComponent(u)+'&t='+encodeURIComponent(t)+'&ds='+encodeURIComponent(ds);
 """
 
 def getBookmarklet(hostname):
@@ -72,7 +75,7 @@ class Bean(object):
         
         # tags not known
         self.newTags = sets.Set()
-        self.create_tags = self.form.getfirst('create_tags','')
+        self.create_tags = self.form.getfirst('create_tags','').decode('utf-8')
         
         self.errors = []
         
@@ -85,12 +88,12 @@ class Bean(object):
         if form.has_key('filled'):
             item = weblib.WebPage(
                 id          = rid,
-                name        = form.getfirst('t',''),
-                url         = form.getfirst('u',''),
-                description = form.getfirst('ds',''),
-                modified    = form.getfirst('modified',''),
-                lastused    = form.getfirst('lastused',''),
-                cached      = form.getfirst('cached',''),
+                name        = form.getfirst('t','').decode('utf-8'),
+                url         = form.getfirst('u','').decode('utf-8'),
+                description = form.getfirst('ds','').decode('utf-8'),
+                modified    = form.getfirst('modified','').decode('utf-8'),
+                lastused    = form.getfirst('lastused','').decode('utf-8'),
+                cached      = form.getfirst('cached','').decode('utf-8'),
             )
             self.item = item
 
@@ -103,9 +106,9 @@ class Bean(object):
                 item = item.__copy__()
             else:    
                 item = wlib.newWebPage(
-                    name        = form.getfirst('t',''),
-                    url         = form.getfirst('u',''),
-                    description = form.getfirst('ds',''),
+                    name        = form.getfirst('t','').decode('utf-8'),
+                    url         = form.getfirst('u','').decode('utf-8'),
+                    description = form.getfirst('ds','').decode('utf-8'),
                 )
                 
             self.item = item
@@ -116,11 +119,11 @@ class Bean(object):
     def _parseTags(self):
         wlib = weblib.getMainBm()
 
-        _labels = self.form.getfirst('labels','')
+        _labels = self.form.getfirst('labels','').decode('utf-8')
         self.item.labels, unknown_labels = weblib.parseLabels(wlib, _labels)
         self.item.labelIds = [l.id for l in self.item.labels]
 
-        _related = self.form.getfirst('related','')
+        _related = self.form.getfirst('related','').decode('utf-8')
         self.item.related, unknown_related = weblib.parseLabels(wlib, _related)
         self.item.relatedIds = [l.id for l in self.item.related]
         
@@ -129,7 +132,7 @@ class Bean(object):
         self.newTags = sets.Set()
         self.newTags.union_update(unknown_labels)
         self.newTags.union_update(unknown_related)
-        print '##'+str(self.newTags)   
+        
         
     def validate(self):
         if not self.item.name:
@@ -151,50 +154,64 @@ class Bean(object):
     
 def main(rfile, wfile, env):
 
-    method, action, rid, label, view, query, form = parseURL(rfile, env)
+    method, action, rid, go_part, label, querytxt, form = parseURL(rfile, env)
 
-    log.debug('method %s action %s rid %s view %s', method, action, rid, view)
+    log.debug('method %s action %s rid %s', method, action, rid)
 
     if action == 'cancel':
         redirect(wfile,'')
         
+    elif go_part:
+        doGoResource(wfile, rid, go_part)
+        
+    elif querytxt:
+        queryWebLib(wfile, env, form, label, querytxt)
+        
     elif rid == None:
-        queryWebLib(wfile, env, label, query)
+        queryWebLib(wfile, env, form, label, '')
         
     else:    
         # build bean from rid and other form parameters
         bean = Bean(rid, form)
         if method == 'GET':
-            doGetResource(wfile, bean, view)
+            doGetResource(wfile, bean, None)
         elif method == 'PUT':
-            doPutResource(wfile, bean, view)
+            doPutResource(wfile, bean, None)
         elif method == 'DELETE':
-            doDeleteResource(wfile, bean, view)
+            doDeleteResource(wfile, bean, None)
 
 
 def parseURL(rfile, env):
     """ 
-    @return method, rid, label, view, query, form
+    @return method, rid, label, view, querytxt, form
         method - 'GET', 'PUT', 'DELETE' 
         action - the value from the submit button
         rid - None: n/a; '_': new item; int: resource id                
+        go_part
         label - string of comma seperated tags
         view - view parameter ('XML', '', etc. ???)
-        query - query parameter (2005-07-25 unused?)
+        querytxt - querytxt parameter
         form - cgi.FieldStorage
     """  
 
     form = cgi.FieldStorage(fp=rfile, environ=env)
 
     # parse resource id (None, -1, int)
-    resource = env.get('PATH_INFO', '').strip('/')
+    # also get go_part
+    resources = env.get('PATH_INFO', '').strip('/').split('/',1)
+    resource = resources[0]
     rid = None
+    go_part = ''
     if resource == '_':
         rid = -1
     else:
         try:
             rid = int(resource)
-        except ValueError: pass
+        except ValueError: 
+            pass
+        if rid and len(resources) > 1:
+            if resources[1].startswith('go;'):
+                go_part = resources[1]
 
     # the edit form can only do GET, use 'action' as an alternative
     method = env.get('REQUEST_METHOD','GET')
@@ -211,17 +228,27 @@ def parseURL(rfile, env):
     method = method.upper()
 
     # other parameters
-    label  = form.getfirst('label','')
-    view   = form.getfirst('view', '')
-    query  = form.getfirst('query','')
+    label  = form.getfirst('label','').decode('utf-8')
+    querytxt  = form.getfirst('query','').decode('utf-8')
 
-    return method, action, rid, label, view, query, form
+    return method, action, rid, go_part, label, querytxt, form
 
+
+def doGoResource(wfile, rid, go_part):
+    # the go_part are really for user's information only. 
+    # rid alone determines where to go.
+    wlib = weblib.getMainBm()
+    item = wlib.webpages.getById(rid)
+    if not item:
+        wfile.write('404 not found\r\n\r\n%s not found' % rid)
+        return
+
+    wlib.visit(item)
+    redirect(wfile, '', url=item.url)        
 
 
 def doGetResource(wfile, bean, view):
     RenderWeblibEdit(wfile).output(bean)
-
 
 
 def doPutResource(wfile, bean, view):
@@ -282,8 +309,7 @@ def doDeleteResource(wfile, bean, view):
     redirect(wfile, labels)
 
 
-
-def queryWebLib(wfile, env, label, query):
+def queryWebLib(wfile, env, form, label, querytxt):
     # generates the bookmarklet
     host = env.get('SERVER_NAME','')
     port = env.get('SERVER_PORT','80')
@@ -291,26 +317,33 @@ def queryWebLib(wfile, env, label, query):
     host = 'localhost'  
     bookmarklet = getBookmarklet('%s:%s' %  (host, port))
     
-    wlib = weblib.getMainBm()
+    go_direct = form.getfirst('submit') == '>'
+    if querytxt.lower().startswith('g '):
+        querytxt = querytxt[2:]
+        go_direct = True
+    
+    wlib = weblib.getMainBm()   
 
     labels, unknown = weblib.parseLabels(wlib, label)
-    if labels:
-        items, related = weblib.query(wlib, labels)
-    else:    
-        items, related = weblib.queryMain(wlib)
+    items, related, most_visited = weblib.query(wlib, querytxt, labels)
 
-    isTag = []
-    for label in labels:
-        isTag = label.isTag
+    if go_direct and most_visited:
+        # quick jump
+        wlib.visit(most_visited)
+        redirect(wfile, '', url=most_visited.url)        
+    else:
+        isTag = []
+        for label in labels:
+            isTag = label.isTag
+        folderNames = map(unicode, labels)
+        RenderWeblib(wfile).output(querytxt, most_visited, folderNames, items, isTag, related, bookmarklet)
+        
 
-    folderNames = map(unicode, labels)
 
-    RenderWeblib(wfile).output(folderNames, items, isTag, related, bookmarklet)
-
-
-
-def redirect(wfile, labels):
-    if labels: 
+def redirect(wfile, labels, url=''):    # TODO: refactor parameters
+    if url:
+        wfile.write('location: ' + '%s\r\n\r\n' % (url,))
+    elif labels: 
         qs = u','.join(map(unicode, labels))
         qs = qs.encode('utf8')
         qs = '?label=' + urllib.quote_plus(qs)
@@ -319,6 +352,9 @@ def redirect(wfile, labels):
         wfile.write('location: ' + '/%s\r\n\r\n' % (BASEURL,))
 
 
+def make_go_url(item):
+    return '/%s/%s/go;%s' % (BASEURL, item.id, item.url)
+    
 
 ########################################################################
 
@@ -340,9 +376,16 @@ class RenderWeblib(response.ResponseTemplate):
 			con:edit
     """
 
-    def render(self, node, folderNames, categoryList, isTag, isRelated, bookmarklet):
+    def render(self, node, querytxt, most_visited, folderNames, categoryList, isTag, isRelated, bookmarklet):
+        node.querytxt.atts['value'] = querytxt
         node.bookmarklet.atts['href'] = bookmarklet.replace("'",'&apos;')
         
+        if not querytxt or not most_visited:
+            node.go_hint.omit()
+        else:    
+            node.go_hint.address.atts['href'] = make_go_url(most_visited)
+            node.go_hint.address.content = most_visited.name
+                    
         mainTag = u','.join(folderNames)
 
         tags = list(isTag) + list(isRelated)
@@ -379,7 +422,7 @@ class RenderWeblib(response.ResponseTemplate):
             node.edit.atts['href'] = '/%s/%s?view=edit' % (BASEURL, item.id)
         else:
             node.link.content = item.name + labels
-            node.link.atts['href'] = item.url
+            node.link.atts['href'] = make_go_url(item)
             node.edit.atts['href'] = '/%s/%s?view=edit' % (BASEURL, item.id)
 
 
@@ -390,7 +433,6 @@ class RenderWeblibEdit(response.ResponseTemplate):
         super(RenderWeblibEdit, self).__init__(wfile, 'weblibEdit.html')
 
     """
-    tem:
         con:form
                 con:id
                 con:error
@@ -400,9 +442,13 @@ class RenderWeblibEdit(response.ResponseTemplate):
                 con:description
                 con:labels
                 con:related
+                con:modified_txt
+                con:lastused_txt
+                con:cached_txt
                 con:modified
                 con:lastused
-                con:cached    
+                con:cached
+        con:new_tags
     """
 
     def render(self, node, bean):
@@ -429,16 +475,13 @@ class RenderWeblibEdit(response.ResponseTemplate):
             form.modified   .atts['value'] = item.modified
             form.lastused   .atts['value'] = item.lastused
             form.cached     .atts['value'] = item.cached  
-
+            
             if item.modified: 
                 form.modified_txt.content = item.modified
-                form.modified_txt.padding.omit()
             if item.lastused: 
                 form.lastused_txt.content = item.lastused
-                form.lastused_txt.padding.omit()
             if item.cached:   
                 form.cached_txt.content = item.cached  
-                form.cached_txt.modified.padding.omit()
 
         if bean.newTags:
             tags = u', '.join(bean.newTags)

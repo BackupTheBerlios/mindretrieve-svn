@@ -67,6 +67,10 @@ class AppHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
     # the rest to a subprocess, so we can't use buffered input.
     rbufsize = 0
 
+    # add .ico
+    SimpleHTTPServer.SimpleHTTPRequestHandler.extensions_map.update({
+        '.ico': 'image/x-icon',
+        })
 
     def do_POST(self):
         """Serve a POST request.

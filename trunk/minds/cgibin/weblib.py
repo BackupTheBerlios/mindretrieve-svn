@@ -10,6 +10,7 @@ from minds.config import cfg
 from minds.cgibin.util import response
 from minds import weblib
 from minds.weblib import store
+from minds.weblib import graph
 
 log = logging.getLogger('cgi.weblib')
 
@@ -19,20 +20,20 @@ BASEURL = 'weblib'
 """
 weblib                      show home page
 
-weblib?label=xx,yy          show label
+weblib?tag=xx,yy            show tag
 
-weblib?query=xx&label=yy    search xx
+weblib?query=xx&tag=yy      search xx
 
 weblib/_                    show edit screen        PUT weblib/_
 weblib/%id                                          PUT weblib/%id            
-                                                    redirect weblib?label=xx,yy    
+                                                    redirect weblib?tag=xx,yy    
     view=?
     field=?                   
                                                              
                                                     DELETE weblib/%id
-                                                    redirect weblib?label=xx,yy    
+                                                    redirect weblib?tag=xx,yy    
 
-weblib/%id/go;http://xyz  Redirect to page
+weblib/%id/go;http://xyz    Redirect to page
 
 weblib/%id/cache
 weblib/%id/cache&cid=
@@ -70,7 +71,7 @@ class Bean(object):
         self.item = None
 
         # tags string. This is tentative and may contain new tags.
-        self.labels = ''
+        self.tags = ''
         self.related = ''
         
         # tags not known
@@ -112,25 +113,25 @@ class Bean(object):
                 )
                 
             self.item = item
-            self.labels  = ', '.join([l.name for l in item.labels])
+            self.tags  = ', '.join([l.name for l in item.tags])
             self.related = ', '.join([l.name for l in item.related])
         
 
     def _parseTags(self):
         wlib = weblib.getMainBm()
 
-        _labels = self.form.getfirst('labels','').decode('utf-8')
-        self.item.labels, unknown_labels = weblib.parseLabels(wlib, _labels)
-        self.item.labelIds = [l.id for l in self.item.labels]
+        _tags = self.form.getfirst('tags','').decode('utf-8')
+        self.item.tags, unknown_tags = weblib.parseTags(wlib, _tags)
+        self.item.tagIds = [l.id for l in self.item.tags]
 
         _related = self.form.getfirst('related','').decode('utf-8')
-        self.item.related, unknown_related = weblib.parseLabels(wlib, _related)
+        self.item.related, unknown_related = weblib.parseTags(wlib, _related)
         self.item.relatedIds = [l.id for l in self.item.related]
         
-        self.labels = _labels
+        self.tags = _tags
         self.related = _related
         self.newTags = sets.Set()
-        self.newTags.union_update(unknown_labels)
+        self.newTags.union_update(unknown_tags)
         self.newTags.union_update(unknown_related)
         
         
@@ -154,7 +155,7 @@ class Bean(object):
     
 def main(rfile, wfile, env):
 
-    method, action, rid, go_part, label, querytxt, form = parseURL(rfile, env)
+    method, action, rid, go_part, tag, querytxt, form = parseURL(rfile, env)
 
     log.debug('method %s action %s rid %s', method, action, rid)
 
@@ -165,10 +166,10 @@ def main(rfile, wfile, env):
         doGoResource(wfile, rid, go_part)
         
     elif querytxt:
-        queryWebLib(wfile, env, form, label, querytxt)
+        queryWebLib(wfile, env, form, tag, querytxt)
         
     elif rid == None:
-        queryWebLib(wfile, env, form, label, '')
+        queryWebLib(wfile, env, form, tag, '')
         
     else:    
         # build bean from rid and other form parameters
@@ -183,12 +184,12 @@ def main(rfile, wfile, env):
 
 def parseURL(rfile, env):
     """ 
-    @return method, rid, label, view, querytxt, form
+    @return method, rid, tag, view, querytxt, form
         method - 'GET', 'PUT', 'DELETE' 
         action - the value from the submit button
         rid - None: n/a; '_': new item; int: resource id                
         go_part
-        label - string of comma seperated tags
+        tag - string of comma seperated tags
         view - view parameter ('XML', '', etc. ???)
         querytxt - querytxt parameter
         form - cgi.FieldStorage
@@ -228,10 +229,10 @@ def parseURL(rfile, env):
     method = method.upper()
 
     # other parameters
-    label  = form.getfirst('label','').decode('utf-8')
+    tag  = form.getfirst('tag','').decode('utf-8')
     querytxt  = form.getfirst('query','').decode('utf-8')
 
-    return method, action, rid, go_part, label, querytxt, form
+    return method, action, rid, go_part, tag, querytxt, form
 
 
 def doGoResource(wfile, rid, go_part):
@@ -261,8 +262,8 @@ def doPutResource(wfile, bean, view):
     if bean.newTags:
         assert bean.create_tags
         for t in bean.newTags:
-            l = weblib.Label(name=unicode(t))
-            wlib.addLabel(l)
+            l = weblib.Tag(name=unicode(t))
+            wlib.addTag(l)
         # reparse after created tags    
         bean._parseTags()
         assert not bean.newTags
@@ -275,7 +276,7 @@ def doPutResource(wfile, bean, view):
         item0.name        = item.name       
         item0.url         = item.url        
         item0.description = item.description
-        item0.labelIds    = item.labelIds   
+        item0.tagIds      = item.tagIds   
         item0.relatedIds  = item.relatedIds 
         item0.modified    = item.modified   
         item0.lastused    = item.lastused   
@@ -290,7 +291,7 @@ def doPutResource(wfile, bean, view):
     
     wlib.fix()
     store.save(wlib)
-    redirect(wfile, item.labels)
+    redirect(wfile, item.tags)
 
 
 def doDeleteResource(wfile, bean, view):
@@ -298,18 +299,18 @@ def doDeleteResource(wfile, bean, view):
     item = wlib.webpages.getById(bean.rid)
     if item:
         log.info('Deleting WebPage %s' % unicode(item))
-        labels = item.labels      
-        # todo: may need to delete labels too.    
+        tags = item.tags      
+        # todo: may need to delete tags too.    
         wlib.deleteWebPage(item)
         wlib.fix()
         store.save(wlib)  
     else:
-        labels = []
+        tags = []
             
-    redirect(wfile, labels)
+    redirect(wfile, tags)
 
 
-def queryWebLib(wfile, env, form, label, querytxt):
+def queryWebLib(wfile, env, form, tag, querytxt):
     # generates the bookmarklet
     host = env.get('SERVER_NAME','')
     port = env.get('SERVER_PORT','80')
@@ -324,37 +325,49 @@ def queryWebLib(wfile, env, form, label, querytxt):
     
     wlib = weblib.getMainBm()   
 
-    labels, unknown = weblib.parseLabels(wlib, label)
-    items, related, most_visited = weblib.query(wlib, querytxt, labels)
+    tags, unknown = weblib.parseTags(wlib, tag)
+    items, related, most_visited = weblib.query(wlib, querytxt, tags)
 
     if go_direct and most_visited:
         # quick jump
         wlib.visit(most_visited)
         redirect(wfile, '', url=most_visited.url)        
     else:
-        isTag = []
-        for label in labels:
-            isTag = label.isTag
-        folderNames = map(unicode, labels)
-        RenderWeblib(wfile).output(querytxt, most_visited, folderNames, items, isTag, related, bookmarklet)
+        folderNames = map(unicode, tags)
+        currentCategory = tags and unicode(tags[-1]) or ''
+        categoryList = []
+        top_nodes = wlib.categories[1]
+        for node in top_nodes:
+            subcat = []
+            categoryList.append((unicode(node[0]), subcat))
+            for v, path in graph.dfsp(node):
+                if len(path) < 3:
+                    subcat.append(unicode(v))            
+        RenderWeblib(wfile).output(querytxt, most_visited, folderNames, categoryList, currentCategory, items, bookmarklet)
         
 
 
-def redirect(wfile, labels, url=''):    # TODO: refactor parameters
+def redirect(wfile, tags, url=''):    # TODO: refactor parameters
     if url:
-        wfile.write('location: ' + '%s\r\n\r\n' % (url,))
-    elif labels: 
-        qs = u','.join(map(unicode, labels))
-        qs = qs.encode('utf8')
-        qs = '?label=' + urllib.quote_plus(qs)
-        wfile.write('location: ' + '/%s%s\r\n\r\n' % (BASEURL, qs))
+        wfile.write('location: %s\r\n\r\n' % (url,))
+    elif tags: 
+        wfile.write('location: %s\r\n\r\n' % make_tag_url(tags))
     else:
-        wfile.write('location: ' + '/%s\r\n\r\n' % (BASEURL,))
+        wfile.write('location: /%s\r\n\r\n' % (BASEURL,))
 
 
 def make_go_url(item):
     return '/%s/%s/go;%s' % (BASEURL, item.id, item.url)
     
+
+def make_tag_url(tags):
+    if hasattr(tags,'encode'):##??
+        qs = unicode(tags)    
+    else:
+        qs = u','.join(map(unicode, tags))
+    qs = urllib.quote_plus(qs.encode('utf8'))
+    return '/%s?tag=%s' % (BASEURL, qs)
+
 
 ########################################################################
 
@@ -364,64 +377,75 @@ class RenderWeblib(response.ResponseTemplate):
         super(RenderWeblib, self).__init__(wfile, 'weblib.html')
 
     """ weblib.html
-    tem:
-	con:tagList
-		rep:tagItem
-			con:link
-	con:mainTag
-	rep:category
-		con:tag
-		rep:bookmark
-			con:link
-			con:edit
+    con:bookmarklet
+    con:querytxt
+    con:go_hint
+            con:address
+    rep:crumb
+            con:link
+    rep:catList
+            con:link
+            rep:catItem
+                    con:link
+    rep:webItemClass
+            con:tag
+            rep:webItem
+                    con:edit
+                    con:link
     """
-
-    def render(self, node, querytxt, most_visited, folderNames, categoryList, isTag, isRelated, bookmarklet):
+    def render(self, node, querytxt, most_visited, folderNames, categoryList, currentCategory, webItemList, bookmarklet):
         node.querytxt.atts['value'] = querytxt
+##        node.querytxt.atts['value'] = unicode(currentCategory)
         node.bookmarklet.atts['href'] = bookmarklet.replace("'",'&apos;')
         
-        if not querytxt or not most_visited:
+        if not most_visited:
             node.go_hint.omit()
         else:    
             node.go_hint.address.atts['href'] = make_go_url(most_visited)
             node.go_hint.address.content = most_visited.name
                     
-        mainTag = u','.join(folderNames)
+        node.crumb.repeat(self.renderCrumb, folderNames)
 
-        tags = list(isTag) + list(isRelated)
-        tags = weblib.sortLabels(tags)
-        tags = map(unicode,tags)
+        node.catList.repeat(self.renderCatItem, categoryList, currentCategory)
 
-        node.tagList.content = mainTag
-        node.tagList.tagItem.repeat(self.renderTagItem, tags)
-
-        node.mainTag.content = mainTag
-        node.category.repeat(self.renderCategory, sorted(categoryList.items()))
+        node.webItemClass.repeat(self.renderWebItemClass, sorted(webItemList.items()))
 
 
-    def renderTagItem(self, node, item):
+    def renderCrumb(self, node, item):
         node.link.content = item
-        node.link.atts['href'] = '%s?%s' % (BASEURL, urllib.urlencode((('label',item),),True) )  ### TODO: BUG BUG unicode
+        node.link.atts['href'] = make_tag_url(item)
 
 
-    def renderCategory(self, node, category):
-        wlib = weblib.getMainBm()
-        labels, items = category
-        tags = map(unicode,labels)
+    def renderCatItem(self, node, item, currentCategory):
+        cat, subcat = item
+        node.link.content = cat
+        node.link.atts['href'] = make_tag_url(cat)
+        if cat == currentCategory:
+            node.link.atts['class'] = 'CategoryCurrentItem'
+        node.catItem.repeat(self.renderSubCat, subcat, currentCategory)
+
+
+    def renderSubCat(self, node, item, currentCategory):
+        node.link.content = item
+        node.link.atts['href'] = make_tag_url(item)
+        if item == currentCategory:
+            node.link.atts['class'] = 'CategoryCurrentItem'
+
+
+    def renderWebItemClass(self, node, category):
+        tags, items = category
+        tags = map(unicode,tags)
         node.tag.content = ', '.join(tags)
-        node.bookmark.repeat(self.renderWebPage, items)
+        node.webItem.repeat(self.renderWebItem, items)
 
 
-    def renderWebPage(self, node, item):
-
-        wlib = weblib.getMainBm()
-        labels = ' (' + ','.join(map(unicode,item.labels)) + ')'
-
-        if isinstance(item, weblib.Label):
-            node.link.content = item.name + labels
+    def renderWebItem(self, node, item):
+        tags = ' (' + ','.join(map(unicode,item.tags)) + ')'
+        if isinstance(item, weblib.Tag):
+            node.link.content = item.name + tags
             node.edit.atts['href'] = '/%s/%s?view=edit' % (BASEURL, item.id)
         else:
-            node.link.content = item.name + labels
+            node.link.content = item.name + tags
             node.link.atts['href'] = make_go_url(item)
             node.edit.atts['href'] = '/%s/%s?view=edit' % (BASEURL, item.id)
 
@@ -440,7 +464,7 @@ class RenderWeblibEdit(response.ResponseTemplate):
                 con:name
                 con:url
                 con:description
-                con:labels
+                con:tags
                 con:related
                 con:modified_txt
                 con:lastused_txt
@@ -470,7 +494,7 @@ class RenderWeblibEdit(response.ResponseTemplate):
             form.name       .atts['value'] = item.name
             form.url        .atts['value'] = item.url
             form.description.content       = item.description
-            form.labels     .atts['value'] = bean.labels
+            form.tags       .atts['value'] = bean.tags
             form.related    .atts['value'] = bean.related
             form.modified   .atts['value'] = item.modified
             form.lastused   .atts['value'] = item.lastused

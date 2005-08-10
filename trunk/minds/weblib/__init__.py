@@ -4,6 +4,7 @@
 
 import codecs
 import datetime
+import random
 import sets
 import sys
 
@@ -22,7 +23,7 @@ class WebPage(object):
         name        ='',
         url         ='',
         description ='',
-        labelIds    =[],
+        tagIds      =[],
         relatedIds  =[],
         modified    ='',
         lastused    ='',
@@ -33,7 +34,7 @@ class WebPage(object):
         # put all parameter values as instance variable
         self.__dict__.update(locals())
         del self.self
-        self.labels = []
+        self.tags = []
         self.related = []
 
     def __copy__(self):
@@ -42,7 +43,7 @@ class WebPage(object):
             name        = self.name         ,
             url         = self.url          ,
             description = self.description  ,
-            labelIds    = self.labelIds[:]  ,
+            tagIds      = self.tagIds[:]  ,
             relatedIds  = self.relatedIds[:],
             modified    = self.modified     ,
             lastused    = self.lastused     ,
@@ -50,7 +51,7 @@ class WebPage(object):
             archived    = self.archived     ,
             flags       = self.flags        ,
         )    
-        item.labels  = self.labels[:]
+        item.tags  = self.tags[:]
         item.related = self.related[:]   
         return item
         
@@ -58,21 +59,21 @@ class WebPage(object):
         return self.name
 
     def __repr__(self):
-        return u'%s (%s) %s' % (self.name, ', '.join(map(unicode,self.labels)), self.url)
+        return u'%s (%s) %s' % (self.name, ', '.join(map(unicode,self.tags)), self.url)
 
 
-class Label(object):
+class Tag(object):
 
     def __init__(self, id=-1, name=''):
         
         if not name:
-            raise RuntimeError('Label name required')
+            raise RuntimeError('Tag name required')
             
         self.id         = id
         self.name       = name
 
-        self.isTag      = []    # isTag is intersection of all labels for all items
-        self.related    = {}    # relatedLabel -> count, relatedLabels is union of all label for all items
+        self.isTag      = []    # isTag is intersection of all tags for all items
+        self.related    = {}    # relatedTag -> count, relatedTags is union of all tag for all items
                                 # Then inferRelation() would make it a list of tuples???
         self.num_item   = 0
 
@@ -87,15 +88,15 @@ class WebLibrary(object):
 
     def __init__(self):
         self.webpages = util.IdList()
-        self.labels = util.IdNameList()
+        self.tags = util.IdNameList()
 
 
     def addWebPage(self, entry):
         self.webpages.append(entry)
 
 
-    def addLabel(self, entry):
-        self.labels.append(entry)
+    def addTag(self, entry):
+        self.tags.append(entry)
 
 
     def newWebPage(self, name='', url='', description=''):
@@ -117,8 +118,8 @@ class WebLibrary(object):
         self.webpages.remove(item)
 
 
-    def getLabel(self, name):
-        return self.labels.getByName(name)
+    def getTag(self, name):
+        return self.tags.getByName(name)
 
 
     def visit(self, item):
@@ -126,53 +127,57 @@ class WebLibrary(object):
         item.lastused = datetime.date.today().isoformat()
         store.save(self)
         
-                
+         
+    def updateWebPage(self, updatedItem):
+        pass
+        
+                       
     def fix(self):
         """ call this when finished loading """
-        for item in self.labels:
-            item.related = {}   # HACK HACK
-
+        
+        # set item.tags from tagIds
         for item in self.webpages:
-            setTags(item, self)
+            tags = [self.tags.getById(id) for id in item.tagIds]
+            item.tags = filter(None, tags)
+            # remove tagIds to avoid duplicated data?
             
-        for item in self.labels:
-            inferRelation(item)
-
-
-
-def parseLabels(wlib, label_names):
+        import category
+        self.categories = category.buildCategory(self)
+        
+        
+def parseTags(wlib, tag_names):
     """ Parse comma separated tag names.
-        @return: list of labels and list of unknown tag names.
+        @return: list of tags and list of unknown tag names.
     """
-    labels = []
+    tags = []
     unknown = []
-    for name in label_names.split(','):
+    for name in tag_names.split(','):
         name = name.strip()
         if not name:
             continue    
-        label = wlib.getLabel(name)
-        if label:
-            labels.append(label)
+        tag = wlib.getTag(name)
+        if tag:
+            tags.append(tag)
         else:
             unknown.append(name)
-    labels.sort()        
-    return labels, unknown
+    tags.sort()        
+    return tags, unknown
 
 
-def sortLabels(labels):
-    lst = [(label.name.lower(), label) for label in labels]
-    lst.sort()
-    return [lbl for _,lbl in lst]
+def sortTags(tags):
+    """ sort tags by name in alphabetical order """
+    lst = [(tag.name.lower(), tag) for tag in tags]
+    return [pair[1] for pair in sorted(lst)]
     
     
-wlib = None
+wlib_instance = None
 
 def getMainBm():
-    global wlib
-    if not wlib:
+    global wlib_instance
+    if not wlib_instance:
         import store
-        wlib = store.load()
-    return wlib
+        wlib_instance = store.load()
+    return wlib_instance
 
 
 
@@ -180,33 +185,22 @@ def getMainBm():
 # Query
 
 # experimental
-def setTags(item, wlib):
-    labels = [wlib.labels.getById(id) for id in item.labelIds]
-    labels = filter(None, labels)
-    related = [wlib.labels.getById(id) for id in item.relatedIds]
-    related = filter(None, related)
-    # TODO: remove labelIds and relatedIds to avoid duplicated data?
-    item.labels = labels
-    item.related = related
-    for folder in labels:
-        folder.related = {}
-        folder.num_item += 1
-        for relatedTag in labels:
-            if relatedTag == folder: 
-                continue
-            count = folder.related.setdefault(relatedTag,0)
-            folder.related[relatedTag] = count+1
+#def addTagStat(item, wlib):    
+#    for tag in item.tags:
+#        tag.num_item += 1
+#        for relatedTag in tags:
+#            if relatedTag != tag: 
+#                count = tag.related.setdefault(relatedTag,0)
+#                tag.related[relatedTag] = count+1
 
 #experimental
-def inferRelation(tag):
-    tag.related = [(count,folder) for folder, count in tag.related.items()]
-    tag.related.sort(reverse=True)
-    tag.isTag = [tag for count, tag in tag.related if count == tag.num_item]
 
 
-def query(wlib, querytxt, labels):
-    """ @return: cat_list, related, most_visited
-            cat_list: tuple of labels -> list of items,
+def query(wlib, querytxt, tags):
+    """ @return: 
+            cat_list, - tuple of tags -> list of items, 
+            related, 
+            most_visited
     """
     cat_list = {}
     related = sets.Set()
@@ -214,35 +208,70 @@ def query(wlib, querytxt, labels):
     most_visited = None
     querytxt = querytxt.lower()
 
-    if not querytxt and not labels:
-        cat_list, related = queryMain(wlib)
-        return cat_list, related, most_visited 
+    if not querytxt and not tags:
+        return queryMain(wlib)
     
+    # use querytxt to match additional tags
+    if querytxt:
+        query_tags_set = sets.Set((tag for tag in wlib.tags 
+                                        if querytxt in tag.name.lower()))
+    else:    
+        query_tags_set = sets.Set()
+        
+    tags_set = sets.Set(tags)    
+        
+    ## TODO: logic is complicated, need some refactoring
+    # short circuit behavior is hard to archieve.
+    # blank querytxt and tags change the meaning.
     for item in wlib.webpages:
-        if util.diff(labels, item.labels):
-            continue
-        if querytxt:
-            if querytxt not in item.name.lower():
+
+        # first line filtering by tag
+        if tags:
+            _td = tags_set.difference(item.tags)
+            if bool(_td):
                 continue
                 
-        if not most_visited or item.lastused > most_visited.lastused:
-            most_visited = item
+#        print >>sys.stderr, item.name[:20]
+
+        if query_tags_set:
+            _qti = query_tags_set.intersection(item.tags)
+            qt_matched = bool(_qti)
+        else:    
+            qt_matched = False
                 
-        cat = util.diff(item.labels, labels)
+        if querytxt:
+            q_matched = (querytxt in item.name.lower()) or (querytxt in item.url.lower())
+            if not q_matched and not qt_matched:
+                continue
+        
+            # most visited only activates with a querytxt        
+            if q_matched:
+                if not most_visited or \
+                    item.lastused > most_visited.lastused:
+                    most_visited = item
+        else:
+            q_matched = False
+                
+        if querytxt and not (qt_matched or q_matched):
+            continue
+            
+        cat = util.diff(item.tags, tags)
         cat2bookmark = cat_list.setdefault(tuple(cat),[])
         cat2bookmark.append(item)
-        related.union_update(item.labels)
+        related.union_update(item.tags)
         
     return cat_list, tuple(related), most_visited 
 
 
 def queryMain(wlib):
-    """ @return: cat_list, related where
-            cat_list: tuple of labels -> list of items,
+    """ @return: cat_list, related, random where
+            cat_list: tuple of tags -> list of items,
     """
-    items = [item for item in wlib.webpages if not item.labels]
-    labels = [l for l in wlib.labels]
-    return {tuple(): items}, labels
+    items = [item for item in wlib.webpages if not item.tags]
+    tags = [l for l in wlib.tags]
+    ## TODO: need clean up, also should not use private _lst
+    random_page = wlib.webpages._lst and random.choice(wlib.webpages._lst) or None
+    return {tuple(): items}, tags, random_page
         
     
 
@@ -252,15 +281,15 @@ def queryMain(wlib):
 from pprint import pprint
 
 def doQuery(wlib, querytxt, tags):
-    labels,unknown = parseLabels(wlib, tags)
+    tags,unknown = parseTags(wlib, tags)
     if unknown:
-        print 'Ignore unknown labels', unknown
+        print 'Ignore unknown tags', unknown
 
-    cat_list, related, most_visited = query(wlib, querytxt, labels)
+    cat_list, related, most_visited = query(wlib, querytxt, tags)
 
-    pprint(labels)
+    pprint(tags)
     listCatList(wlib,cat_list)
-    pprint(sortLabels(related))
+    pprint(sortTags(related))
     print 'Most visited:', most_visited
 
 
@@ -268,15 +297,15 @@ def listCatList(wlib,lst):
     for key, value in sorted(lst.items()):
         sys.stdout.write('\n' + u','.join(map(unicode, key)) + '\n')
         for item in value:
-            tags = [label.name for label in item.labels]
-            related = [label.name for label in item.related]
+            tags = [tag.name for tag in item.tags]
+            related = [tag.name for tag in item.related]
             print '  %s (%s) (%s)' % (unicode(item), ','.join(tags), ','.join(related))
 
 
 def show(wlib):
     for item in wlib.webpages:
-        tags = [label.name for label in item.labels]
-        related = [label.name for label in item.related]
+        tags = [tag.name for tag in item.tags]
+        related = [tag.name for tag in item.related]
         print '%s (%s) (%s)' % (item.name, ','.join(tags), ','.join(related))
 
 

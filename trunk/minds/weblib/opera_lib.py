@@ -86,15 +86,15 @@ def load(rstream):
                     log.warn('Invalid name line %s', lineno+1)
                     continue
 
-                label = weblib.Label(name=name)
+                tag = weblib.Tag(name=name)
                 try:
-                    wlib.addLabel(label)
+                    wlib.addTag(tag)
                 except KeyError, e:
                     log.info('line %s - %s', lineno+1, e)
-                    # not a problem, just use the existing label
-                    label = wlib.getLabel(name)
+                    # not a problem, just use the existing tag
+                    tag = wlib.getTag(name)
 
-                folder_stack.append(label)
+                folder_stack.append(tag)
 
             else:
                 # skipping everything under the trash folder
@@ -113,7 +113,7 @@ def load(rstream):
                 log.warn('Invalid name line %s', lineno+1)
                 continue
 
-            labelIds = [label.id for label in folder_stack]
+            tagIds = [tag.id for tag in folder_stack]
 
             try:
                 _modified = int(attrs.get('created',''))
@@ -133,7 +133,7 @@ def load(rstream):
                 name        = name,
                 url         = attrs.get('url',''),
                 description = attrs.get('description',''),
-                labelIds    = labelIds,
+                tagIds      = tagIds,
                 modified    = modified,
                 lastused    = lastused,
             )

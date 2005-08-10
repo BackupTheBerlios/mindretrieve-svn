@@ -11,14 +11,14 @@ from minds.util import dsv
 
 
 
-log = logging.getLogger('wlib.minds')
+log = logging.getLogger('weblib.mnd')
 
 
 COLUMNS = [
 'id',           # 00
 'name',         # 01
 'description',  # 02
-'labelIds',     # 03
+'tagIds',       # 03
 'relatedIds',   # 04
 'modified',     # 05
 'lastused',     # 06
@@ -50,17 +50,17 @@ def parseLine(wlib, row):
     # TODO: field validation
 
     if row.id[0:1] == '+':
-        label = weblib.Label(
+        tag = weblib.Tag(
             id          = int(row.id[1:]),
             name        = row.name,
         )
-        wlib.addLabel(label)
+        wlib.addTag(tag)
 
     else:
-        if row.labelids:
-            labelIds = [int(id) for id in row.labelids.split(',')]
+        if row.tagids:
+            tagIds = [int(id) for id in row.tagids.split(',')]
         else:
-            labelIds = []
+            tagIds = []
             
         if row.relatedids:
             relatedIds = [int(id) for id in row.relatedids.split(',')]
@@ -71,7 +71,7 @@ def parseLine(wlib, row):
             id          = int(row.id),
             name        = row.name,
             description = row.description,
-            labelIds    = labelIds,
+            tagIds    = tagIds,
             relatedIds  = relatedIds,
             flags       = row.flags,
             modified    = row.modified,
@@ -105,7 +105,7 @@ def save(wstream, wlib):
     writer.write(header)
     writer.write('\n')
 
-    for item in wlib.labels:
+    for item in wlib.tags:
 
         id = '+%d' % item.id
 
@@ -118,15 +118,15 @@ def save(wstream, wlib):
     for item in wlib.webpages:
 
         id = str(item.id)
-        labelIds = ','.join(map(str,item.labelIds))
-        relatedIds = ','.join(map(str,item.labelIds))
+        tagIds = ','.join(map(str,item.tagIds))
+        relatedIds = ','.join(map(str,item.relatedIds))
 
         data = dsv.encode_fields([
             id              ,
             item.name       ,
             item.description,
 #            item.comment    ,
-            labelIds        ,
+            tagIds        ,
             relatedIds      ,
             item.modified   ,
             item.lastused   ,

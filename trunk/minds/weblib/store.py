@@ -28,20 +28,20 @@ def _run_close(fp, func, *args):
 def load(filename=WEBLIB_FILENAME ):
     fp = file(filename,'rb')
     wlib = _run_close(fp, def_store.load, fp)
-    log.debug('Loaded %s items:%s,%s', filename, len(wlib.labels), len(wlib.webpages))
+    log.debug('Loaded %s items:%s,%s', filename, len(wlib.tags), len(wlib.webpages))
     return wlib
 
     
 def save(wlib, filename=WEBLIB_FILENAME):
     fp = file(filename,'wb')            
     _run_close(fp, def_store.save, fp, wlib)
-    log.debug('Saved %s items:%s,%s', filename, len(wlib.labels), len(wlib.webpages))
+    log.debug('Saved %s items:%s,%s', filename, len(wlib.tags), len(wlib.webpages))
 
 
 def load_opera(filename=OPERA_FILENAME):
     fp = file(filename,'rb')
     wlib = _run_close(fp, opera_lib.load, fp)
-    log.debug('Loaded %s items:%s,%s', filename, len(wlib.labels), len(wlib.webpages))
+    log.debug('Loaded %s items:%s,%s', filename, len(wlib.tags), len(wlib.webpages))
     return wlib
 
     

@@ -2,9 +2,8 @@
 <html>
 <head>
 <title>MindRetrieve - Configuration</title>
-<link rel="stylesheet" href="main.css" type="text/css">
+<link rel="stylesheet" href="/main.css" type="text/css">
 <style>
-
   #content         {
     margin-top: 0cm;
     padding-left: 0.2cm;
@@ -20,6 +19,7 @@
     margin-top: 1ex; 
     font-size: smaller;  
     color: #999;
+    float: right;
   }
   .go_hint a        { color: #999}
 
@@ -50,6 +50,7 @@
   #categorytPane a:hover{ 
     background-color: #ddd; 
   }
+  
   .CategoryItem         {
     font-size: larger;
     font-weight: bold;
@@ -81,35 +82,23 @@
 
   #itemPane             {   
     margin-left: 18em;
-  }
-  
-
+  }  
 </style>
 </head>
 
+
 <body>
 
-<h1>MindRetrieve</h1>
-
-
+<div node='-con:header' style='width:100%;background-color:#ddd;text-align:center'>--HEADER--</div>
 
 <!-- content -->
 <div id='content'>
-
-
-<p>Drag this <a node='con:bookmarklet' href=''>MindRetrieve</a> bookmarklet to your toolbar.</p>
-
-<form action='weblib' method='get'>
-  <input type='text' name='query' value="%query" size="50" node="con:querytxt" /> 
-  <input type='submit' name='submit' value='Search' />
-  &nbsp;<input type='submit' name='submit' value='>' />
-  <span node='con:go_hint' class='go_hint'>Go to <a node='con:address' href='#'>website</a>.</span>
-</form>
 
 <p id='crumb'>
     <a href="/weblib">weblib</a>
     <span node='rep:crumb'>&gt; <a href="#" node='con:link'>A</a></span>
     <span node='rep:crumb'>&gt; <a href="#" node='con:link'>B</a></span>
+    <span node='con:go_hint' class='go_hint'>Go to <a node='con:address' href='#'>website</a>.</span>
 </p>
 
 <div id='categorytPane'>
@@ -126,6 +115,7 @@
     <li node='rep:catItem' class='CategorySubItem'><a node='con:link' href='#'>Sub cat</a></li>
     <li node='rep:catItem' class='CategorySubItem'><a node='con:link' href='#' class='CategoryCurrentItem'>Sub cat</a></li>
   </ul>
+  <p><a href="/weblib.organize">Organize the categories</a></p>
 </ul>
 </div> <!-- categoryPane -->
 
@@ -178,6 +168,8 @@
 <div id='navigationBar'>
 
 <div id='homepagelink'>
+<a node='con:bookmarklet' href=''><img src='/img/favicon16x16.gif' style='vertical-align:-3px'/>MindRetrieve</a> bookmarklet
+<span style='margin-right:3em;'></span>
 Copyright &copy; 2005 <a href='http://mindretrieve.berlios.de/'>MindRetrieve</a>
 </div>
 

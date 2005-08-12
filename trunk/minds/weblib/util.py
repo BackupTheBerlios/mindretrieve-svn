@@ -1,16 +1,3 @@
-def isSubset(a,b):
-    """ return if a is a subset of b; a and b are ordered list. """
-    if len(a) == 0:
-        return True
-
-    i = 0
-    for k in b:
-        if a[i] == k:
-            i += 1
-            if i >= len(a):
-                return True
-    return False
-
 
 def diff(a,b):
     """ return a-b """
@@ -21,6 +8,9 @@ def diff(a,b):
     return d
 
 
+
+#-----------------------------------------------------------------------
+# Id keyed list
 
 class IdList(object):
     """ A container keyed by id """    
@@ -91,6 +81,5 @@ class IdNameList(IdList):
         """ raise KeyError if item is not in the list """
         del self._name2item[item.name.lower()]
         super(IdNameList, self).remove(item)
-        
         
         

@@ -11,10 +11,13 @@ where
     others - store attributes used when running algorithms
 
 """
+import sys
 
 #-----------------------------------------------------------------------
 # Indented text parsing
 
+class CycleError(Exception): pass
+                
 def _split_indent(s):
     """ 
     Split a string into (indent, data).  e.g.
@@ -36,15 +39,17 @@ def _parse_lines(data):
         yield line
         
         
-def parse_indent_text(data):
+def build_indented_text_DAG(data):
     """
-    Parse input of indented text into a tree of nodes.
-    Return the root node.
+    Parse input of indented text into a graph of nodes.
+xx    Return the root node.
     
-    A node is tuple of (name, list of children).
+xx    A node is tuple of (name, list of children).
     """
     # create the root node
-    root_node = ('',[])
+    root_node = ['',[]]
+    nodes = {'': root_node}
+    
     cur_node = root_node
     cur_indent = -1
     
@@ -58,7 +63,8 @@ def parse_indent_text(data):
 
     for line in _parse_lines(data):
         indent, name = _split_indent(line)
-        node = (name,[])
+        name = name.lower()
+        node = nodes.setdefault(name,[name,[]])
         if indent == cur_indent:
             # 2nd last in the stack would be the parent
             # note: -1 < 0 <= indent == cur_indent
@@ -81,21 +87,56 @@ def parse_indent_text(data):
         # append to parent
         cur_node[1].append(node)
 
-        # this is the new cur_node
+        # the new cur_node
         cur_indent,cur_node = indent,node
         stack.append((cur_indent,cur_node))
 
-    return root_node
+    detect_cycle(root_node)
+
+    return nodes
 
 
+def merge_DAG(p,q):
+    """
+    Definition
+        r = merge(p,q)   
+        for all (v,w) in r <=> (v,w) in p or (v,w) in q
+    
+        unless if it forms a cycle!
+    """
+    for vq, nq in q.items():
+
+        np = p.setdefault(vq,[vq,[]])
+        
+        for cq,_ in nq[1]:
+            cq = cq
+            # merging (vq,cq) to p
+            for cp,_ in np[1]:
+                # is duplicated edge?
+                if cp == cq:
+                    break
+            else:        
+                # add (vq, cq) to np
+                cnp = p.setdefault(cq,[cq,[]])
+                if form_cycle(np, cnp):
+                    print >>sys.stderr, 'reject edge %s -> %s' % (np[0],cnp[0])
+                else:
+                    np[1].append(cnp)
+                        
+                
 #-----------------------------------------------------------------------
+
+def dfs_node(root):
+    yield root
+    for child in root[1]:
+        for x in dfs_node(child): yield x
+
 
 def dfs(root,level=0):
     """ Walk a tree in DFS order, yielding (node,level). """
     yield root[0], level
     for child in root[1]:
-        for r in dfs(child,level+1):
-            yield r
+        for x in dfs(child,level+1): yield x
 
 def dfsp(root, path=None):
     """ yield (vertex, path to vertex) """
@@ -109,8 +150,7 @@ def dfsp(root, path=None):
 
     path.append(root[0])
     for child in root[1]:
-        for r in dfsp(child,path):
-            yield r
+        for x in dfsp(child,path): yield x
     path.pop()
 
 
@@ -118,19 +158,32 @@ def dfs_edge(root):
     """ yield (from vertices, to vertices) """
     for child in root[1]:
         yield root[0], child[0]
-        for r in dfs_edge(child):
-            yield r
+        for x in dfs_edge(child): yield x
 
 
-def find_cycle(root):
-    """ Return list of vertices that form a cycle. None if acyclic. """
+def detect_cycle(root):
+    """ Raise CycleError if cycle found. """
     for v, path in dfsp(root):
         try:
             i = path.index(v)
-            return path[i:]+[v]
+            raise CycleError(path[i:]+[v])
         except ValueError:
             pass
-    return None
 
 
+def form_cycle(p,q):
+    """ would adding edge(p,q) form a cycle? """
+    for v, level in dfs(q):
+        if v == p[0]:
+            return True
+    return False
 
+
+#def get_nodes(root):
+#    nodes = {}
+#    for node in dfs_node(root):
+#        if not nodes.has_key(node[0]):
+#            nodes[node[0]] = node
+#    return nodes
+#
+#        

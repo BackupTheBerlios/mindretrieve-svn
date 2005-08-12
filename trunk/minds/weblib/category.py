@@ -2,87 +2,44 @@ import sys
 import sets
 
 from minds import weblib
-#from minds.weblib import util
 from minds.weblib import graph
 
 
+TEST_DATA0 = """
+mindretrieve
+    search
+    python
+    web design
+    css
+travel
+    italy
+    san francisco
+        real estate
+"""
+    
 TEST_DATA = """
 San Francisco
+    food
+    travel
 money
-tech
-    python
-        outdoor
-    DHTML
-        CSS
-            
-Travel
-    outdoor
-        DHTML
+    account
+    real estate
+real estate
+    listing
+    San Francisco
+travel
+    italy
+        food   
 """          
 
-def make_tag_tree(wlib, root):
-    root_node = (None,[])
-    nodes = {'': root_node}  # name -> node(Tag)
-    
-    for name_v, level in graph.dfs(root):
-        name = name_v.lower()        
-        if not nodes.has_key(name):
-            tag = wlib.tags.getByName(name)
-            nodes[name] = (tag,[])
-        
-    for parent, child in graph.dfs_edge(root):
-        pn = nodes[parent.lower()]
-        cn = nodes[child.lower()]
-        pn[1].append(cn)
-        
-    for node in nodes.values():
-        children = node[1]
-        new_children = []
-        added = sets.Set()
-        for child in children:
-            if child[0] not in added:
-                added.add(child[0])
-                new_children.append(child)
 
-        del children[:]
-        children.extend(new_children)
-    
-    return root_node
-    
-#def make(wlib, root):
-#    children = root[1]
-#    children[:] = [(wlib.tags.getByName(name), grandchildren) for name, grandchildren in children]
-#    for child in children:
-#        make(wlib, child)
-
-
-def inferGraph(wlib):
-    V = {}
-    for tag in wlib.tags:
-        V[tag] = (tag,[])
-
-    root = ('',[])
-
-    root_nodes = sets.Set(iter(wlib.tags))
-
-    for tag in wlib.tags:
-        tag_node = V[tag]
-        tag_node[1][:] = [V[child] for child in tag.isTag] 
-
-        root_nodes.difference_update(tag.isTag)
-
-    root[1][:] = [V[tag] for tag in root_nodes]
-                
-    for v, level in graph.dfs(root):
-        print '..'*level + unicode(v)
-
-    
 #-----------------------------------------------------------------------
 
 class TagRel(object):
     def __init__(self, tag):
         self.tag = tag
         self.node = (self, [])
+        self.node = [self, []]
         self.num_item = 0
         self.isTopLevel = True
         self._related_map = {}  # tag.id -> count, rel
@@ -98,7 +55,7 @@ class TagRel(object):
         return self.tag.__repr__()
             
 
-def buildCategory(wlib):
+def inferCategory(wlib):
     
     R = [TagRel(tag) for tag in wlib.tags]
 
@@ -145,7 +102,6 @@ def buildCategory(wlib):
         if not v.torder:
             v.torder = i+1
 
-
     return root
 
 
@@ -168,7 +124,7 @@ def build_DAG(node_by_size):
     standalone = [node for s, node in node_by_size if node[0].isTopLevel and not node[1]]
     standalone_node = (None, standalone)  ##??
     tops.append(standalone_node)
-    return [None, tops]                             # return root
+    return ['', tops]                             # return root
 
 
 def knock_off(S, D):
@@ -192,37 +148,60 @@ def knock_off(S, D):
         else:
             j += 1
 
+
+def buildCategory(wlib):
+    root = inferCategory(wlib)
+    nodes = {}
+    for node in graph.dfs_node(root):
+        if not nodes.has_key(node[0]):
+            nodes[node[0]] = node
+    
+    g0 = graph.build_indented_text_DAG(TEST_DATA0)
+    root0 = g0['']
+
+    graph.merge_DAG(g0,nodes)
+    return g0['']
+    
+
+def __convert_name_2_trel(wlib,g):
+    g1 = {}
+    for v,n in g.items():
+        tag = wlib.tags.getByName(v)
+        if tag:
+            tRel = tag.rel
+            n[0] = tRel
+        g1[n[0]] = n
+    return g1
+        
 #-----------------------------------------------------------------------
 
 def test_tag_tree():
-    wlib = weblib.getMainBm()
-    tree = util.parse_indent_text(TEST_DATA)
-    tree = make_tag_tree(wlib, tree)
-    # check syntax
-    # check non tag
-    # check cycle
+    g0 = graph.build_indented_text_DAG(TEST_DATA0)
+    root0 = g0['']
 
-    cycle = util.find_cycle(tree)
-    print cycle
-    if cycle:
-        raise 'Cycle'
-            
-    
-#    from pprint import pprint
-#    pprint(tree)##
-    for v, level in graph.dfs(tree):
-        print '..'*level + unicode(v)
+    print '\ntree0---'
+    for v, level in graph.dfs(root0):
+        if v:
+            print '..'*level + unicode(v)
+
+    g = graph.build_indented_text_DAG(TEST_DATA)
+    root = g['']
+
+    print '\ntree1---'
+    for v, level in graph.dfs(root):
+        if v:
+            print '..'*level + unicode(v)
      
-    for v, path in graph.dfsp(tree):    
-        print v, path
-        
-    print util.find_cycle(tree)    
-    #inferGraph(wlib)
-
+    graph.merge_DAG(g0,g)
+    print '\nmerged---'
+    for v, level in graph.dfs(root0):
+        if v:
+            print '..'*level + unicode(v)
+     
     
 def test_DAG():    
-    bm = weblib.getMainBm()
-    root = buildCategory(bm)
+    wlib = weblib.getMainBm()
+    root = inferCategory(wlib)
     ## debug
     for v, path in graph.dfsp(root):
         if not v:
@@ -230,10 +209,36 @@ def test_DAG():
         print '..' * len(path) + unicode(v) + ' %s' % v.torder + ' %s' % path
 
 
-def main(argv):
-    #test_tag_tree()
-    test_DAG()
+def test_flex_category():
+    wlib = weblib.getMainBm()
+    root = inferCategory(wlib)
+    nodes = {}
+    for node in graph.dfs_node(root):
+        if not nodes.has_key(node[0]):
+            nodes[node[0]] = node
 
+
+    g0 = graph.build_indented_text_DAG(TEST_DATA0)   
+    g1 = __convert_name_2_trel(wlib, g0)
+
+    print '\ntree1---'
+    for v, level in graph.dfs(g1['']):
+        if v:
+            print '..'*level + unicode(v) +str(v.tag.id)
+
+    graph.merge_DAG(g1,nodes)
+         
+    print '\nmerged---'
+    for v, level in graph.dfs(g1['']):
+        if v:
+            print '..'*level + unicode(v) +str(v.tag.id)
+
+
+
+def main(argv):
+    test_flex_category()
+    #test_tag_tree()
+    #test_DAG()
             
     
 if __name__ =='__main__':

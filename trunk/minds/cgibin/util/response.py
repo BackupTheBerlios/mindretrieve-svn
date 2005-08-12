@@ -10,30 +10,76 @@ from toollib import HTMLTemplate
 
 
 # ----------------------------------------------------------------------
-# construct header common between pages
+
+BOOKMARKLET = """
+javascript:
+    d=document;
+    u=d.location;
+    t=d.title;
+    ds='';
+    mt=d.getElementsByTagName('meta');
+    for(i=0;i<mt.length;i++){
+        ma=mt[i].attributes;
+        na=ma['name'];
+        if(na&&na.value.toLowerCase()=='description'){
+            ds=ma['content'].value;
+        }
+    }
+    d.location='http://%s/weblib/_?u='+encodeURIComponent(u)+'&t='+encodeURIComponent(t)+'&ds='+encodeURIComponent(ds);
+"""
+
+def buildBookmarklet(env):
+    # find host & port from CGI environment
+    host = env.get('SERVER_NAME','')
+    port = env.get('SERVER_PORT','80')
+    # SERVER_NAME is actually not that good. Override with 'localhost'
+    host = 'localhost'
+    
+    b = BOOKMARKLET % ('%s:%s' %  (host, port))
+    # space dehydration
+    return b.replace('\n','').replace(' ','')  
+
+
+# ----------------------------------------------------------------------
+# construct common header and footer
 
 HEADER_TMPL = 'header.html'
+FOOTER_TMPL = 'footer.html'
 REMOVE = '<!-- remove above -->'
 
-def getHeader(querytxt=''):
-    pathname = os.path.join(cfg.getPath('docBase'), HEADER_TMPL)
+def _format_template(tmpl, render, *args):
+    """ helper to render header and footer """
+    
+    pathname = os.path.join(cfg.getPath('docBase'), tmpl)
     fp = file(pathname,'rb')
     try:
-        template = HTMLTemplate.Template(renderHeader, fp.read())
+        template = HTMLTemplate.Template(render, fp.read())
     finally:
         fp.close()
 
-    header_text = template.render(querytxt)
+    text = template.render(*args)
     
-    # remove some excess from header_text to make it embeddable.
+    # remove some extra data from text to make it embeddable.
     # raise exception if REMOVE is not found
-    i = header_text.index(REMOVE)
-    header_text = header_text[i+len(REMOVE):]
-    return header_text
+    i = text.index(REMOVE)
+    return text[i+len(REMOVE):]
+
+
+def getHeader(querytxt=''):
+    return _format_template(HEADER_TMPL, renderHeader, querytxt)
     
     
 def renderHeader(node, querytxt):
     node.querytxt.atts['value'] = querytxt
+
+
+def getFooter(env):
+    b = buildBookmarklet(env)
+    return _format_template(FOOTER_TMPL, renderFooter, b)
+
+    
+def renderFooter(node, href):
+    node.bookmarklet.atts['href'] = href.replace("'",'&apos;')
 
 
 # ----------------------------------------------------------------------

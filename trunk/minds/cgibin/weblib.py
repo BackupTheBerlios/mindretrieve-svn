@@ -1,4 +1,4 @@
-import codecs
+#import codecs
 import cgi
 import datetime
 import logging
@@ -7,7 +7,6 @@ import sets
 import urllib
 
 from minds.config import cfg
-#from minds.cgibin import util 
 from minds.cgibin.util import response
 from minds import weblib
 from minds.weblib import store
@@ -40,28 +39,6 @@ weblib/%id/cache
 weblib/%id/cache&cid=
 
 """
-
-BOOKMARKLET = """
-javascript:
-    d=document;
-    u=d.location;
-    t=d.title;
-    ds='';
-    mt=d.getElementsByTagName('meta');
-    for(i=0;i<mt.length;i++){
-        ma=mt[i].attributes;
-        na=ma['name'];
-        if(na&&na.value.toLowerCase()=='description'){
-            ds=ma['content'].value;
-        }
-    }
-    d.location='http://%s/weblib/_?u='+encodeURIComponent(u)+'&t='+encodeURIComponent(t)+'&ds='+encodeURIComponent(ds);
-"""
-
-def getBookmarklet(hostname):
-    s = BOOKMARKLET % hostname
-    s = s.replace('\n','').replace(' ','') # compress the spaces
-    return s
 
 
 class Bean(object):
@@ -312,13 +289,6 @@ def doDeleteResource(wfile, bean, view):
 
 
 def queryWebLib(wfile, env, form, tag, querytxt):
-    # generates the bookmarklet
-    host = env.get('SERVER_NAME','')
-    port = env.get('SERVER_PORT','80')
-    # SERVER_NAME is actually not that good. Override with 'localhost'
-    host = 'localhost'  
-    bookmarklet = getBookmarklet('%s:%s' %  (host, port))
-    
     go_direct = form.getfirst('submit') == '>'
     if querytxt.lower().startswith('g '):
         querytxt = querytxt[2:]
@@ -344,7 +314,7 @@ def queryWebLib(wfile, env, form, tag, querytxt):
             for v, path in graph.dfsp(node):
                 if len(path) < 3:
                     subcat.append(unicode(v))            
-        RenderWeblib(wfile).output(querytxt, most_visited, folderNames, categoryList, currentCategory, items, bookmarklet)
+        RenderWeblib(wfile).output(env, querytxt, most_visited, folderNames, categoryList, currentCategory, items)
         
 
 
@@ -378,8 +348,6 @@ class RenderWeblib(response.ResponseTemplate):
         super(RenderWeblib, self).__init__(wfile, 'weblib.html')
 
     """ weblib.html
-    con:bookmarklet
-    con:querytxt
     con:go_hint
             con:address
     rep:crumb
@@ -394,11 +362,9 @@ class RenderWeblib(response.ResponseTemplate):
                     con:edit
                     con:link
     """
-    def render(self, node, querytxt, most_visited, folderNames, categoryList, currentCategory, webItemList, bookmarklet):
+    def render(self, node, env, querytxt, most_visited, folderNames, categoryList, currentCategory, webItemList):
         
         node.header.raw = response.getHeader(querytxt)
-        
-        node.bookmarklet.atts['href'] = bookmarklet.replace("'",'&apos;')
         
         if not most_visited:
             node.go_hint.omit()
@@ -412,6 +378,7 @@ class RenderWeblib(response.ResponseTemplate):
 
         node.webItemClass.repeat(self.renderWebItemClass, sorted(webItemList.items()))
 
+        node.footer.raw = response.getFooter(env)
 
     def renderCrumb(self, node, item):
         node.link.content = item

@@ -48,23 +48,24 @@ h1      { color: #ffff33; background-color: #0033ff; padding: 0.5ex; margin-top:
 //    border-bottom-color:#363;
 }
 
-#homepagelink {
+#footer {
+}
+
+#footerRight {
     float: right;
     font-weight: normal;
 }
-#navigationBar {
-}
 
-#navigationBar a {
+#footer a {
     text-decoration: none;
     font-weight: bold;
 }
 
-#navigationBar a:hover {
+#footer a:hover {
     text-decoration: underline;
 }
 
-#navigationCurrent {
+#footerCurrent {
     font-weight: bold;
 }
 

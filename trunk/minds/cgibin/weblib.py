@@ -7,6 +7,7 @@ import sets
 import urllib
 
 from minds.config import cfg
+#from minds.cgibin import util 
 from minds.cgibin.util import response
 from minds import weblib
 from minds.weblib import store
@@ -394,8 +395,9 @@ class RenderWeblib(response.ResponseTemplate):
                     con:link
     """
     def render(self, node, querytxt, most_visited, folderNames, categoryList, currentCategory, webItemList, bookmarklet):
-        node.querytxt.atts['value'] = querytxt
-##        node.querytxt.atts['value'] = unicode(currentCategory)
+        
+        node.header.raw = response.getHeader(querytxt)
+        
         node.bookmarklet.atts['href'] = bookmarklet.replace("'",'&apos;')
         
         if not most_visited:
@@ -476,6 +478,8 @@ class RenderWeblibEdit(response.ResponseTemplate):
     """
 
     def render(self, node, bean):
+
+        node.header.raw = response.getHeader()
 
         item = bean.item
         wlib = weblib.getMainBm()

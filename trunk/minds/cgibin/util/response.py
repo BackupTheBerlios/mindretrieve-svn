@@ -9,6 +9,35 @@ from minds.config import cfg
 from toollib import HTMLTemplate
 
 
+# ----------------------------------------------------------------------
+# construct header common between pages
+
+HEADER_TMPL = 'header.html'
+REMOVE = '<!-- remove above -->'
+
+def getHeader(querytxt=''):
+    pathname = os.path.join(cfg.getPath('docBase'), HEADER_TMPL)
+    fp = file(pathname,'rb')
+    try:
+        template = HTMLTemplate.Template(renderHeader, fp.read())
+    finally:
+        fp.close()
+
+    header_text = template.render(querytxt)
+    
+    # remove some excess from header_text to make it embeddable.
+    # raise exception if REMOVE is not found
+    i = header_text.index(REMOVE)
+    header_text = header_text[i+len(REMOVE):]
+    return header_text
+    
+    
+def renderHeader(node, querytxt):
+    node.querytxt.atts['value'] = querytxt
+
+
+# ----------------------------------------------------------------------
+
 class ResponseTemplate(object):
     """ Base class of responses """
 
@@ -41,6 +70,9 @@ class ResponseTemplate(object):
         
     def render(self, node):
         pass    
+
+
+
 
 
 

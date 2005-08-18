@@ -299,23 +299,39 @@ def queryWebLib(wfile, env, form, tag, querytxt):
     tags, unknown = weblib.parseTags(wlib, tag)
     items, related, most_visited = weblib.query(wlib, querytxt, tags)
 
+    ##related hack
+    parents = []
+    if related and hasattr(related, '__len__'):
+        parents = [t.tag for score,t in related[0]]
+        related  = [t for score,t in related[0]] + ['c'] + \
+            [t for score, t in related[1]] + ['r'] + \
+            [t for score, t in related[2]]
+
     if go_direct and most_visited:
         # quick jump
         wlib.visit(most_visited)
-        redirect(wfile, '', url=most_visited.url)        
-    else:
-        folderNames = map(unicode, tags)
-        currentCategory = tags and unicode(tags[-1]) or ''
-        categoryList = []
-        top_nodes = wlib.categories[1]
-        for node in top_nodes:
-            subcat = []
-            categoryList.append((unicode(node[0]), subcat))
-            for v, path in graph.dfsp(node):
-                if len(path) < 3:
-                    subcat.append(unicode(v))            
-        RenderWeblib(wfile).output(env, querytxt, most_visited, folderNames, categoryList, currentCategory, items)
+        redirect(wfile, '', url=most_visited.url)
+        return
         
+    folderNames = map(unicode, related)
+    currentCategory = tags and unicode(tags[-1]) or ''
+    categoryList = []
+    top_nodes = wlib.categories[1]
+    for node in top_nodes:
+        subcat = []
+        categoryList.append((unicode(node[0]), subcat))
+        for v, path in graph.dfsp(node):
+            if len(path) < 3:
+                subcat.append(unicode(v))
+                
+    all_items = []
+    for tags, lst in sorted(items.items()):
+        tags = sets.Set(tags).difference(parents)
+        for l in lst:
+            all_items.append((l,tags))
+            tags = ()
+    RenderWeblib(wfile).output(env, querytxt, most_visited, folderNames, categoryList, currentCategory, all_items)
+    
 
 
 def redirect(wfile, tags, url=''):    # TODO: refactor parameters
@@ -348,21 +364,27 @@ class RenderWeblib(response.ResponseTemplate):
         super(RenderWeblib, self).__init__(wfile, 'weblib.html')
 
     """ weblib.html
-    con:go_hint
-            con:address
-    rep:crumb
-            con:link
+    con:header
     rep:catList
             con:link
             rep:catItem
                     con:link
-    rep:webItemClass
-            con:tag
-            rep:webItem
-                    con:edit
-                    con:link
+    rep:crumb
+            con:link
+    con:go_hint
+            con:address
+    rep:webItem
+            con:checkbox
+            con:itemDescription
+            con:itemTag
+                    rep:tag
+            con:edit
+            con:delete
+            con:cache
+    con:footer
     """
-    def render(self, node, env, querytxt, most_visited, folderNames, categoryList, currentCategory, webItemList):
+
+    def render(self, node, env, querytxt, most_visited, folderNames, categoryList, currentCategory, webItems):
         
         node.header.raw = response.getHeader(querytxt)
         
@@ -376,14 +398,13 @@ class RenderWeblib(response.ResponseTemplate):
 
         node.catList.repeat(self.renderCatItem, categoryList, currentCategory)
 
-        node.webItemClass.repeat(self.renderWebItemClass, sorted(webItemList.items()))
+        node.webItem.repeat(self.renderWebItem, webItems)
 
         node.footer.raw = response.getFooter(env)
 
     def renderCrumb(self, node, item):
         node.link.content = item
         node.link.atts['href'] = make_tag_url(item)
-
 
     def renderCatItem(self, node, item, currentCategory):
         cat, subcat = item
@@ -393,31 +414,24 @@ class RenderWeblib(response.ResponseTemplate):
             node.link.atts['class'] = 'CategoryCurrentItem'
         node.catItem.repeat(self.renderSubCat, subcat, currentCategory)
 
-
     def renderSubCat(self, node, item, currentCategory):
         node.link.content = item
         node.link.atts['href'] = make_tag_url(item)
         if item == currentCategory:
             node.link.atts['class'] = 'CategoryCurrentItem'
 
-
-    def renderWebItemClass(self, node, category):
-        tags, items = category
-        tags = map(unicode,tags)
-        node.tag.content = ', '.join(tags)
-        node.webItem.repeat(self.renderWebItem, items)
-
-
     def renderWebItem(self, node, item):
-        tags = ' (' + ','.join(map(unicode,item.tags)) + ')'
-        if isinstance(item, weblib.Tag):
-            node.link.content = item.name + tags
-            node.edit.atts['href'] = '/%s/%s?view=edit' % (BASEURL, item.id)
-        else:
-            node.link.content = item.name + tags
-            node.link.atts['href'] = make_go_url(item)
-            node.edit.atts['href'] = '/%s/%s?view=edit' % (BASEURL, item.id)
+        item, tags = item   ##todo
+        node.itemDescription.content = unicode(item)
+        node.itemDescription.atts['href'] = make_go_url(item)
+        node.itemTag.tag.repeat(self.renderWebItemTag, tags)
+        node.edit.atts['href'] = '/%s/%s?view=edit' % (BASEURL, item.id)
+        node.delete.atts['href'] = '/%s/%s?action=delete' % (BASEURL, item.id)
+        node.cache.atts['href'] = '/%s/%s?view=edit' % (BASEURL, item.id)
 
+    def renderWebItemTag(self, node, tag):
+        node.content = unicode(tag)
+        node.atts['href'] = make_tag_url([tag])
 
 
 class RenderWeblibEdit(response.ResponseTemplate):

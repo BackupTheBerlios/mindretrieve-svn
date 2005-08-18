@@ -23,13 +23,6 @@
   }
   .go_hint a        { color: #999}
 
-  #crumb            { 
-    margin-bottom: 1ex;
-    padding: 0.5ex;
-    background-color: #ddd;
-  }
-  #crumb a          { color: #000}
-                    
   #categorytPane        {
     float:left;
     width: 15em;
@@ -68,21 +61,50 @@
     background-color1: #fff; 
   }  
 
-  .webItemClass h3      { 
-    margin-top: 0;
-    margin-bottom: 0;
-    margin-left: -0.3em;
-    padding-left: 0.3em;
-    width: 30em;
+  #itemPane             {   
+    margin-left: 17em;
+  }  
+  
+  #crumb            { 
+    margin-bottom: 1ex;
+    padding: 0.5ex;
     background-color: #ddd;
   }
-  .webItemClass ul      { margin-top: 0.2cm; }
-  .webItemClass a       { text-decoration: none; }
-  .webItemClass a:hover { text-decoration: underline; }
 
-  #itemPane             {   
-    margin-left: 18em;
+  #crumb a          { color: #000}
+                    
+  .libTable     a       { text-decoration: none; }
+  .libTable     a:hover { text-decoration: underline; }
+  .libTableHeader       { 
+    background-color: #ccc;
+  }
+  .libTable td          {
+    padding-left: 2px;
+    padding-right: 2px;
+  }
+   /* item table */ 
+  .col1 { width: 2em; }
+  .col2 { width: *;}
+  .col3 { width: 1.5em;}
+  .col4 { width: 1.5em;}
+  .col5 { width: 9%;}
+  .altrow               {
+    background-color: #eee;
+  }
+  .itemDescription      {
+    float: left;
+  }
+  .itemTag              {
+    float: right;
+  }
+  .itemSmallLink        {
+    font-size:75%;
   }  
+  .itemSmallLink img    {
+    position:relative;
+    top:1px;
+  }
+  
 </style>
 </head>
 
@@ -93,13 +115,6 @@
 
 <!-- content -->
 <div id='content'>
-
-<p id='crumb'>
-    <a href="/weblib">weblib</a>
-    <span node='rep:crumb'>&gt; <a href="#" node='con:link'>A</a></span>
-    <span node='rep:crumb'>&gt; <a href="#" node='con:link'>B</a></span>
-    <span node='con:go_hint' class='go_hint'>Go to <a node='con:address' href='#'>website</a>.</span>
-</p>
 
 <div id='categorytPane'>
 <ul>
@@ -121,41 +136,99 @@
 
 <div id='itemPane'>
 
-  <div node='rep:webItemClass' class='webItemClass'>
-    <h3 node='con:tag'>Tag1, tag2</h3>
-    <ul>
-      <li node='rep:webItem'>
-        <a node='con:edit' href='#'><img style="top:3px;position:relative;" src='img/edit.gif' height="16" width="16" /></a>
-        <a node='con:link' href='#'>link title</a>
-      </li>
-      <li node='rep:webItem'>
-        <a node='con:edit' href='#'><img style="top:3px;position:relative;" src='img/edit.gif' height="16" width="16" /></a>
-        <a node='con:link' href='#'>link title</a>
-      </li>
-      <li node='rep:webItem'>
-        <a node='con:edit' href='#'><img style="top:3px;position:relative;" src='img/edit.gif' height="16" width="16" /></a>
-        <a node='con:link' href='#'>link title</a>
-      </li>
-    </ul>
-  </div>
+    <p id='crumb'>
+        <a href="/weblib">weblib</a>
+        <span node='rep:crumb'>&gt; <a href="#" node='con:link'>A</a></span>
+        <span node='rep:crumb'>&gt; <a href="#" node='con:link'>B</a></span>
+        <span node='con:go_hint' class='go_hint'>Go to <a node='con:address' href='#'>website</a>.</span>
+    </p>
 
-  <div node='rep:webItemClass' class='webItemClass'>
-    <h3 node='con:tag'>Tag1, tag2</h3>
-    <ul>
-      <li node='rep:webItem'>
-        <a node='con:edit' href='#'><img style="top:3px;position:relative;" src='img/edit.gif' height="16" width="16" /></a>
-        <a node='con:link' href='#'>link title</a>
-      </li>
-      <li node='rep:webItem'>
-        <a node='con:edit' href='#'><img style="top:3px;position:relative;" src='img/edit.gif' height="16" width="16" /></a>
-        <a node='con:link' href='#'>link title</a>
-      </li>
-      <li node='rep:webItem'>
-        <a node='con:edit' href='#'><img style="top:3px;position:relative;" src='img/edit.gif' height="16" width="16" /></a>
-        <a node='con:link' href='#'>link title</a>
-      </li>
-    </ul>
-  </div>
+
+  <form id='webpages' action='/weblib' method='GET'>  
+  <table width='100%' cellspacing='0' cellpadding='0' class='libTable'>
+
+  <col class='col1' />  
+  <col class='col2' />  
+  <col class='col3' />  
+  <col class='col4' />  
+  <col class='col5' />  
+
+  <tr class='libTableHeader'>
+    <td><input type='checkbox' name='100'></td>
+    <td colspan='4' align='right'>
+       <input type='button' value='organize' />
+       <input type='button' value='delete' />
+    </td>
+  </tr>
+
+  <tr node='rep:webItem'>
+    <td><input node='con:checkbox' type='checkbox' name='100' /></td>
+    <td>
+        <span node='itemDescription' class='itemDescription'>
+            <a node='con:itemDescription' href='#'>this is a long link </a>
+        </span>
+        <span node='con:itemTag' class='itemTag'>
+            <a node='rep:tag' href='#' class='itemSmallLink'>tag1</a>
+            <span node="-sep:tag">, </span> 
+            <a node='rep:tag' href='#' class='itemSmallLink'>tag2</a>
+        </span>
+    </td>
+    <td><a node='con:edit' href='#' class='itemSmallLink'><img src='img/edit_icon.gif' /></a></td>
+    <td><a node='con:delete' href='#' class='itemSmallLink'><img src='img/delete_icon.gif' /></a></td>
+    <td><a node='con:cache' href='#' class='itemSmallLink'>2005-12-01</a></td>
+  </tr>
+
+  <tr node='rep:webItem' class='altrow'>
+    <td><input node='con:checkbox' type='checkbox' name='100' /></td>
+    <td>
+        <span node='itemDescription' class='itemDescription'>
+            <a href='#'>this is a long link </a>
+        </span>
+        <span node='itemTag' class='itemTag'>
+            <a href='#'>tag1</a>, 
+            <a href='#'>tag2</a>
+        </span>
+    </td>
+    <td><a node='con:edit' href='#' class='itemSmallLink'><img src='img/edit_icon.gif' /></a></td>
+    <td><a node='con:delete' href='#' class='itemSmallLink'><img src='img/delete_icon.gif' /></a></td>
+    <td><a node='con:cache' href='#' class='itemSmallLink'>2005-12-01</a></td>
+  </tr>
+
+  <tr node='rep:webItem'>
+    <td><input node='con:checkbox' type='checkbox' name='100' /></td>
+    <td>
+        <span node='itemDescription' class='itemDescription'>
+            <a href='#'>this is a long link </a>
+        </span>
+        <span node='itemTag' class='itemTag'>
+            <a href='#'>tag1</a>, 
+            <a href='#'>tag2</a>
+        </span>
+    </td>
+    <td><a node='con:edit' href='#' class='itemSmallLink'><img src='img/edit_icon.gif' /></a></td>
+    <td><a node='con:delete' href='#' class='itemSmallLink'><img src='img/delete_icon.gif' /></a></td>
+    <td><a node='con:cache' href='#' class='itemSmallLink'>2005-12-01</a></td>
+  </tr>
+
+  <tr node='rep:webItem' class='altrow'>
+    <td><input node='con:checkbox' type='checkbox' name='100' /></td>
+    <td>
+        <span node='itemDescription' class='itemDescription'>
+            <a href='#'>this is a long link </a>
+        </span>
+        <span node='itemTag' class='itemTag'>
+            <a href='#'>tag1</a>, 
+            <a href='#'>tag2</a>
+        </span>
+    </td>
+    <td><a node='con:edit' href='#' class='itemSmallLink'><img src='img/edit_icon.gif' /></a></td>
+    <td><a node='con:delete' href='#' class='itemSmallLink'><img src='img/delete_icon.gif' /></a></td>
+    <td><a node='con:cache' href='#' class='itemSmallLink'>2005-12-01</a></td>
+  </tr>
+
+  
+  </table>  
+  </form>
 
 </div> <!-- itemPane -->
 

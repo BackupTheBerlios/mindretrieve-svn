@@ -229,8 +229,6 @@ def query(wlib, querytxt, tags):
             _td = tags_set.difference(item.tags)
             if bool(_td):
                 continue
-                
-#        print >>sys.stderr, item.name[:20]
 
         if query_tags_set:
             _qti = query_tags_set.intersection(item.tags)
@@ -262,13 +260,15 @@ def query(wlib, querytxt, tags):
     if tags: ##hack
         related = analyzeRelated(tags[0],related)
         print >>sys.stderr, related
+    else:
+        related = [(t.rel.num_item, t.rel) for t in related]
+        related = [related,[],[]]
+        
         
     return cat_list, tuple(related), most_visited 
 
 ##refactor
 def analyzeRelated(tag,related):
-    from pprint import pprint
-#    pprint('Related: %s\n%s' % (unicode(tag), unicode(tag.rel.related)))
     parents, children, others = [],[],[]
     for count, rel in tag.rel.related:
         if count == tag.rel.num_item:
@@ -284,13 +284,6 @@ def analyzeRelated(tag,related):
     children.sort()
     others.sort(reverse=True)        
 
-    print 'parents'    
-    pprint(parents)
-    print 'children'    
-    pprint(children)
-    print 'related'    
-    pprint(others)
-    
     return (parents, children, others)
 
 
@@ -302,7 +295,7 @@ def queryMain(wlib):
     tags = [l for l in wlib.tags]
     ## TODO: need clean up, also should not use private _lst
     random_page = wlib.webpages._lst and random.choice(wlib.webpages._lst) or None
-    return {tuple(): items}, tags, random_page
+    return {tuple(): items}, (), random_page
         
     
 

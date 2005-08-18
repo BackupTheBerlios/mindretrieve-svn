@@ -122,8 +122,9 @@ def build_DAG(node_by_size):
             
     tops = [node for s, node in node_by_size if node[0].isTopLevel and node[1]]
     standalone = [node for s, node in node_by_size if node[0].isTopLevel and not node[1]]
-    standalone_node = (None, standalone)  ##??
-    tops.append(standalone_node)
+#    standalone_node = (None, standalone)  ##??
+#    tops.append(standalone_node)
+    tops.extend(standalone)
     return ['', tops]                             # return root
 
 
@@ -157,10 +158,13 @@ def buildCategory(wlib):
             nodes[node[0]] = node
     
     g0 = graph.build_indented_text_DAG(TEST_DATA0)
-    root0 = g0['']
+    g1 = __convert_name_2_trel(wlib, g0)
 
-    graph.merge_DAG(g0,nodes)
-    return g0['']
+    graph.merge_DAG(g1,nodes)
+
+    topoSort(wlib, g1)
+
+    return g1['']
     
 
 def __convert_name_2_trel(wlib,g):
@@ -172,6 +176,43 @@ def __convert_name_2_trel(wlib,g):
             n[0] = tRel
         g1[n[0]] = n
     return g1
+
+
+def topoSort(wlib, g):
+    ## TODO: HACKish algorithm
+    nlist = g.values()[:]
+
+    for n in nlist:
+        if n[0]:        ## '' trouble
+            n[0].indegree = 0
+            n[0].torder = -1
+        
+    for v,children in nlist :
+        for c in children:
+            if c[0]: ##
+                c[0].indegree += 1
+    
+    top_nodes = [n for n in nlist if not n[0] or n[0].indegree == 0]
+
+#    for n in nlist:
+#        if n[0]:        ## '' trouble
+#            from pprint import pprint
+#            pprint(u'%s %s' % (n[0], n[0].indegree),sys.stdout)##
+
+    order = 0
+    while top_nodes:
+        node = top_nodes.pop(0)
+        order += 1
+        if node[0]:
+            node[0].torder = order
+##            print >>sys.stdout, u'## %s %s' % (node[0], node[0].torder)
+        for cn in node[1]:
+            if cn[0]:
+                cn[0].indegree -= 1
+            if cn[0].indegree == 0:
+                top_nodes.append(cn)
+                
+            
         
 #-----------------------------------------------------------------------
 
@@ -211,28 +252,10 @@ def test_DAG():
 
 def test_flex_category():
     wlib = weblib.getMainBm()
-    root = inferCategory(wlib)
-    nodes = {}
-    for node in graph.dfs_node(root):
-        if not nodes.has_key(node[0]):
-            nodes[node[0]] = node
-
-
-    g0 = graph.build_indented_text_DAG(TEST_DATA0)   
-    g1 = __convert_name_2_trel(wlib, g0)
-
-    print '\ntree1---'
-    for v, level in graph.dfs(g1['']):
+    for v, level in graph.dfs(wlib.categories):
         if v:
-            print '..'*level + unicode(v) +str(v.tag.id)
-
-    graph.merge_DAG(g1,nodes)
-         
-    print '\nmerged---'
-    for v, level in graph.dfs(g1['']):
-        if v:
-            print '..'*level + unicode(v) +str(v.tag.id)
-
+            print '..'*level + unicode(v) +' ' + str(v.torder)
+    
 
 
 def main(argv):
@@ -244,4 +267,5 @@ def main(argv):
 if __name__ =='__main__':
     import codecs
     sys.stdout = codecs.getwriter('utf-8')(sys.stdout,'replace')
+    sys.stderr = codecs.getwriter('utf-8')(sys.stderr,'replace')
     main(sys.argv)

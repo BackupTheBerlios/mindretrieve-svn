@@ -11,11 +11,9 @@ import sys
 import util
 from minds.util import dsv
 
-
 # TODO: how do I make sure WebPage fields is the right type? e.g. id is int.
 
 # date fields: modified, cached, accessed
-# field remove commented?
 
 class WebPage(object):
 
@@ -125,6 +123,7 @@ class WebLibrary(object):
     def visit(self, item):
         from minds.weblib import store
         item.lastused = datetime.date.today().isoformat()
+        ## TODO: optimize!!!
         store.save(self)
         
          
@@ -259,8 +258,40 @@ def query(wlib, querytxt, tags):
         cat2bookmark = cat_list.setdefault(tuple(cat),[])
         cat2bookmark.append(item)
         related.union_update(item.tags)
+    
+    if tags: ##hack
+        related = analyzeRelated(tags[0],related)
+        print >>sys.stderr, related
         
     return cat_list, tuple(related), most_visited 
+
+##refactor
+def analyzeRelated(tag,related):
+    from pprint import pprint
+#    pprint('Related: %s\n%s' % (unicode(tag), unicode(tag.rel.related)))
+    parents, children, others = [],[],[]
+    for count, rel in tag.rel.related:
+        if count == tag.rel.num_item:
+            parents.append((rel.torder, rel))
+        elif count == rel.num_item:
+            children.append((rel.torder, rel))
+        else:
+            pe = 100 * count / tag.rel.num_item
+            ce = 100 * count / rel.num_item
+            x =  (pe+ce,pe,ce)
+            others.append((x, rel))
+    parents.sort()
+    children.sort()
+    others.sort(reverse=True)        
+
+    print 'parents'    
+    pprint(parents)
+    print 'children'    
+    pprint(children)
+    print 'related'    
+    pprint(others)
+    
+    return (parents, children, others)
 
 
 def queryMain(wlib):

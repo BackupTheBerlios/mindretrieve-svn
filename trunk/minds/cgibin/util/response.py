@@ -1,6 +1,7 @@
 """Usage: response.py template_filename
-"""
 
+Run from command line to display the HTMLTemplate parse tree.
+"""
 import codecs
 import os.path
 import sys
@@ -41,62 +42,34 @@ def buildBookmarklet(env):
 
 
 # ----------------------------------------------------------------------
-# construct common header and footer
 
-HEADER_TMPL = 'header.html'
-FOOTER_TMPL = 'footer.html'
-REMOVE = '<!-- remove above -->'
-
-def _format_template(tmpl, render, *args):
-    """ helper to render header and footer """
+class CGIRenderer(object):
+    """ 
+    Base class of CGI responses.
+    1. Open and compile HTMLTemplate.
+    2. Output HTTP headers including Content-type and encoding.
+    3. Prepare an encoding output stream.
+    4. Execute the template render() method and sent output to wfile.
     
-    pathname = os.path.join(cfg.getPath('docBase'), tmpl)
-    fp = file(pathname,'rb')
-    try:
-        template = HTMLTemplate.Template(render, fp.read())
-    finally:
-        fp.close()
-
-    text = template.render(*args)
+    User should:
+    1. Subclass CGIRenderer and implement the render method.
+    2. Instantiate a CGIRenderer subclass, provide wfile, etc, as arguments.
+    3. Invoke the output method, provide the template specific arguments.    
+    """
     
-    # remove some extra data from text to make it embeddable.
-    # raise exception if REMOVE is not found
-    i = text.index(REMOVE)
-    return text[i+len(REMOVE):]
+    # template filename to be overriden by user.
+    TEMPLATE_FILE = None     
 
-
-def getHeader(querytxt=''):
-    return _format_template(HEADER_TMPL, renderHeader, querytxt)
-    
-    
-def renderHeader(node, querytxt):
-    node.querytxt.atts['value'] = querytxt
-
-
-def getFooter(env):
-    b = buildBookmarklet(env)
-    return _format_template(FOOTER_TMPL, renderFooter, b)
-
-    
-def renderFooter(node, href):
-    node.bookmarklet.atts['href'] = href.replace("'",'&apos;')
-
-
-# ----------------------------------------------------------------------
-
-class ResponseTemplate(object):
-    """ Base class of responses """
-
-    def __init__(self, wfile, template_name,
+    def __init__(self, wfile, 
         content_type='text/html',
         encoding='utf-8',
         cache_control='no-cache'):
 
         # load template
-        pathname = os.path.join(cfg.getPath('docBase'), template_name)
+        pathname = os.path.join(cfg.getPath('docBase'), self.TEMPLATE_FILE)
         fp = file(pathname,'rb')
         try:
-            self.template = HTMLTemplate.Template(self.render, fp.read())
+            self.template = HTMLTemplate.Template(self._render0, fp.read())
         finally:    
             fp.close()
         
@@ -114,13 +87,62 @@ class ResponseTemplate(object):
         self.out.write(self.template.render(*args))
         
         
-    def render(self, node):
-        pass    
+    def _render0(self, node, *args):
+        # To be overridden by subclass to define pre-render logic
+        self.render(node, *args)
+        
+        
+    def render(self, node, *args):
+        # To be overridden by user
+        raise NotImplementedError()    
 
 
 
+# ----------------------------------------------------------------------
+
+class CGIRendererHeadnFoot(CGIRenderer):
+    """
+    A CGIRenderer with header and footer substitution.
+    """
+    HEADER_TMPL = 'header.html'
+    FOOTER_TMPL = 'footer.html'
+    REMOVE_TEXT = '<!-- remove above -->'
+
+    def __init__(self, wfile, env, querytxt='', *args):
+        super(CGIRendererHeadnFoot, self).__init__(wfile, *args)
+        self.env = env
+        self.querytxt = querytxt
+        
+    def _format_template(self, tmpl, render, *args):
+        """ helper to render header and footer """
+        pathname = os.path.join(cfg.getPath('docBase'), tmpl)
+        fp = file(pathname,'rb')
+        try:
+            template = HTMLTemplate.Template(render, fp.read())
+        finally:
+            fp.close()
+        text = template.render(*args)
+        
+        # remove some extra data from text to make it embeddable.
+        # raise exception if REMOVE_TEXT is not found
+        i = text.index(self.REMOVE_TEXT)
+        return text[i+len(self.REMOVE_TEXT):]
+
+    def _renderHeader(self, node, querytxt):
+        node.querytxt.atts['value'] = querytxt
+        
+    def _renderFooter(self, node, href):
+        node.bookmarklet.atts['href'] = href.replace("'",'&apos;')
+
+    def _render0(self, node, *args):
+        b = buildBookmarklet(self.env)
+        node.header.raw = self._format_template(self.HEADER_TMPL, self._renderHeader, self.querytxt)
+        node.footer.raw = self._format_template(self.FOOTER_TMPL, self._renderFooter, b)
+        self.render(node, *args)
 
 
+
+# ----------------------------------------------------------------------
 
 def main(argv):
     """ Helper to show structure of template """

@@ -4,6 +4,7 @@ import datetime
 import logging
 import os, sys
 import sets
+import string
 import urllib
 
 from minds.config import cfg
@@ -42,6 +43,7 @@ weblib/%id/cache&cid=
 
 
 class Bean(object):
+    """ The bean that represents one web entry """
     
     def __init__(self, rid, form):
         self.rid = rid
@@ -140,6 +142,9 @@ def main(rfile, wfile, env):
     if action == 'cancel':
         redirect(wfile,'')
         
+    if action == 'organize':
+        doOrganize(wfile, env, form)
+        
     elif go_part:
         doGoResource(wfile, rid, go_part)
         
@@ -153,9 +158,9 @@ def main(rfile, wfile, env):
         # build bean from rid and other form parameters
         bean = Bean(rid, form)
         if method == 'GET':
-            doGetResource(wfile, bean, None)
+            doGetResource(wfile, env, bean, None)
         elif method == 'PUT':
-            doPutResource(wfile, bean, None)
+            doPutResource(wfile, env, bean, None)
         elif method == 'DELETE':
             doDeleteResource(wfile, bean, None)
 
@@ -226,15 +231,15 @@ def doGoResource(wfile, rid, go_part):
     redirect(wfile, '', url=item.url)        
 
 
-def doGetResource(wfile, bean, view):
-    RenderWeblibEdit(wfile).output(bean)
+def doGetResource(wfile, env, bean, view):
+    EditRenderer(wfile,env,'').output(bean)
 
 
-def doPutResource(wfile, bean, view):
+def doPutResource(wfile, env, bean, view):
     wlib = weblib.getMainBm()
     
     if not bean.validate():
-        RenderWeblibEdit(wfile).output(bean)
+        EditRenderer(wfile,env,'').output(bean)
         return
         
     if bean.newTags:
@@ -288,6 +293,24 @@ def doDeleteResource(wfile, bean, view):
     redirect(wfile, tags)
 
 
+def doOrganize(wfile, env, form):
+    wlib = weblib.getMainBm()
+##    wfile.write('content-type: text/plain\r\n\r\n')
+    ## todo: when nothing selected?
+    some_tags = sets.Set()##
+    title=''##
+    for k in form.keys():
+        if not k .isdigit():
+            continue
+        item = wlib.webpages.getById(int(k))
+        some_tags.union_update(item.tags)
+        title = unicode(item)
+##        wfile.write(unicode(item))
+##        wfile.write('\n')
+    some_tags = map(unicode,some_tags)
+    EntryOrgRenderer(wfile, env, '').output(title,some_tags,some_tags)
+
+
 def queryWebLib(wfile, env, form, tag, querytxt):
     go_direct = form.getfirst('submit') == '>'
     if querytxt.lower().startswith('g '):
@@ -301,6 +324,7 @@ def queryWebLib(wfile, env, form, tag, querytxt):
 
     ##related hack
     parents = []
+    print >>sys.stderr, related
     if related and hasattr(related, '__len__'):
         parents = [t.tag for score,t in related[0]]
         related  = [t for score,t in related[0]] + ['c'] + \
@@ -330,7 +354,7 @@ def queryWebLib(wfile, env, form, tag, querytxt):
         for l in lst:
             all_items.append((l,tags))
             tags = ()
-    RenderWeblib(wfile).output(env, querytxt, most_visited, folderNames, categoryList, currentCategory, all_items)
+    WeblibRenderer(wfile, env, querytxt).output(most_visited, folderNames, categoryList, currentCategory, all_items)
     
 
 
@@ -358,11 +382,9 @@ def make_tag_url(tags):
 
 ########################################################################
 
-class RenderWeblib(response.ResponseTemplate):
+class WeblibRenderer(response.CGIRendererHeadnFoot):
 
-    def __init__(self, wfile):
-        super(RenderWeblib, self).__init__(wfile, 'weblib.html')
-
+    TEMPLATE_FILE = 'weblib.html'
     """ weblib.html
     con:header
     rep:catList
@@ -384,9 +406,7 @@ class RenderWeblib(response.ResponseTemplate):
     con:footer
     """
 
-    def render(self, node, env, querytxt, most_visited, folderNames, categoryList, currentCategory, webItems):
-        
-        node.header.raw = response.getHeader(querytxt)
+    def render(self, node, most_visited, folderNames, categoryList, currentCategory, webItems):
         
         if not most_visited:
             node.go_hint.omit()
@@ -399,8 +419,6 @@ class RenderWeblib(response.ResponseTemplate):
         node.catList.repeat(self.renderCatItem, categoryList, currentCategory)
 
         node.webItem.repeat(self.renderWebItem, webItems)
-
-        node.footer.raw = response.getFooter(env)
 
     def renderCrumb(self, node, item):
         node.link.content = item
@@ -422,6 +440,7 @@ class RenderWeblib(response.ResponseTemplate):
 
     def renderWebItem(self, node, item):
         item, tags = item   ##todo
+        node.checkbox.atts['name'] = str(item.id)
         node.itemDescription.content = unicode(item)
         node.itemDescription.atts['href'] = make_go_url(item)
         node.itemTag.tag.repeat(self.renderWebItemTag, tags)
@@ -434,37 +453,35 @@ class RenderWeblib(response.ResponseTemplate):
         node.atts['href'] = make_tag_url([tag])
 
 
-class RenderWeblibEdit(response.ResponseTemplate):
-
-    def __init__(self, wfile):
-        super(RenderWeblibEdit, self).__init__(wfile, 'weblibEdit.html')
-
+class EditRenderer(response.CGIRendererHeadnFoot):
+    TEMPLATE_FILE = 'weblibEdit.html'
     """
-        con:form
-                con:id
-                con:error
-                        con:message
-                con:name
-                con:url
-                con:description
-                con:tags
-                con:related
-                con:modified_txt
-                con:lastused_txt
-                con:cached_txt
-                con:modified
-                con:lastused
-                con:cached
-        con:new_tags
+    con:header
+    con:form
+            con:id
+            con:error
+                    con:message
+            con:name
+            con:url
+            con:description
+            con:tags
+            con:related
+            con:modified_txt
+            con:lastused_txt
+            con:cached_txt
+            con:modified
+            con:lastused
+            con:cached
+    con:new_tags
+    con:footer    
     """
-
     def render(self, node, bean):
-
-        node.header.raw = response.getHeader()
 
         item = bean.item
         wlib = weblib.getMainBm()
 
+        node.form_title.content = item.id == -1 and 'Add entry' or 'Edit entry'
+        
         form = node.form
         id = item.id == -1 and '_' or str(item.id)
         form.atts['action'] = '/%s/%s' % (BASEURL, id)
@@ -495,6 +512,30 @@ class RenderWeblibEdit(response.ResponseTemplate):
         if bean.newTags:
             tags = u', '.join(bean.newTags)
             node.new_tags.content = "  new_tags = '%s';" % tags
+
+
+class EntryOrgRenderer(response.CGIRendererHeadnFoot):
+    TEMPLATE_FILE = 'weblibEntryOrg.html'
+    """
+    con:header
+    con:form_title
+    con:edit_form
+            con:id_list
+            con:error
+                    con:message
+            con:all_tags
+            con:some_tags
+    con:footer    
+    """
+    def render(self, node, title, all_tags, some_tags):
+        t = string.Template(node.form_title.content)
+        node.form_title.content = t.substitute(name=title)
+        
+        t = string.Template(node.edit_form.all_tags.content)
+        node.edit_form.all_tags.content = t.safe_substitute(all_tags=u', '.join(all_tags))
+        
+        t = string.Template(node.edit_form.some_tags.content)
+        node.edit_form.some_tags.content = t.safe_substitute(some_tags=u', '.join(some_tags))
 
 
 if __name__ == "__main__":

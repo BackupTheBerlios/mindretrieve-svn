@@ -1,16 +1,16 @@
-#import codecs
 import cgi
-import datetime
+#import datetime
 import logging
 import os, sys
 import sets
-import string
+#import string
 import urllib
 
 from minds.config import cfg
+from minds.cgibin import weblibEdit
 from minds.cgibin.util import response
 from minds import weblib
-from minds.weblib import store
+#from minds.weblib import store
 from minds.weblib import graph
 
 log = logging.getLogger('cgi.weblib')
@@ -42,97 +42,6 @@ weblib/%id/cache&cid=
 """
 
 
-class Bean(object):
-    """ The bean that represents one web entry """
-    
-    def __init__(self, rid, form):
-        self.rid = rid
-        self.form = form     
-        self.item = None
-
-        # tags string. This is tentative and may contain new tags.
-        self.tags = ''
-        self.related = ''
-        
-        # tags not known
-        self.newTags = sets.Set()
-        self.create_tags = self.form.getfirst('create_tags','').decode('utf-8')
-        
-        self.errors = []
-        
-        self._readForm(rid, form)
-
-
-    def _readForm(self, rid, form):
-        wlib = weblib.getMainBm()
-        
-        if form.has_key('filled'):
-            item = weblib.WebPage(
-                id          = rid,
-                name        = form.getfirst('t','').decode('utf-8'),
-                url         = form.getfirst('u','').decode('utf-8'),
-                description = form.getfirst('ds','').decode('utf-8'),
-                modified    = form.getfirst('modified','').decode('utf-8'),
-                lastused    = form.getfirst('lastused','').decode('utf-8'),
-                cached      = form.getfirst('cached','').decode('utf-8'),
-            )
-            self.item = item
-
-            self._parseTags()
-
-        else:    
-            item = wlib.webpages.getById(rid)
-            if item:
-                # make a copy of existing item    
-                item = item.__copy__()
-            else:    
-                item = wlib.newWebPage(
-                    name        = form.getfirst('t','').decode('utf-8'),
-                    url         = form.getfirst('u','').decode('utf-8'),
-                    description = form.getfirst('ds','').decode('utf-8'),
-                )
-                
-            self.item = item
-            self.tags  = ', '.join([l.name for l in item.tags])
-            self.related = ', '.join([l.name for l in item.related])
-        
-
-    def _parseTags(self):
-        wlib = weblib.getMainBm()
-
-        _tags = self.form.getfirst('tags','').decode('utf-8')
-        self.item.tags, unknown_tags = weblib.parseTags(wlib, _tags)
-        self.item.tagIds = [l.id for l in self.item.tags]
-
-        _related = self.form.getfirst('related','').decode('utf-8')
-        self.item.related, unknown_related = weblib.parseTags(wlib, _related)
-        self.item.relatedIds = [l.id for l in self.item.related]
-        
-        self.tags = _tags
-        self.related = _related
-        self.newTags = sets.Set()
-        self.newTags.union_update(unknown_tags)
-        self.newTags.union_update(unknown_related)
-        
-        
-    def validate(self):
-        if not self.item.name:
-            self.errors.append('Please enter a name.')    
-        if not self.item.url:
-            self.errors.append('Please enter an address.')    
-        if self.newTags and not self.create_tags:
-            tags = u', '.join(self.newTags)
-            self.errors.append('These tags are not previous used: ' + tags)
-        return not self.errors
-
-
-    def __str__(self):
-        if not self.item: 
-            return 'None'
-        else:        
-            return u'%s(%s)' % (self.item.name, self.item.rid)
-
-    
 def main(rfile, wfile, env):
 
     method, action, rid, go_part, tag, querytxt, form = parseURL(rfile, env)
@@ -142,27 +51,17 @@ def main(rfile, wfile, env):
     if action == 'cancel':
         redirect(wfile,'')
         
-    if action == 'organize':
-        doOrganize(wfile, env, form)
-        
     elif go_part:
         doGoResource(wfile, rid, go_part)
         
     elif querytxt:
         queryWebLib(wfile, env, form, tag, querytxt)
         
-    elif rid == None:
-        queryWebLib(wfile, env, form, tag, '')
+    elif rid is not None:
+        weblibEdit.main(rfile, wfile, env, method, form, rid)
         
-    else:    
-        # build bean from rid and other form parameters
-        bean = Bean(rid, form)
-        if method == 'GET':
-            doGetResource(wfile, env, bean, None)
-        elif method == 'PUT':
-            doPutResource(wfile, env, bean, None)
-        elif method == 'DELETE':
-            doDeleteResource(wfile, bean, None)
+    else:
+        queryWebLib(wfile, env, form, tag, '')
 
 
 def parseURL(rfile, env):
@@ -230,85 +129,6 @@ def doGoResource(wfile, rid, go_part):
     wlib.visit(item)
     redirect(wfile, '', url=item.url)        
 
-
-def doGetResource(wfile, env, bean, view):
-    EditRenderer(wfile,env,'').output(bean)
-
-
-def doPutResource(wfile, env, bean, view):
-    wlib = weblib.getMainBm()
-    
-    if not bean.validate():
-        EditRenderer(wfile,env,'').output(bean)
-        return
-        
-    if bean.newTags:
-        assert bean.create_tags
-        for t in bean.newTags:
-            l = weblib.Tag(name=unicode(t))
-            wlib.addTag(l)
-        # reparse after created tags    
-        bean._parseTags()
-        assert not bean.newTags
-        
-    item = bean.item
-    # is it an existing item?
-    if bean.rid >= 0 and wlib.webpages.getById(bean.rid):
-        # update existing item from bean
-        item0             = wlib.webpages.getById(bean.rid)
-        item0.name        = item.name       
-        item0.url         = item.url        
-        item0.description = item.description
-        item0.tagIds      = item.tagIds   
-        item0.relatedIds  = item.relatedIds 
-        item0.modified    = item.modified   
-        item0.lastused    = item.lastused   
-        item0.cached      = item.cached     
-        item = item0
-
-    if item.id < 0:
-        log.info('Adding WebPage %s' % unicode(item))
-        wlib.addWebPage(item)
-    else:    
-        log.info('Updating WebPage %s' % unicode(item))
-    
-    wlib.fix()
-    store.save(wlib)
-    redirect(wfile, item.tags)
-
-
-def doDeleteResource(wfile, bean, view):
-    wlib = weblib.getMainBm()
-    item = wlib.webpages.getById(bean.rid)
-    if item:
-        log.info('Deleting WebPage %s' % unicode(item))
-        tags = item.tags      
-        # todo: may need to delete tags too.    
-        wlib.deleteWebPage(item)
-        wlib.fix()
-        store.save(wlib)  
-    else:
-        tags = []
-            
-    redirect(wfile, tags)
-
-
-def doOrganize(wfile, env, form):
-    wlib = weblib.getMainBm()
-##    wfile.write('content-type: text/plain\r\n\r\n')
-    ## todo: when nothing selected?
-    some_tags = sets.Set()##
-    title=''##
-    for k in form.keys():
-        if not k .isdigit():
-            continue
-        item = wlib.webpages.getById(int(k))
-        some_tags.union_update(item.tags)
-        title = unicode(item)
-##        wfile.write(unicode(item))
-##        wfile.write('\n')
-    some_tags = map(unicode,some_tags)
-    EntryOrgRenderer(wfile, env, '').output(title,some_tags,some_tags)
 
 
 def queryWebLib(wfile, env, form, tag, querytxt):
@@ -380,10 +200,9 @@ def make_tag_url(tags):
     return '/%s?tag=%s' % (BASEURL, qs)
 
 
-########################################################################
+# ----------------------------------------------------------------------
 
 class WeblibRenderer(response.CGIRendererHeadnFoot):
-
     TEMPLATE_FILE = 'weblib.html'
     """ weblib.html
     con:header
@@ -405,7 +224,6 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
             con:cache
     con:footer
     """
-
     def render(self, node, most_visited, folderNames, categoryList, currentCategory, webItems):
         
         if not most_visited:
@@ -451,91 +269,6 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
     def renderWebItemTag(self, node, tag):
         node.content = unicode(tag)
         node.atts['href'] = make_tag_url([tag])
-
-
-class EditRenderer(response.CGIRendererHeadnFoot):
-    TEMPLATE_FILE = 'weblibEdit.html'
-    """
-    con:header
-    con:form
-            con:id
-            con:error
-                    con:message
-            con:name
-            con:url
-            con:description
-            con:tags
-            con:related
-            con:modified_txt
-            con:lastused_txt
-            con:cached_txt
-            con:modified
-            con:lastused
-            con:cached
-    con:new_tags
-    con:footer    
-    """
-    def render(self, node, bean):
-
-        item = bean.item
-        wlib = weblib.getMainBm()
-
-        node.form_title.content = item.id == -1 and 'Add entry' or 'Edit entry'
-        
-        form = node.form
-        id = item.id == -1 and '_' or str(item.id)
-        form.atts['action'] = '/%s/%s' % (BASEURL, id)
-
-        if bean.errors:
-            form.error.message.raw = '<br />'.join(bean.errors)
-        else:
-            form.error.omit()
-
-        if item:
-            form.id         .atts['value'] = unicode(item.id)
-            form.name       .atts['value'] = item.name
-            form.url        .atts['value'] = item.url
-            form.description.content       = item.description
-            form.tags       .atts['value'] = bean.tags
-            form.related    .atts['value'] = bean.related
-            form.modified   .atts['value'] = item.modified
-            form.lastused   .atts['value'] = item.lastused
-            form.cached     .atts['value'] = item.cached  
-            
-            if item.modified: 
-                form.modified_txt.content = item.modified
-            if item.lastused: 
-                form.lastused_txt.content = item.lastused
-            if item.cached:   
-                form.cached_txt.content = item.cached  
-
-        if bean.newTags:
-            tags = u', '.join(bean.newTags)
-            node.new_tags.content = "  new_tags = '%s';" % tags
-
-
-class EntryOrgRenderer(response.CGIRendererHeadnFoot):
-    TEMPLATE_FILE = 'weblibEntryOrg.html'
-    """
-    con:header
-    con:form_title
-    con:edit_form
-            con:id_list
-            con:error
-                    con:message
-            con:all_tags
-            con:some_tags
-    con:footer    
-    """
-    def render(self, node, title, all_tags, some_tags):
-        t = string.Template(node.form_title.content)
-        node.form_title.content = t.substitute(name=title)
-        
-        t = string.Template(node.edit_form.all_tags.content)
-        node.edit_form.all_tags.content = t.safe_substitute(all_tags=u', '.join(all_tags))
-        
-        t = string.Template(node.edit_form.some_tags.content)
-        node.edit_form.some_tags.content = t.safe_substitute(some_tags=u', '.join(some_tags))
 
 
 if __name__ == "__main__":

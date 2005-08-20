@@ -10,19 +10,24 @@ import library
 import search
 import snoop
 import weblib
+import weblibEntryOrg
 
 cgi_registry = {
-  ''             : home,
-  '_config'      : _config,
-  '_threadpool'  : _threadpool,
-  'archive_view' : archive_view,
-  'config'       : config,
-  'docreader'    : docreader,
-  'help'         : help,
-  'home'         : home,
-  'indexnow'     : indexnow,
-  'library'      : library,
-  'search'       : search,
-  'snoop'        : snoop,
-  'weblib'       : weblib,
+  ''                : home,
+  '_config'         : _config,
+  '_threadpool'     : _threadpool,
+  'archive_view'    : archive_view,
+  'config'          : config,
+  'docreader'       : docreader,
+  'help'            : help,
+  'home'            : home,
+  'indexnow'        : indexnow,
+  'library'         : library,
+  'search'          : search,
+  'snoop'           : snoop,
+  'weblib'          : weblib,
+  'weblib.organize' : snoop,
+  'weblib.entryOrg' : weblibEntryOrg,
 }
+
+

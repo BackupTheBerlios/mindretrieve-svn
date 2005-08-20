@@ -154,10 +154,17 @@
   <col class='col4' />  
   <col class='col5' />  
 
+<script> <!-- TODO MOVE -->
+function organize() {
+    form = document.getElementById('webpages');
+    form.action = '/weblib.entryOrg';
+    form.submit();
+}
+</script>
   <tr class='libTableHeader'>
     <td><input type='checkbox' name='100'></td>
     <td colspan='4' align='right'>
-       <input type='submit' name='action' value='organize' />
+       <input type='submit' name='action' value='organize' onclick="organize()"/>
        <input type='submit' name='action' value='delete' />
     </td>
   </tr>

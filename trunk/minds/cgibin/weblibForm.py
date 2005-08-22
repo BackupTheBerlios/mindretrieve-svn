@@ -1,20 +1,16 @@
-import cgi
-#import datetime
 import logging
 import os
 import sets
-#import string
 import sys
 import urllib
 
 from minds.config import cfg
+from minds.cgibin.util import request
 from minds.cgibin.util import response
 from minds import weblib
 from minds.weblib import store
 
 log = logging.getLogger('cgi.weblib')
-
-BASEURL = 'weblib'
 
 
 class Bean(object):
@@ -180,24 +176,24 @@ def doDeleteResource(wfile, bean):
     redirect_tags(wfile, tags)
 
 
-def redirect_tags(wfile, tags):
+def redirect_tags(wfile, tags):     ## todo: refacotr to request
     if tags:
         if hasattr(tags,'encode'):##??
             qs = unicode(tags)    
         else:
             qs = u','.join(map(unicode, tags))
         qs = urllib.quote_plus(qs.encode('utf8'))
-        url = '/%s?tag=%s' % (BASEURL, qs)
+        url = '%s?tag=%s' % (request.WEBLIB_URL, qs)
     else:
-        url = '/%s' % BASEURL    
-    wfile.write('location: %s\r\n\r\n' % url)
+        url = request.WEBLIB_URL
+    request.redirect(wfile, url)    
 
 
 
 # ----------------------------------------------------------------------
 
 class EditRenderer(response.CGIRendererHeadnFoot):
-    TEMPLATE_FILE = 'weblibEdit.html'
+    TEMPLATE_FILE = 'weblibForm.html'
     """
     con:header
     con:form
@@ -215,7 +211,7 @@ class EditRenderer(response.CGIRendererHeadnFoot):
             con:modified
             con:lastused
             con:cached
-    con:new_tags
+            con:new_tags
     con:footer    
     """
     def render(self, node, bean):
@@ -227,7 +223,7 @@ class EditRenderer(response.CGIRendererHeadnFoot):
         
         form = node.form
         id = item.id == -1 and '_' or str(item.id)
-        form.atts['action'] = '/%s/%s' % (BASEURL, id)
+        form.atts['action'] = request.rid_url(id)
 
         if bean.errors:
             form.error.message.raw = '<br />'.join(bean.errors)
@@ -252,9 +248,9 @@ class EditRenderer(response.CGIRendererHeadnFoot):
             if item.cached:   
                 form.cached_txt.content = item.cached  
 
-        if bean.newTags:
-            tags = u', '.join(bean.newTags)
-            node.new_tags.content = "  new_tags = '%s';" % tags
+        tags = bean.newTags and u', '.join(bean.newTags) or ''
+        ##TODO: encode tags for javascript in HTML
+        node.form.new_tags.content = node.form.new_tags.content % tags 
 
 
 if __name__ == "__main__":

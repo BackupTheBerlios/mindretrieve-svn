@@ -143,6 +143,19 @@ class WebLibrary(object):
         import category
         self.categories = category.buildCategory(self)
         
+
+wlib_instance = None
+
+def getMainBm():
+    global wlib_instance
+    if not wlib_instance:
+        import store
+        wlib_instance = store.load()
+    return wlib_instance
+
+
+
+# ----------------------------------------------------------------------
         
 def parseTags(wlib, tag_names):
     """ Parse comma separated tag names.
@@ -163,37 +176,51 @@ def parseTags(wlib, tag_names):
     return tags, unknown
 
 
+def create_tags(wlib, names):
+    """ Return list of Tags created from the names list. """
+    lst = []
+    for name in names:
+        tag = wlib.getTag(name)
+        if not tag:
+            tag = Tag(name)
+            wlib.addTag(tag)
+        lst.append(tag)
+    return lst
+            
+
 def sortTags(tags):
     """ sort tags by name in alphabetical order """
     lst = [(tag.name.lower(), tag) for tag in tags]
     return [pair[1] for pair in sorted(lst)]
     
+
+# ----------------------------------------------------------------------
+
+def organizeEntries(entries, set_tags, add_tags, remove_tags):
+    """ 
+    Organize tags of for the entries
+    @param entries - list of entries
+    @param set_tags (set) - set each entry to tags
+    @param add_tags (set) - add tags to each entry
+    @param remove_tags (set) - remove tags from each entry
     
-wlib_instance = None
-
-def getMainBm():
-    global wlib_instance
-    if not wlib_instance:
-        import store
-        wlib_instance = store.load()
-    return wlib_instance
-
-
-
-########################################################################
+    Caller should ensure ensure the parameters are logical.
+    E.g. 
+        set_tags should be exclusive to add_tags and remove_tags,
+        add_tags and remove_tags should have no common elements.
+    """
+    for item in entries:
+        if set_tags:
+            entries.tags = set_tags[:]
+        if add_tags:
+            tags = add_tags.union(entries.tags)
+            entries.tags = list(tags)
+        if remove_tags:
+            entries.tags = [t for t in entries.tags if t not in remove_tags]
+    
+    
+#----------------------------------------------------------------------
 # Query
-
-# experimental
-#def addTagStat(item, wlib):    
-#    for tag in item.tags:
-#        tag.num_item += 1
-#        for relatedTag in tags:
-#            if relatedTag != tag: 
-#                count = tag.related.setdefault(relatedTag,0)
-#                tag.related[relatedTag] = count+1
-
-#experimental
-
 
 def query(wlib, querytxt, tags):
     """ @return: 

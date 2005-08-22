@@ -4,7 +4,9 @@
 <title>MindRetrieve - Configuration</title>
 <link rel="stylesheet" href="/main.css" type="text/css">
 <style>
-  .error_message { color:red }
+  .error_message { 
+    color:red;
+  }
   #form_table   {
     margin-top: 4ex; 
     margin-left: 15%; 
@@ -24,9 +26,21 @@
     padding-left: 1em;
     padding-bottom: 1ex;
   }
+  .entryInfo    {
+    margin-top: 1ex;
+  }
   .filler       {
-    line-height: 0.5ex;
+    line-height: 1.5ex;
   }  
+  .datatext {
+    color: #696;
+    margin-left: 0.5em;
+  }
+  .instructions {
+    padding-top: 4ex;
+    font-size: 90%;
+    color: #777;
+  }
 </style>
 <script>
 function close_form() {
@@ -50,13 +64,14 @@ function choose(opt) {
 <table id='form_table' cellspacing='0' cellpadding='0'>
 <tr><td id='form_title'>  
     <span style='float: right'><input id='close_form' type='checkbox' onclick='close_form()' /></span>
-    <span node='-con:form_title'>Organize - $name,...</span>
+    <span>Organize</span>
 </td></tr>
 
 <tr><td id='form_content'>
 
-<form node='con:edit_form' id='edit_form' method='GET' action='/weblib.entryOrganize'>
+<form node='con:edit_form' id='edit_form' method='GET' action='/weblib.entryOrg'>
 
+    <input type='hidden' name='method' value='PUT'/>
     <input type='hidden' node='con:id_list' name='id_list' value=''/>
 
     <table cellspacing='5'>
@@ -65,30 +80,32 @@ function choose(opt) {
     </tr>    
     <tr>
         <td colspan='3'>
-            <div node='con:all_tags'>Tags used by all: $all_tags</div>
-            <div node='con:some_tags'>Tags used by some: $some_tags</div>
+            <div class='entryInfo'>Organize: <span class='datatext' node='con:form_title'>$names,...[$total entries]</span></div>
+            <div class='entryInfo'>Common tags: <span class='datatext' node='con:all_tags'>$all_tags</span></div>
+            <div class='entryInfo'>Other tags: <span class='datatext' node='con:some_tags'>$some_tags</span></div>
         </td>
     </tr>    
-    <tr><td colspan='3' class='filler'>&nbsp;</td></tr>
+    <tr><td colspan='3' class='instructions'>Set all entries to the tags below</td></tr>
     <tr>
-        <td><input id='assign_option' type='radio' name='option' /></td>
-        <td>Assign Tags</td>
+        <td><input id='set_option' type='radio' name='option' value='set_option' /></td>
+        <td>Set Tags</td>
         <td>
-            <input type='text' name='assign_tags' size='50' onchange='choose("assign_option");'/>
+            <input type='text' name='set_tags' size='50' onchange='choose("set_option");'/>
         </td>
     </tr>    
-    <tr><td colspan='3' class='filler'>&nbsp;</td></tr>
+    <tr><td colspan='3' class='instructions'>Add and/or remove tags from all entries</td></tr>
     <tr>
-        <td rowspan='2'><input id='add_remove_option' type='radio' name='option' /></td>
+        <td><input id='add_remove_option' type='radio' name='option' value='add_remove_option' /></td>
         <td>Add Tags</td>
         <td>
-            <input type='text' name='assign_tags' size='50' onchange='choose("add_remove_option");'/>
+            <input type='text' name='add_tags' size='50' onchange='choose("add_remove_option");'/>
         </td>
     </tr>    
     <tr>
+        <td></td>
         <td>Remove Tags</td>
         <td>
-            <input type='text' name='assign_tags' size='50' onchange='choose("add_remove_option");'/>
+            <input type='text' name='remove_tags' size='50' onchange='choose("add_remove_option");'/>
         </td>
     </tr>
     <tr><td colspan='3' class='filler'>&nbsp;</td></tr>
@@ -101,6 +118,26 @@ function choose(opt) {
         </td>
     </tr>    
     </table>
+
+    <!-- Script to handle posting with new tags -->
+    <input type='hidden' name='create_tags' value=''/>
+    <script node='con:new_tags_var'>
+      new_tags = '%s';
+    </script>
+
+    <script>
+    function ask_save_new_tags() {
+      msg = 'The tags (' + new_tags + ') have not been used before. Use the new tags?';
+      if (confirm(msg)) {
+          form = document.getElementById('edit_form');
+          form.elements['create_tags'].value = '1';
+          form.submit();
+      }
+    }
+    if (new_tags) {
+      ask_save_new_tags();
+    }
+    </script>
 
 </form>
 

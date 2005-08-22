@@ -1,7 +1,7 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3c.org/TR/html4/loose.dtd">
 <html>
 <head>
-<title>MindRetrieve - Configuration</title>
+<title>MindRetrieve - Edit Entry</title>
 <link rel="stylesheet" href="/main.css" type="text/css">
 <style>
   .error_message { color:red }
@@ -48,6 +48,7 @@ function close_form() {
 
 
 <body>
+
 <div node='-con:header' style='width:100%;background-color:#ddd;text-align:center'>--HEADER--</div>
 
 <!-- form table -->
@@ -59,10 +60,10 @@ function close_form() {
 
 <tr><td id='form_content'>
 
-<form node='con:form' id='edit_form' method='GET' action='weblib/id'>
-    <input type='hidden' name='filled' value='1'/>
-    <input type='hidden' name='create_tags' value=''/>
-    <input type='hidden' node='con:id' name='id' value=''/>
+<form node='con:form' id='edit_form' method='GET' action='/weblib/$id'>
+    <input type='hidden' name='method' value='PUT' />
+    <input type='hidden' node='con:id' name='id' value='' />
+    <input type='hidden' name='filled' value='1' />
     <table cellspacing='5'>
     <tr node='con:error'>
         <td colspan='2'><span node='con:message' class='error_message'>Please correct the error.</span></td>
@@ -101,39 +102,39 @@ function close_form() {
     <tr>
         <td></td>
         <td>
-            <input type='submit' name='action' value='OK'      />
-            <input type='submit' name='action' value='Delete' />
+            <input type='submit' name='action' value='OK' />
             <input type='submit' name='action' value='Cancel' onclick='close_form()' />
         </td>
     </tr>    
     </table>
+
+    <!-- Script to handle posting with new tags -->
+    <input type='hidden' name='create_tags' value=''/>
+    <script node='con:new_tags'>
+      new_tags = '%s';
+    </script>
+
+    <script>
+    function ask_save_new_tags() {
+      msg = 'The tags (' + new_tags + ') have not been used before. Save with the new tags?';
+      if (confirm(msg)) {
+          form = document.getElementById('edit_form');
+          form.elements['create_tags'].value = '1';
+          form.submit();
+      }
+    }
+    if (new_tags) {
+      ask_save_new_tags();
+    }
+    </script>
+
 </form>
 
 </td></tr>
 </table>    <!-- end form table -->
 
 
-
-<div node='-con:footer' style='width:100%;background-color:#ddd;text-align:center'>--footer--</div>
-
-<!-- Script to handle posting with new tags -->
-<script node='con:new_tags'>
-  new_tags = '';
-</script>
-
-<script>
-function ask_save_new_tags() {
-  msg = 'The tags (' + new_tags + ') have not been used before. Save with the new tags?';
-  if (confirm(msg)) {
-      form = document.getElementById('edit_form');
-      form.elements['create_tags'].value = '1';
-      form.submit();
-  }
-}
-if (new_tags) {
-  ask_save_new_tags();
-}
-</script>
+<div node='-con:footer' style='width:100%;background-color:#ddd;text-align:center'>--FOOTER--</div>
 
 </body>
 </html>

@@ -69,9 +69,7 @@ function choose(opt) {
 
 <tr><td id='form_content'>
 
-<form node='con:edit_form' id='edit_form' method='GET' action='/weblib.entryOrg'>
-
-    <input type='hidden' name='method' value='PUT'/>
+<form node='con:edit_form' id='edit_form' method='POST' action='/weblib.entryOrg'>
     <input type='hidden' node='con:id_list' name='id_list' value=''/>
 
     <table cellspacing='5'>
@@ -87,25 +85,25 @@ function choose(opt) {
     </tr>    
     <tr><td colspan='3' class='instructions'>Set all entries to the tags below</td></tr>
     <tr>
-        <td><input id='set_option' type='radio' name='option' value='set_option' /></td>
+        <td><input node='con:set_option' id='set_option' type='radio' name='option' value='set_option' /></td>
         <td>Set Tags</td>
         <td>
-            <input type='text' name='set_tags' size='50' onchange='choose("set_option");'/>
+            <input node='con:set_tags' type='text' name='set_tags' size='50' onchange='choose("set_option");'/>
         </td>
     </tr>    
     <tr><td colspan='3' class='instructions'>Add and/or remove tags from all entries</td></tr>
     <tr>
-        <td><input id='add_remove_option' type='radio' name='option' value='add_remove_option' /></td>
+        <td><input node='con:add_remove_option' id='add_remove_option' type='radio' name='option' value='add_remove_option' /></td>
         <td>Add Tags</td>
         <td>
-            <input type='text' name='add_tags' size='50' onchange='choose("add_remove_option");'/>
+            <input node='con:add_tags' type='text' name='add_tags' size='50' onchange='choose("add_remove_option");'/>
         </td>
     </tr>    
     <tr>
         <td></td>
         <td>Remove Tags</td>
         <td>
-            <input type='text' name='remove_tags' size='50' onchange='choose("add_remove_option");'/>
+            <input node='con:remove_tags' type='text' name='remove_tags' size='50' onchange='choose("add_remove_option");'/>
         </td>
     </tr>
     <tr><td colspan='3' class='filler'>&nbsp;</td></tr>

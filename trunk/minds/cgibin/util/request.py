@@ -41,7 +41,7 @@ def parseURL(rfile, env):
     # the HTTP method
     method = env.get('REQUEST_METHOD','GET')
     # allow form parameter to override method
-    method = form.getfirst('method', method)
+    method = form.getfirst('method') or method
     method = method.upper()
 
     # parse resource id and rid_path
@@ -80,7 +80,7 @@ def tag_url(tags):
     else:
         qs = u','.join(map(unicode, tags))
     qs = urllib.quote_plus(qs.encode('utf8'))
-    return '/%s?tag=%s' % (WEBLIB_URL, qs)
+    return '%s?tag=%s' % (WEBLIB_URL, qs)
 
 
 def redirect(wfile, url):

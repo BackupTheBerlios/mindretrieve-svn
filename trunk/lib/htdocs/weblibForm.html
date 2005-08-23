@@ -41,7 +41,8 @@
 function close_form() {
     elem = document.getElementById('close_form');
     elem.checked='';
-    window.back();
+    rurl = document.getElementById('return_url');
+    window.location = rurl.value;
 }
 </script>
 </head>
@@ -63,6 +64,7 @@ function close_form() {
 <form node='con:form' id='edit_form' method='GET' action='/weblib/$id'>
     <input type='hidden' name='method' value='PUT' />
     <input type='hidden' node='con:id' name='id' value='' />
+    <input type='hidden' id='return_url' node='con:return_url' name='return_url' value=''/>
     <input type='hidden' name='filled' value='1' />
     <table cellspacing='5'>
     <tr node='con:error'>
@@ -103,7 +105,7 @@ function close_form() {
         <td></td>
         <td>
             <input type='submit' name='action' value='OK' />
-            <input type='submit' name='action' value='Cancel' onclick='close_form()' />
+            <input type='button' name='action' value='Cancel' onclick='close_form()' />
         </td>
     </tr>    
     </table>

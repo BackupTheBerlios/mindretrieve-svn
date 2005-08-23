@@ -46,8 +46,8 @@
 function close_form() {
     elem = document.getElementById('close_form');
     elem.checked='';
-    window.back();
-    //window.location = '/weblib';
+    rurl = document.getElementById('return_url');
+    window.location = rurl.value;
 }
 function choose(opt) {
     elem = document.getElementById(opt);
@@ -71,6 +71,7 @@ function choose(opt) {
 
 <form node='con:edit_form' id='edit_form' method='POST' action='/weblib.entryOrg'>
     <input type='hidden' node='con:id_list' name='id_list' value=''/>
+    <input type='hidden' node='con:return_url' name='return_url' value=''/>
 
     <table cellspacing='5'>
     <tr node='con:error'>
@@ -112,7 +113,7 @@ function choose(opt) {
         <td></td>
         <td>
             <input type='submit' name='action' value='OK'      />
-            <input type='submit' name='action' value='Cancel' onclick='close_form()' />
+            <input type='button' name='action' value='Cancel' onclick='close_form()' />
         </td>
     </tr>    
     </table>

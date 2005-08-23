@@ -96,16 +96,24 @@ def doPost(wfile, env, form):
     weblib.organizeEntries(entries, set_tags, add_tags, remove_tags)
     store.save(wlib)
     
-    doShowForm(wfile, env, form)####
+    return_url = request.get_return_url(env, form)
+    response.redirect(wfile, return_url)
             
     
 def doDelete(wfile, env, form):
+    wlib = weblib.getMainBm()
     entries = _buildEntries(form)
-    ##TODO
-    wfile.write('content-type: text/plain\r\n\r\nDELETE')
-    wfile.write(','.join([str(t.id) for t in entries]))
-        
-    
+    for item in entries:
+        try:
+            log.debug('Delete web page: %s', unicode(item))
+            wlib.deleteWebPage(item)
+        except:
+            log.exception('Unable to delete: %s', unicode(item))
+    store.save(wlib)
+    return_url = request.get_return_url(env, form)
+    response.redirect(wfile, return_url)
+
+
 def doShowForm(wfile, env, form, errors=None, new_tags=None):
     entries = _buildEntries(form)
     names = ''
@@ -132,8 +140,8 @@ def doShowForm(wfile, env, form, errors=None, new_tags=None):
     add_tags = form.getfirst('add_tags','')
     remove_tags = form.getfirst('remove_tags','')
 
-    print >>sys.stderr, option, set_tags
-    EntryOrgRenderer(wfile, env, '').output(errors, new_tags, ids, names, all_tags, some_tags, option, set_tags, add_tags, remove_tags)
+    return_url = request.get_return_url(env, form)
+    EntryOrgRenderer(wfile, env, '').output(return_url, errors, new_tags, ids, names, all_tags, some_tags, option, set_tags, add_tags, remove_tags)
 
 
 
@@ -158,7 +166,8 @@ class EntryOrgRenderer(response.CGIRendererHeadnFoot):
             con:new_tags_var
     con:footer
     """
-    def render(self, node, errors, new_tags, ids, names, all_tags, some_tags, option, set_tags, add_tags, remove_tags):
+    def render(self, node, return_url, errors, new_tags, ids, names, all_tags, some_tags, option, set_tags, add_tags, remove_tags):
+        node.edit_form.return_url .atts['value'] = return_url
         node.edit_form.id_list.atts['value'] = ','.join(map(str,ids))
         
         if errors:

@@ -112,18 +112,20 @@ def main(rfile, wfile, env, method, form, rid):
     elif method == 'PUT':
         doPutResource(wfile, env, bean)
     elif method == 'DELETE':
-        doDeleteResource(wfile, bean)
+        doDeleteResource(wfile, env, bean)
 
 
 def doGetResource(wfile, env, bean):
-    EditRenderer(wfile,env,'').output(bean)
+    return_url = request.get_return_url(env, bean.form)
+    EditRenderer(wfile,env,'').output( return_url, bean)
 
 
 def doPutResource(wfile, env, bean):
     wlib = weblib.getMainBm()
+    return_url = request.get_return_url(env, bean.form)
     
     if not bean.validate():
-        EditRenderer(wfile,env,'').output(bean)
+        EditRenderer(wfile,env,'').output( return_url, bean)
         return
         
     if bean.newTags:
@@ -151,43 +153,27 @@ def doPutResource(wfile, env, bean):
         item = item0
 
     if item.id < 0:
-        log.info('Adding WebPage %s' % unicode(item))
+        log.info('Adding WebPage: %s' % unicode(item))
         wlib.addWebPage(item)
     else:    
-        log.info('Updating WebPage %s' % unicode(item))
+        log.info('Updating WebPage: %s' % unicode(item))
     
     wlib.fix()
     store.save(wlib)
-    redirect_tags(wfile, item.tags)
+    response.redirect(wfile, return_url)
 
 
-def doDeleteResource(wfile, bean):
+def doDeleteResource(wfile, env, bean):
     wlib = weblib.getMainBm()
     item = wlib.webpages.getById(bean.rid)
     if item:
         log.info('Deleting WebPage %s' % unicode(item))
-        tags = item.tags      
         # todo: may need to delete tags too.    
         wlib.deleteWebPage(item)
-        wlib.fix()
+        wlib.fix()  ## <-- what is this???
         store.save(wlib)  
-    else:
-        tags = []
-    redirect_tags(wfile, tags)
-
-
-def redirect_tags(wfile, tags):     ## todo: refacotr to request
-    if tags:
-        if hasattr(tags,'encode'):##??
-            qs = unicode(tags)    
-        else:
-            qs = u','.join(map(unicode, tags))
-        qs = urllib.quote_plus(qs.encode('utf8'))
-        url = '%s?tag=%s' % (request.WEBLIB_URL, qs)
-    else:
-        url = request.WEBLIB_URL
-    request.redirect(wfile, url)    
-
+    return_url = request.get_return_url(env, bean.form)
+    response.redirect(wfile, return_url)
 
 
 # ----------------------------------------------------------------------
@@ -214,7 +200,7 @@ class EditRenderer(response.CGIRendererHeadnFoot):
             con:new_tags
     con:footer    
     """
-    def render(self, node, bean):
+    def render(self, node, return_url, bean):
 
         item = bean.item
         wlib = weblib.getMainBm()
@@ -231,6 +217,7 @@ class EditRenderer(response.CGIRendererHeadnFoot):
             form.error.omit()
 
         if item:
+            form.return_url .atts['value'] = return_url
             form.id         .atts['value'] = unicode(item.id)
             form.name       .atts['value'] = item.name
             form.url        .atts['value'] = item.url

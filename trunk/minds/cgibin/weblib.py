@@ -23,7 +23,7 @@ def main(rfile, wfile, env):
     querytxt  = form.getfirst('query','').decode('utf-8')
 
     if form.getfirst('action ') == 'cancel':
-        request.redirect(wfile, request.WEBLIB_URL)
+        response.redirect(wfile, request.WEBLIB_URL)
         
     elif rid_path and rid_path.startswith('go;'):
         doGoResource(wfile, rid, rid_path)
@@ -49,7 +49,7 @@ def doGoResource(wfile, rid, rid_path):
         return
 
     wlib.visit(item)
-    request.redirect(wfile, item.url)        
+    response.redirect(wfile, item.url)        
 
 
 
@@ -76,7 +76,7 @@ def queryWebLib(wfile, env, form, tag, querytxt):
     # quick jump?
     if go_direct and most_visited:
         wlib.visit(most_visited)
-        request.redirect(wfile, most_visited.url)
+        response.redirect(wfile, most_visited.url)
         return
         
     folderNames = map(unicode, related)

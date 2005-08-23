@@ -10,6 +10,10 @@ from minds.config import cfg
 from toollib import HTMLTemplate
 
 
+def redirect(wfile, url):
+    wfile.write('location: %s\r\n\r\n' % url)
+
+
 # ----------------------------------------------------------------------
 
 BOOKMARKLET = """

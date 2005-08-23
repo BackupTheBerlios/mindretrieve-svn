@@ -62,6 +62,15 @@ def parseURL(rfile, env):
     return method, form, rid, rid_path
 
 
+def get_return_url(env, form):
+    """ Find what URL to go to when this form is closed? """
+    r = form.getfirst('return_url')
+    if r: return r
+    r = env.get('HTTP_REFERER','')
+    if r: return r
+    return WEBLIB_URL
+    
+    
 def weblib_url():
     return '%s' % WEBLIB_URL
 
@@ -82,6 +91,3 @@ def tag_url(tags):
     qs = urllib.quote_plus(qs.encode('utf8'))
     return '%s?tag=%s' % (WEBLIB_URL, qs)
 
-
-def redirect(wfile, url):
-    wfile.write('location: %s\r\n\r\n' % url)

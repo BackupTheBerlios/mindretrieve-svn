@@ -222,6 +222,9 @@ class AppHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         ua = self.headers.getheader('user-agent')
         if ua:
             env['HTTP_USER_AGENT'] = ua
+        rfr = self.headers.getheader('referer')
+        if rfr:
+            env['HTTP_REFERER'] = rfr
         co = filter(None, self.headers.getheaders('cookie'))
         if co:
             env['HTTP_COOKIE'] = ', '.join(co)

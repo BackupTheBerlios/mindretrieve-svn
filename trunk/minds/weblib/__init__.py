@@ -182,7 +182,7 @@ def create_tags(wlib, names):
     for name in names:
         tag = wlib.getTag(name)
         if not tag:
-            tag = Tag(name)
+            tag = Tag(name=name)
             wlib.addTag(tag)
         lst.append(tag)
     return lst
@@ -200,23 +200,24 @@ def organizeEntries(entries, set_tags, add_tags, remove_tags):
     """ 
     Organize tags of for the entries
     @param entries - list of entries
-    @param set_tags (set) - set each entry to tags
-    @param add_tags (set) - add tags to each entry
-    @param remove_tags (set) - remove tags from each entry
+    @param set_tags - set each entry to tags
+    @param add_tags - add tags to each entry
+    @param remove_tags - remove tags from each entry
     
     Caller should ensure ensure the parameters are logical.
     E.g. 
         set_tags should be exclusive to add_tags and remove_tags,
         add_tags and remove_tags should have no common elements.
     """
+    add_tags = sets.Set(add_tags)
     for item in entries:
         if set_tags:
-            entries.tags = set_tags[:]
+            item.tags = set_tags[:]
         if add_tags:
-            tags = add_tags.union(entries.tags)
-            entries.tags = list(tags)
+            tags = add_tags.union(item.tags)
+            item.tags = list(tags)
         if remove_tags:
-            entries.tags = [t for t in entries.tags if t not in remove_tags]
+            item.tags = [t for t in item.tags if t not in remove_tags]
     
     
 #----------------------------------------------------------------------

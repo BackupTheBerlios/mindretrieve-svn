@@ -118,8 +118,9 @@ def save(wstream, wlib):
     for item in wlib.webpages:
 
         id = str(item.id)
-        tagIds = ','.join(map(str,item.tagIds))
-        relatedIds = ','.join(map(str,item.relatedIds))
+        tagIds = [str(t.id) for t in item.tags]
+        tagIds = ','.join(tagIds)
+        relatedIds = ''##
 
         data = dsv.encode_fields([
             id              ,

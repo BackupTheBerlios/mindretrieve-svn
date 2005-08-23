@@ -75,9 +75,14 @@
                     
   .libTable     a       { text-decoration: none; }
   .libTable     a:hover { text-decoration: underline; }
+  
   .libTableHeader       { 
     background-color: #ccc;
   }
+  .libTableFooter       { 
+    background-color: #ccc;
+  }
+  
   .libTable td          {
     padding-left: 2px;
     padding-right: 2px;
@@ -107,6 +112,67 @@
   }
   
 </style>
+<script>
+function selectAll(cb) {
+    checked = document.getElementById(cb).checked;
+    form = document.getElementById('webpages');
+    for (i=0; i < form.elements.length; i++) {
+        elem = form.elements[i];
+        if (elem.type == 'checkbox') {
+            elem.checked = checked
+        }
+    }
+}
+
+function organizeSelected() {
+    count = countSelected();
+    if (count == 0) {
+        alert('Please select items to be organized.')
+        return;
+    }
+    form = document.getElementById('webpages');
+    form.action = '/weblib.entryOrg';
+    m = document.getElementById('webpages_method');
+    m.value = 'GET';
+    form.submit();
+}
+
+function deleteSelected() {
+    count = countSelected();
+    if (count == 0) {
+        alert('Please select items to be deleted.')
+        return;
+    } else {
+        if (!confirm('Delete ' + count + ' items selected?'))
+            return;
+    }
+    form = document.getElementById('webpages');
+    form.action = '/weblib.entryOrg';
+    m = document.getElementById('webpages_method');
+    m.value = 'DELETE';
+    form.submit();
+}
+
+function countSelected() {
+    count = 0;
+    form = document.getElementById('webpages');
+    for (i=0; i < form.elements.length; i++) {
+        elem = form.elements[i];
+        if (elem.type != 'checkbox') 
+            continue;
+        name = elem.name;
+        if (name.length <= 0)
+            continue;
+        d0 = name.charAt(0);
+//            alert(name + ' l=' + name.length + ' d0=' + d0 + ' c=' + count);
+        if ((d0 >= '0') && (d0 <= '9') && elem.checked)
+            count++;
+    }
+    return count
+}
+
+</script>
+
 </head>
 
 
@@ -146,6 +212,7 @@
 
 
   <form id='webpages' action='/weblib' method='GET'>  
+  <input id='webpages_method' type='hidden' name='method' value='' />
   <table width='100%' cellspacing='0' cellpadding='0' class='libTable'>
 
   <col class='col1' />  
@@ -154,18 +221,11 @@
   <col class='col4' />  
   <col class='col5' />  
 
-<script> <!-- TODO MOVE -->
-function organize() {
-    form = document.getElementById('webpages');
-    form.action = '/weblib.entryOrg';
-    form.submit();
-}
-</script>
   <tr class='libTableHeader'>
-    <td><input type='checkbox' name='100'></td>
+    <td><input id='checkAll_top' type='checkbox' onclick='selectAll("checkAll_top");'></td>
     <td colspan='4' align='right'>
-       <input type='submit' name='action' value='organize' onclick="organize()"/>
-       <input type='submit' name='action' value='delete' />
+       <input type='button' value='organize' onclick='organizeSelected();' />
+       <input type='button' value='delete'  onclick='deleteSelected();' />
     </td>
   </tr>
 
@@ -234,7 +294,14 @@ function organize() {
     <td><a node='con:cache' href='#' class='itemSmallLink'>2005-12-01</a></td>
   </tr>
 
-  
+  <tr class='libTableFooter'>
+    <td><input id='checkAll_bottom' type='checkbox' onclick='selectAll("checkAll_bottom")'></td>
+    <td colspan='4' align='right'>
+       <input type='button' value='organize' onclick='organizeSelected();' />
+       <input type='button' value='delete'  onclick='deleteSelected();' />
+    </td>
+  </tr>
+
   </table>  
   </form>
 

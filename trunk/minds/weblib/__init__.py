@@ -6,6 +6,7 @@ import codecs
 import datetime
 import random
 import sets
+import string
 import sys
 
 import util
@@ -87,6 +88,8 @@ class WebLibrary(object):
     def __init__(self):
         self.webpages = util.IdList()
         self.tags = util.IdNameList()
+        # todo: should implement a rfc822.Message style case-insensitive dictionary
+        self.headers_list = []
 
 
     def addWebPage(self, entry):
@@ -233,20 +236,26 @@ def query(wlib, querytxt, tags):
     related = sets.Set()
     
     most_visited = None
-    querytxt = querytxt.lower()
+    querywords = querytxt.lower().split()
 
-    if not querytxt and not tags:
+    print >>sys.stderr, 'querytxt', querytxt##
+    print >>sys.stderr, 'tags', tags##
+
+    if not querywords and not tags:
         return queryMain(wlib)
-    
+        
     # use querytxt to match additional tags
-    if querytxt:
-        query_tags_set = sets.Set((tag for tag in wlib.tags 
-                                        if querytxt in tag.name.lower()))
-    else:    
-        query_tags_set = sets.Set()
+    query_tags_set = sets.Set()
+    for w in querywords:
+        match = [tag for tag in wlib.tags if w in tag.name.lower()]
+        query_tags_set.union_update(match)
         
     tags_set = sets.Set(tags)    
         
+    print >>sys.stderr, 'querywords', querywords##
+    print >>sys.stderr, 'query_tags_set', query_tags_set
+    print >>sys.stderr, 'tags_set', tags
+    
     ## TODO: logic is complicated, need some refactoring
     # short circuit behavior is hard to archieve.
     # blank querytxt and tags change the meaning.
@@ -264,8 +273,12 @@ def query(wlib, querytxt, tags):
         else:    
             qt_matched = False
                 
-        if querytxt:
-            q_matched = (querytxt in item.name.lower()) or (querytxt in item.url.lower())
+        if querywords:
+            q_matched = True
+            for w in querywords:
+                if (w not in item.name.lower()) and (w not in item.url.lower()):
+                    q_matched = False
+                    break
             if not q_matched and not qt_matched:
                 continue
         
@@ -277,7 +290,7 @@ def query(wlib, querytxt, tags):
         else:
             q_matched = False
                 
-        if querytxt and not (qt_matched or q_matched):
+        if querywords and not (qt_matched or q_matched):
             continue
             
         cat = util.diff(item.tags, tags)

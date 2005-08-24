@@ -33,15 +33,13 @@ class RowObject(object):
         return str(self.fields)
         
         
-def parse(rstream, encoding='utf8', HEADER_ROW=True, STRIP=True):
+def parse(reader, start_line=1, HEADER_ROW=True, STRIP=True):
     """ This is the main function to open a DSV file. 
         It generates lineno and a RowObject for each record.
     """
     
     # map header name to 0 based column index
     headers = {}
-    
-    reader = codecs.getreader(encoding)(rstream,'replace')
     for lineno, line in enumerate(reader):
         line = line.rstrip()
         if not line or line.startswith('#'):
@@ -53,7 +51,7 @@ def parse(rstream, encoding='utf8', HEADER_ROW=True, STRIP=True):
             fields = decode_fields(line)
             if STRIP:
                 fields = map(string.strip, fields)    
-            yield lineno+1, RowObject(headers,fields)
+            yield lineno+start_line, RowObject(headers,fields)
 
 
 def parse_header(lineno, s):

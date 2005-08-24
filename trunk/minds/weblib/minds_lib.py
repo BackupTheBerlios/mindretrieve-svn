@@ -3,12 +3,12 @@
 
 import codecs
 import logging
+import string
 import sys
 
 from minds.config import cfg
 from minds import weblib
 from minds.util import dsv
-
 
 
 log = logging.getLogger('weblib.mnd')
@@ -19,60 +19,71 @@ COLUMNS = [
 'name',         # 01
 'description',  # 02
 'tagIds',       # 03
-'relatedIds',   # 04
-'modified',     # 05
-'lastused',     # 06
-'cached',       # 07
-'archived',     # 08
-'flags',        # 09
-'url',          # 10
+'modified',     # 04
+'lastused',     # 05
+'cached',       # 06
+'archived',     # 07
+'flags',        # 08
+'url',          # 09
 ]
-
 NUM_COLUMN = len(COLUMNS)
+
 
 
 def load(rstream):
     wlib = weblib.WebLibrary()
-    for lineno, row in dsv.parse(rstream):
+    encoding = 'UTF8'
+    
+    reader = codecs.getreader(encoding)(rstream,'replace')
+    lineno = 0
+    for lineno, line in enumerate(reader):
+        line = line.rstrip()
+        if not line:
+            break
+        pair = line.split(':',1)
+        if len(pair) != 2:
+            raise SyntaxError('Header line should contain name and value separate by a colon (line %s)' % lineno)
+        pair = map(string.strip, pair)    
+        wlib.headers_list.append(pair)
+    else:
+        raise SyntaxError('Header lines should end with a blank line. (line %s)' % lineno)
+        
+    for lineno, row in dsv.parse(reader, lineno+1):
         try:
             parseLine(wlib, row)
         except KeyError, e:
-            log.warn('line %s - %s', lineno, e)
+            log.warn('KeyError line %s: %s', lineno, e)
         except ValueError, e:
-            log.warn('line %s - %s', lineno, e)
+            log.warn('ValueError line %s: %s', lineno, e)
+        except Exception, e:
+            log.warn('Parsing error line %s: %s', lineno, e)
+            raise
     wlib.fix()
     return wlib
 
 
 def parseLine(wlib, row):
     """ raise ValueError or KeyError for parsing problem """
-
     # TODO: field validation
-
-    if row.id[0:1] == '+':
+    if row.id[0:1] == '@':
         tag = weblib.Tag(
-            id          = int(row.id[1:]),
-            name        = row.name,
+            id   = int(row.id[1:]),
+            name = row.name,
         )
         wlib.addTag(tag)
 
     else:
         if row.tagids:
-            tagIds = [int(id) for id in row.tagids.split(',')]
+            s = row.tagids.replace('@','')
+            tagIds = [int(id) for id in s.split(',')]
         else:
             tagIds = []
             
-        if row.relatedids:
-            relatedIds = [int(id) for id in row.relatedids.split(',')]
-        else:
-            relatedIds = []
-
         entry = weblib.WebPage(
             id          = int(row.id),
             name        = row.name,
             description = row.description,
-            tagIds    = tagIds,
-            relatedIds  = relatedIds,
+            tagIds      = tagIds,
             flags       = row.flags,
             modified    = row.modified,
             lastused    = row.lastused,
@@ -99,15 +110,16 @@ def save(wstream, wlib):
 
     writer = codecs.getwriter('utf8')(wstream,'replace')
 
-    writer.write('#encoding=UTF8\n')
-    writer.write('#version=0.5\n')
+    for n,v in wlib.headers_list:
+        writer.write('%s: %s\r\n' % (n,v))
+    writer.write('\r\n')
     header = dsv.encode_fields(COLUMNS)
     writer.write(header)
     writer.write('\n')
 
     for item in wlib.tags:
 
-        id = '+%d' % item.id
+        id = '@%d' % item.id
 
         data = dsv.encode_fields([id, item.name] + [''] * (NUM_COLUMN-2))
 
@@ -116,34 +128,25 @@ def save(wstream, wlib):
 
 
     for item in wlib.webpages:
-
         id = str(item.id)
-        tagIds = [str(t.id) for t in item.tags]
-        tagIds = ','.join(tagIds)
-        relatedIds = ''##
-
+        tagIds = ','.join(['@%s' % t.id for t in item.tags])
         data = dsv.encode_fields([
             id              ,
             item.name       ,
             item.description,
-#            item.comment    ,
-            tagIds        ,
-            relatedIds      ,
+            tagIds          ,
             item.modified   ,
             item.lastused   ,
             item.cached     ,
             item.archived   ,
             item.flags      ,
             item.url        ,
-            ])
+        ])
         writer.write(data)
         writer.write('\n')
 
 
-
-
 def main(argv):
-
     if len(argv) < 2:
         print __doc__
         sys.exit(-1)

@@ -5,12 +5,24 @@ Run from command line to display the HTMLTemplate parse tree.
 import codecs
 import os.path
 import sys
+import urllib
 
 from minds.config import cfg
 from toollib import HTMLTemplate
 
 
-def redirect(wfile, url):
+ASCII = ''.join(map(chr,range(0x20, 0x80)))
+
+def redirect(wfile, url):    
+    # 2005-08-24 TODO
+    # wikipedia uses http encoded utf-8 encoded unicode string in links.
+    #   e.g. http://zh.wikipedia.org/wiki/%E5%85%8B%E9%87%8C%E5%A7%86%E6%9E%97%E5%AE%AB
+    # Opera seems over zealous for converting it into unicode (in document.location).
+    # This seems to be the main reason we end up with unicode URL here.
+    # Can we count on servers in general to accept UTF-8 encoded characters???
+    
+    # only use this to quote non-ASCII characters
+    url = urllib.quote(url.encode('utf8'), ASCII)
     wfile.write('location: %s\r\n\r\n' % url)
 
 

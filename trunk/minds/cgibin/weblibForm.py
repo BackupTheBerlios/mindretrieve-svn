@@ -35,7 +35,7 @@ class Bean(object):
 
 
     def _readForm(self, rid, form):
-        wlib = weblib.getMainBm()
+        wlib = store.getMainBm()
         
         if form.has_key('filled'):
             item = weblib.WebPage(
@@ -69,7 +69,7 @@ class Bean(object):
         
 
     def _parseTags(self):
-        wlib = weblib.getMainBm()
+        wlib = store.getMainBm()
 
         _tags = self.form.getfirst('tags','').decode('utf-8')
         self.item.tags, unknown_tags = weblib.parseTags(wlib, _tags)
@@ -121,7 +121,7 @@ def doGetResource(wfile, env, bean):
 
 
 def doPutResource(wfile, env, bean):
-    wlib = weblib.getMainBm()
+    wlib = store.getMainBm()
     return_url = request.get_return_url(env, bean.form)
     
     if not bean.validate():
@@ -164,7 +164,7 @@ def doPutResource(wfile, env, bean):
 
 
 def doDeleteResource(wfile, env, bean):
-    wlib = weblib.getMainBm()
+    wlib = store.getMainBm()
     item = wlib.webpages.getById(bean.rid)
     if item:
         log.info('Deleting WebPage %s' % unicode(item))
@@ -203,7 +203,7 @@ class EditRenderer(response.CGIRendererHeadnFoot):
     def render(self, node, return_url, bean):
 
         item = bean.item
-        wlib = weblib.getMainBm()
+        wlib = store.getMainBm()
 
         node.form_title.content = item.id == -1 and 'Add entry' or 'Edit entry'
         
@@ -218,7 +218,6 @@ class EditRenderer(response.CGIRendererHeadnFoot):
 
         if item:
             form.return_url .atts['value'] = return_url
-            form.id         .atts['value'] = unicode(item.id)
             form.name       .atts['value'] = item.name
             form.url        .atts['value'] = item.url
             form.description.content       = item.description
@@ -238,7 +237,6 @@ class EditRenderer(response.CGIRendererHeadnFoot):
         tags = bean.newTags and u', '.join(bean.newTags) or ''
         ##TODO: encode tags for javascript in HTML
         node.form.new_tags.content = node.form.new_tags.content % tags 
-
 
 if __name__ == "__main__":
     main(sys.stdin, sys.stdout, os.environ)

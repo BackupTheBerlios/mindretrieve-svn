@@ -41,7 +41,7 @@ def _buildEntries(form):
     # build the id list ids.
     id_list = form.getfirst('id_list','').split(',')
 
-    wlib = weblib.getMainBm()
+    wlib = store.getMainBm()
     entries = []
     for k in itertools.chain(form.keys(), id_list):
         k = k.strip()
@@ -54,7 +54,7 @@ def _buildEntries(form):
     
     
 def doPost(wfile, env, form):
-    wlib = weblib.getMainBm()
+    wlib = store.getMainBm()
     entries = _buildEntries(form)
     errors = []
     
@@ -101,7 +101,7 @@ def doPost(wfile, env, form):
             
     
 def doDelete(wfile, env, form):
-    wlib = weblib.getMainBm()
+    wlib = store.getMainBm()
     entries = _buildEntries(form)
     for item in entries:
         try:

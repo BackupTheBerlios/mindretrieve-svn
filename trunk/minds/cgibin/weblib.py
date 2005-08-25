@@ -10,6 +10,7 @@ from minds.cgibin.util import request
 from minds.cgibin.util import response
 from minds import weblib
 from minds.weblib import graph
+from minds.weblib import store
 
 log = logging.getLogger('cgi.weblib')
 
@@ -42,7 +43,7 @@ def main(rfile, wfile, env):
 def doGoResource(wfile, rid, rid_path):
     # the rid_path are really for user's information only. 
     # rid alone determines where to go.
-    wlib = weblib.getMainBm()
+    wlib = store.getMainBm()
     item = wlib.webpages.getById(rid)
     if not item:
         wfile.write('404 not found\r\n\r\n%s not found' % rid)
@@ -59,7 +60,7 @@ def queryWebLib(wfile, env, form, tag, querytxt):
         querytxt = querytxt[2:]
         go_direct = True
     
-    wlib = weblib.getMainBm()   
+    wlib = store.getMainBm()
 
     tags, unknown = weblib.parseTags(wlib, tag)
     items, related, most_visited = weblib.query(wlib, querytxt, tags)

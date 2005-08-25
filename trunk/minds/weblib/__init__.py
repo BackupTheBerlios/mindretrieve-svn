@@ -149,7 +149,10 @@ class WebLibrary(object):
 
 wlib_instance = None
 
+#deprecated
 def getMainBm():
+    import store
+    return store.getMainBm()
     global wlib_instance
     if not wlib_instance:
         import store
@@ -157,6 +160,13 @@ def getMainBm():
     return wlib_instance
 
 
+def loadMainBm(pathname):
+    """ load Bm using pathname instead of default filename """
+    import store
+    global wlib_instance
+    wlib_instance = store.load(pathname)
+    
+    
 
 # ----------------------------------------------------------------------
         
@@ -169,7 +179,7 @@ def parseTags(wlib, tag_names):
     for name in tag_names.split(','):
         name = name.strip()
         if not name:
-            continue    
+            continue
         tag = wlib.getTag(name)
         if tag:
             tags.append(tag)

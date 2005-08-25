@@ -32,6 +32,7 @@ travel
         food   
 """          
 
+TEST_DATA0= ''
 
 #-----------------------------------------------------------------------
 
@@ -171,6 +172,10 @@ def __convert_name_2_trel(wlib,g):
     g1 = {}
     for v,n in g.items():
         tag = wlib.tags.getByName(v)
+        if not tag and v:
+            tag = weblib.Tag(name=v)        ## TODO: clean up hack
+            wlib.addTag(tag)
+            TagRel(tag)
         if tag:
             tRel = tag.rel
             n[0] = tRel
@@ -241,7 +246,7 @@ def test_tag_tree():
      
     
 def test_DAG():    
-    wlib = weblib.getMainBm()
+    wlib = store.getMainBm()
     root = inferCategory(wlib)
     ## debug
     for v, path in graph.dfsp(root):
@@ -251,7 +256,7 @@ def test_DAG():
 
 
 def test_flex_category():
-    wlib = weblib.getMainBm()
+    wlib = store.getMainBm()
     for v, level in graph.dfs(wlib.categories):
         if v:
             print '..'*level + unicode(v) +' ' + str(v.torder)

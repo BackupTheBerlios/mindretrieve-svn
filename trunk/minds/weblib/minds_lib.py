@@ -46,7 +46,10 @@ def load(rstream):
         pair = map(string.strip, pair)    
         wlib.headers_list.append(pair)
     else:
-        raise SyntaxError('Header lines should end with a blank line. (line %s)' % lineno)
+        # normal the loop should break when first blank line seen.
+        # this file is either empty or has no body part.
+        # treat this as empty wlib.
+        return wlib
         
     for lineno, row in dsv.parse(reader, lineno+1):
         try:

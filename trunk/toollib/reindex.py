@@ -60,8 +60,8 @@ def main(argv):
     dbdoc = cfg.getPath('archive')
     idc = docarchive.idCounter
     idc._findIdRange()
-    beginId = idc.beginId
-    endId   = idc.endId
+    beginId = idc._beginId
+    endId   = idc._endId
     print 'Reindex %s(#%d-%d) -> %s' % (dbdoc, beginId, endId, index_path)
     reindex(dbdoc, beginId, endId, index_path)
     print 'Reindex finished:', datetime.datetime.now() - starttime

@@ -1,141 +1,48 @@
+__author__ = "Wai Yip Tung"
+__version__ = "0.5"
+
 import datetime
-import time
 import string
+import StringIO
 import sys
+import time
 import unittest
+from xml.sax import saxutils
+
+# TODO: allow link to custom CSS
+# TODO: color stderr
 
 TestResult = unittest.TestResult
 
+class OutputRedirector(object):
+    """ Wrapper to redirect stdout or stderr """
+    def __init__(self, fp):
+        self.fp = fp
 
-class _TextTestResult(TestResult):
+    def write(self, s):
+        self.fp.write(s)
 
-    def __init__(self, stream, descriptions, verbosity):
-        TestResult.__init__(self)
-        self.stream = stream
-        self.descriptions = descriptions
-        self.result = []
+    def writelines(self, lines):
+        self.fp.writelines(lines)
+
+    def flush(self):
+        self.fp.flush()
         
-    def getDescription(self, test):
-        if self.descriptions:
-            return test.shortDescription() or str(test)
-        else:
-            return str(test)
-
-    def startTest(self, test):
-        TestResult.startTest(self, test)
-#        if self.showAll:
-#            self.stream.write(self.getDescription(test))
-#            self.stream.write(" ... ")
-
-    def addSuccess(self, test):
-        TestResult.addSuccess(self, test)
-        self.result.append((0, test, ''))
-
-    def addError(self, test, err):
-        TestResult.addError(self, test, err)
-        self.result.append((2, test, self._exc_info_to_string(err, test)))
-
-    def addFailure(self, test, err):
-        TestResult.addFailure(self, test, err)
-        self.result.append((1, test, self._exc_info_to_string(err, test)))
+# The redirectors below is used to capture output during testing. Output
+# sent to sys.stdout and sys.stderr are automatically captured. However
+# in some cases sys.stdout is already cached before HTMLTestRunner is
+# invoked (e.g. calling logging.basicConfig). In order to capture those
+# output, use the redirectors for the cached stream.
+#
+# e.g.
+#   >>> logging.basicConfig(stream=HTMLTestRunner.stdout_redirector)
+#   >>>
+stdout_redirector = OutputRedirector(sys.stdout)
+stderr_redirector = OutputRedirector(sys.stderr)
 
 
-class HTMLTestRunner:
-    """A test runner class that displays results in textual form.
-
-    It prints out the names of tests as they are run, errors as they
-    occur, and a summary of the results at the end of the test run.
-    """
-    def __init__(self, stream=sys.stderr, descriptions=1, verbosity=1):
-        self.stream = stream
-        self.descriptions = descriptions
-        self.verbosity = verbosity
-
-    def _makeResult(self):
-        return _TextTestResult(self.stream, self.descriptions, self.verbosity)
-
-    def run(self, test):
-        "Run the given test case or test suite."
-
-        result = self._makeResult()
-        startTime = time.time()
-        test(result)
-        stopTime = time.time()
-        self.generateReport(startTime, stopTime, result)
-        return result
-        
-    def sortResult(self, result_list):
-        rmap = {}
-        classes = []
-        for n,t,e in result_list:
-            cls = t.__class__
-            if not rmap.has_key(cls):
-                rmap[cls] = []
-                classes.append(cls)
-            rmap[cls].append((n,t,e))           
-        r = [(cls, rmap[cls]) for cls in classes]
-        return r
-        
-    def generateReport(self, startTime, stopTime, result):
-
-        rows = []
-        npAll = nfAll = neAll = 0
-        sortedResult = self.sortResult(result.result)
-        for cid, (cls, cls_results) in enumerate(sortedResult):
-            # update counts
-            np = nf = ne = 0            
-            for n,t,e in cls_results:
-                if n == 0: np += 1
-                elif n == 1: nf += 1
-                else: ne += 1
-            npAll += np                
-            nfAll += nf                
-            neAll += ne
-            style = ne > 0 and 'error' or nf > 0 and 'fail' or 'pass'
-
-            row = CLASS_TMPL.safe_substitute(dict(
-                style = style,
-                name = "%s.%s" % (cls.__module__, cls.__name__),
-                count = np+nf+ne,
-                Pass = np,
-                fail = nf,
-                error = ne,
-                cid = 'c%s' % (cid+1),
-            ))
-            rows.append(row)
-            
-            for tid, (n,t,e) in enumerate(cls_results):
-                # e.g. 'pt1.1', 'ft1.1', etc
-                tid = (n == 0 and 'p' or 'f') + 't%s.%s' % (cid+1,tid+1)
-                style = n == 2 and 'error' or (n == 1 and 'fail' or 'pass')
-                name = t.id().split('.')[-1]
-                row = TEST_TMPL.safe_substitute(dict(
-                    tid = tid,
-                    Class = (n == 0 and 'hiddenRow' or ''),
-                    style = style,
-                    name = name,
-                    status = STATUS[n],
-                ))
-                rows.append(row)
-                row = TEST_OUTPUT_TMPL.safe_substitute(dict(
-                    id = tid+'.out',
-                    output = 'xyz',
-                ))
-                rows.append(row)
-                    
-        startTime = datetime.datetime.fromtimestamp(startTime)
-        print HTML_TMPL.safe_substitute(dict(
-            title = name,
-            css = CSS,
-            description = name,
-            time = startTime.isoformat()[:19],
-            status = result.wasSuccessful() and 'Success' or 'Fail',
-            tests = ''.join(rows),
-            count = str(npAll+nfAll+neAll),
-            Pass = str(npAll),
-            fail = str(nfAll),
-            error = str(neAll),            
-        ))
+# ----------------------------------------------------------------------
+# Template
 
 STATUS = {
 0: 'pass',
@@ -143,34 +50,51 @@ STATUS = {
 2: 'error',
 }
 
-# Template structure
-#
-# HTML
-#     CSS  
-#     MODULES...
-#         TESTS...    
-
 
 CSS = """
 <style>
 body        { font-family: verdana, arial, helvetica, sans-serif; font-size: 80%; }
-table       { font-size: 100% }
-th          { font-weight: bold; }
-.col1       { text-align: left; }    
-.col2       { text-align: center; }    
-.col3       { text-align: center; }    
-.col4       { text-align: right; }    
-.col5       { text-align: right; }    
-.pass       { background-color: #6c6; }
-.fail       { background-color: #c60; }
-.error      { background-color: #c00; }
+table       { font-size: 100%; }
+pre         { }
+h1          { }
+.heading    { 
+    margin-top: 0ex; 
+    margin-bottom: 1ex; 
+}
+#show_detail_line {
+    margin-top: 3ex;
+    margin-bottom: 1ex;
+}
+#result_table {
+    width: 80%;
+    border-collapse: collapse;
+    border: medium solid #777;
+}
+#result_table td {
+    border: thin solid #777;
+    padding: 2px;
+}
+#header_row { 
+    font-weight: bold; 
+    color: white;
+    background-color: #777;
+}
+#total_row  { font-weight: bold; }
+.passClass  { background-color: #6c6; }
+.failClass  { background-color: #c60; }
+.errorClass { background-color: #c00; }
+.passCase   { color: #6c6; }
+.failCase   { color: #c60; font-weight: bold; }
+.errorCase  { color: #c00; font-weight: bold; }
 .hiddenRow  { display: none; }
+.testcase   { margin-left: 2em; }
+#btm_filler { margin-top: 50%; }
 </style>
 """
 CSS_LINK = '<link rel="stylesheet" href="$url" type="text/css">\n'
 
 
-HTML_TMPL = string.Template("""
+HTML_TMPL = string.Template(r"""
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html>
 <head>
@@ -179,24 +103,25 @@ HTML_TMPL = string.Template("""
 </head>
 <body>
 <script>
+output_list = Array();
+
 /* level - 0:Summary; 1:Failed; 2:All */
 function showCase(level) {
     trs = document.getElementsByTagName("tr");
     for (var i = 0; i < trs.length; i++) {
         tr = trs[i];
         id = tr.id;
-        output = id.slice(-3) == 'out';
         if (id.substr(0,2) == 'ft') {
             if (level < 1) {
                 tr.className = 'hiddenRow';
             }
             else {
-                if (!output) tr.className = '';
+                tr.className = '';
             }
         }
         if (id.substr(0,2) == 'pt') {
             if (level > 1) {
-                if (!output) tr.className = '';
+                tr.className = '';
             }
             else {
                 tr.className = 'hiddenRow';
@@ -225,7 +150,6 @@ function showClassDetail(cid, count) {
         tid = id_list[i];
         if (toHide) {
             document.getElementById(tid).className = 'hiddenRow';
-            document.getElementById(tid + '.out').className = 'hiddenRow';
         }
         else {
             document.getElementById(tid).className = '';
@@ -233,57 +157,64 @@ function showClassDetail(cid, count) {
     }
 }
 
-function showDetail(tid) {
-    tid1 = tid + '.out';
-    oe = document.getElementById(tid1);
-    if (oe.className)
-        oe.className = '';
-    else
-        oe.className = 'hiddenRow';
+function showOutput(id, name) {
+    w = window.open("", //url
+                    name,
+                    "resizable,status,width=800,height=450");
+    d = w.document;
+    d.write("<pre>");
+    d.write(output_list[id]);
+    d.write("\n");
+    d.write("<a href='javascript:window.close()'>close</a>\n");
+    d.write("</pre>\n");
+    d.close();
 }
+
 </script>
 
-<p>$description</p>
-<p>Time: $time</p>
-<p>Status: $status</p>
-Show 
+<h1>$description</h1>
+<p class='heading'><strong>Time:</strong> $time</p>
+<p class='heading'><strong>Status:</strong> $status</p>
+<p id='show_detail_line'>Show 
 <a href='javascript:showCase(0)'>Summary</a> 
 <a href='javascript:showCase(1)'>Failed</a> 
 <a href='javascript:showCase(2)'>All</a>
-<table border='1' cellspacing='0' cellpadding='2'>
+</p>
+<table id='result_table'>
 <colgroup>
-<col class='col1' align='left' />
-<col class='col2' align='right' />
-<col class='col3' align='right' />
-<col class='col4' align='right' />
-<col class='col5' align='right' />
-<col class='col6' align='right' />
+<col align='left' />
+<col align='right' />
+<col align='right' />
+<col align='right' />
+<col align='right' />
+<col align='right' />
 </colgroup>
-<tr>
-    <th>Class/Test case</th>
-    <th>Count</th>
-    <th>Pass</th>
-    <th>Fail</th>
-    <th>Error</th>
-    <th>View</th>
+<tr id='header_row'>
+    <td>Class/Test case</td>
+    <td>Count</td>
+    <td>Pass</td>
+    <td>Fail</td>
+    <td>Error</td>
+    <td>View</td>
 </tr>
 $tests
-<tr>
-    <th>Total</th>
-    <th>$count</th>
-    <th>$Pass</th>
-    <th>$fail</th>
-    <th>$error</th>
-    <th>&nbsp;</th>
+<tr id='total_row'>
+    <td>Total</td>
+    <td>$count</td>
+    <td>$Pass</td>
+    <td>$fail</td>
+    <td>$error</td>
+    <td>&nbsp;</td>
 </tr>
 </table>
+<div id='btm_filler' />
 </body>
 </html>
 """)
 
-CLASS_TMPL = string.Template("""
-<tr>
-    <td class='$style'>$name</td>
+CLASS_TMPL = string.Template(r"""
+<tr class='$style'>
+    <td>$name</td>
     <td>$count</td>
     <td>$Pass</td>
     <td>$fail</td>
@@ -292,22 +223,189 @@ CLASS_TMPL = string.Template("""
 </tr>
 """)
 
-TEST_TMPL = string.Template("""
+TEST_TMPL = string.Template(r"""
 <tr id='$tid' class='$Class'>
-    <td style='margin-left:2em;'><div class='$style'>$name<div></td>
-    <td>&nbsp</td>
-    <td colspan='3' align='center'>$status</td>
-    <td><a href="javascript:showDetail('$tid')">Detail</a></td>
+    <td class='$style'><div class='testcase'>$name<div></td>
+    <td colspan='5' align='center'><a href="javascript:showOutput('$tid', '$name')">$status</a></td>
 </tr>
 """)
 
-TEST_OUTPUT_TMPL = string.Template("""
-<tr id='$id' class='hiddenRow'>
-    <td colspan='6'>
-    <pre>$output</pre>
-    </td>
+TEST_TMPL_NO_OUTPUT = string.Template(r"""
+<tr id='$tid' class='$Class'>
+    <td class='$style'><div class='testcase'>$name<div></td>
+    <td colspan='5' align='center'>$status</td>
 </tr>
 """)
+
+TEST_OUTPUT_TMPL = string.Template(r"""
+<script>output_list['$id'] = '$output';</script>
+""")
+
+
+# ----------------------------------------------------------------------
+
+class _TestResult(TestResult):
+    # note: _TestResult is a pure representation of results. 
+    # It lacks the output and reporting ability compares to unittest._TextTestResult.
+
+    def __init__(self):
+        TestResult.__init__(self)
+        self.result = []
+        self.stdout0 = None
+        self.stderr0 = None
+        
+        
+    def startTest(self, test):
+        TestResult.startTest(self, test)
+        self.outputBuffer = StringIO.StringIO()
+        stdout_redirector.fp = self.outputBuffer
+        stderr_redirector.fp = self.outputBuffer
+        self.stdout0 = sys.stdout
+        self.stderr0 = sys.stderr
+        sys.stdout = stdout_redirector
+        sys.stderr = stderr_redirector
+    
+    
+    def complete_output(self):
+        """ 
+        Disconnect output redirection and return buffer. 
+        Safe to call multiple times.
+        """
+        if self.stdout0:
+            sys.stdout = self.stdout0
+            sys.stderr = self.stderr0
+            self.stdout0 = None
+            self.stderr0 = None
+        return self.outputBuffer.getvalue()
+        
+    
+    def stopTest(self, test):
+        # Usually one of addSuccess, addError or addFailure would have been called.
+        # But there are some path in unittest that would bypass this.
+        # We must disconnect stdout in stopTest(), which is guaranteed to be called.
+        self.complete_output()
+        
+        
+    def addSuccess(self, test):
+        TestResult.addSuccess(self, test)
+        output = self.complete_output()
+        self.result.append((0, test, output, ''))
+        sys.stderr.write('.')
+
+    def addError(self, test, err):
+        TestResult.addError(self, test, err)
+        output = self.complete_output()
+        self.result.append((2, test, output, self._exc_info_to_string(err, test)))
+        sys.stderr.write('E')
+
+    def addFailure(self, test, err):
+        TestResult.addFailure(self, test, err)
+        output = self.complete_output()
+        self.result.append((1, test, output, self._exc_info_to_string(err, test)))
+        sys.stderr.write('F')
+
+
+class HTMLTestRunner:
+    """
+    """
+    def __init__(self, stream=sys.stdout, descriptions=1, verbosity=1, description='A Test'):
+        # unittest itself has no good mechanism for user to define a
+        # description neither in TestCase nor TestSuite. Allow user to
+        # pass in the description as a parameter.
+                
+        # note: this is different from unittest.TextTestRunner's
+        # 'descrpitions' parameter, which is an integer flag.
+
+        self.stream = stream
+        self.startTime = datetime.datetime.now()
+        self.description = description
+        #self.verbosity = verbosity
+
+    def run(self, test):
+        "Run the given test case or test suite."
+        result = _TestResult()
+        test(result)
+        self.stopTime = datetime.datetime.now()
+        self.generateReport(test, result)
+        print >>sys.stderr, '\nTime Elapsed: %s' % (self.stopTime-self.startTime)
+        return result
+        
+    def sortResult(self, result_list):
+        rmap = {}
+        classes = []
+        for n,t,o,e in result_list:
+            cls = t.__class__
+            if not rmap.has_key(cls):
+                rmap[cls] = []
+                classes.append(cls)
+            rmap[cls].append((n,t,o,e))           
+        r = [(cls, rmap[cls]) for cls in classes]
+        return r
+        
+    def generateReport(self, test, result):
+        rows = []
+        npAll = nfAll = neAll = 0
+        sortedResult = self.sortResult(result.result)
+        for cid, (cls, cls_results) in enumerate(sortedResult):
+            # update counts
+            np = nf = ne = 0            
+            for n,t,o,e in cls_results:
+                if n == 0: np += 1
+                elif n == 1: nf += 1
+                else: ne += 1
+            npAll += np                
+            nfAll += nf                
+            neAll += ne
+
+            row = CLASS_TMPL.safe_substitute(
+                style = ne > 0 and 'errorClass' or nf > 0 and 'failClass' or 'passClass',
+                name = "%s.%s" % (cls.__module__, cls.__name__),
+                count = np+nf+ne,
+                Pass = np,
+                fail = nf,
+                error = ne,
+                cid = 'c%s' % (cid+1),
+            )
+            rows.append(row)
+            
+            for tid, (n,t,o,e) in enumerate(cls_results):
+                # e.g. 'pt1.1', 'ft1.1', etc
+                has_output = bool(o or e)
+                tid = (n == 0 and 'p' or 'f') + 't%s.%s' % (cid+1,tid+1)
+                name = t.id().split('.')[-1]
+                tmpl = has_output and TEST_TMPL or TEST_TMPL_NO_OUTPUT
+                row = tmpl.safe_substitute(
+                    tid = tid,
+                    Class = (n == 0 and 'hiddenRow' or ''),
+                    style = n == 2 and 'errorCase' or (n == 1 and 'failCase' or ''),
+                    name = name,
+                    status = STATUS[n],
+                )
+                rows.append(row)
+                if has_output:
+                    row = TEST_OUTPUT_TMPL.safe_substitute(
+                        id = tid,
+                        output = saxutils.escape(o+e) \
+                            .replace("'", '&apos;') \
+                            .replace('"', '&quot;') \
+                            .replace('\\','\\\\') \
+                            .replace('\n','\\n'),
+                    )
+                    rows.append(row)
+                    
+        report = HTML_TMPL.safe_substitute(
+            title = self.description,
+            css = CSS,
+            description = self.description,
+            time = str(self.startTime)[:19],
+            status = result.wasSuccessful() and 'Passed' or 'Failed',
+            tests = ''.join(rows),
+            count = str(npAll+nfAll+neAll),
+            Pass = str(npAll),
+            fail = str(nfAll),
+            error = str(neAll),            
+        )
+        self.stream.write(report)
 
 
 ##############################################################################
@@ -319,6 +417,10 @@ class TestProgram(unittest.TestProgram):
     A variation of the unittest.TestProgram. Please refer to the base 
     class for command line parameters.
     """
+    # TODO: unittest.TestProgram.createTests() is useful. On the other
+    #   hand unittest.TestProgram's commandline parameters may not be
+    #   sufficient for HTMLTestRunner. (want title, CSS, etc.)
+
     def runTests(self):
         """ Pick HTMLTestRunner as the default test runner. """
         if self.testRunner is None:

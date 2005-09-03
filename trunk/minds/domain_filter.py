@@ -15,7 +15,7 @@ def load():
     """ Reload g_exdm from config """
     exdms = []
     for i in range(5):
-        exdm_str = cfg.get('filter', 'domain.%s' % i, '')   # get domain.0 - domain.4
+        exdm_str = cfg.get('filter.domain.%s' % i, '')   # get domain.0 - domain.4
         lst = exdm_str.split(',')                           # parse ',' separated str
         exdms += filter(None, map(string.strip, lst))       # strip spaces, drop ''
 

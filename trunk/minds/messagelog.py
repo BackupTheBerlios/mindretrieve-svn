@@ -271,7 +271,7 @@ class MsgLogger(object):
             qlog - queuing for indexing, save if minfo.discard is not set
         """
 
-        mlogFlag = cfg.getboolean('messagelog', 'mlog', False)
+        mlogFlag = cfg.getboolean('messagelog.mlog', False)
         if not minfo.discard or mlogFlag:
             minfo.id = self.getId()
 

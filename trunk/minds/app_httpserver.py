@@ -56,7 +56,7 @@ class AppHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
     """
 
     # configurations
-    server_version = config.APPLICATION_NAME + "/" + cfg.get('version','number','?')
+    server_version = config.APPLICATION_NAME + "/" + cfg.get('version.number','?')
     protocol_version = "HTTP/1.0"
 
     # todo: actually these class variables got initialized too early. Before cfg.setup is called from proxy
@@ -163,7 +163,7 @@ class AppHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                 pass
 
             mod.main(self.rfile, parsed_wfile, env)
-        except Exception:
+        except:
             log.exception("CGI execution error: %s" % script_name)
 
             # Original exception already logged. It is OK if below raises new exception

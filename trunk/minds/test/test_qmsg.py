@@ -47,12 +47,12 @@ class TestBackgroundTask(unittest.TestCase):
         messagelog.mlog = messagelog.MsgLogger()
 
         # prepare some configuration for this test
-        self.interval0     = cfg.get('indexing', 'interval'    )
-        self.numDoc0       = cfg.get('indexing', 'numDoc'      )
-        self.max_interval0 = cfg.get('indexing', 'max_interval')
-        cfg.set('indexing', 'interval'    , '3'  )
-        cfg.set('indexing', 'numDoc'      , '5' )
-        cfg.set('indexing', 'max_interval', '360')
+        self.interval0     = cfg.get('indexing.interval'    )
+        self.numDoc0       = cfg.get('indexing.numDoc'      )
+        self.max_interval0 = cfg.get('indexing.max_interval')
+        cfg.set('indexing.interval'    , '3'  )
+        cfg.set('indexing.numDoc'      , '5' )
+        cfg.set('indexing.max_interval', '360')
 
         # make dummy queued msg 0.tmp
         self.logdir = cfg.getPath('logs')
@@ -68,9 +68,9 @@ class TestBackgroundTask(unittest.TestCase):
     def tearDown(self):
         """ Reset things we have altered. """
         messagelog.mlog = messagelog.MsgLogger()                # reset messagelog.mlog
-        cfg.set('indexing', 'interval'    , self.interval0    ) # reset configurations
-        cfg.set('indexing', 'numDoc'      , self.numDoc0      )
-        cfg.set('indexing', 'max_interval', self.max_interval0)
+        cfg.set('indexing.interval'    , self.interval0    ) # reset configurations
+        cfg.set('indexing.numDoc'      , self.numDoc0      )
+        cfg.set('indexing.max_interval', self.max_interval0)
 
         os.remove(self.path)                                    # remove dummy queued msg
 

@@ -81,7 +81,7 @@ class PooledHTTPServer(HTTPServer):
         # reset only http_proxy here?!
 
         # setting in CERN httpd format (http://www.w3.org/Daemon/User/Proxies/ManyProxies.html)
-        http_proxy = cfg.get('http', 'http_proxy', '')
+        http_proxy = cfg.get('http.http_proxy', '')
         if not http_proxy:
             return
 

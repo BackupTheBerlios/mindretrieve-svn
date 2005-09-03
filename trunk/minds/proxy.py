@@ -40,8 +40,8 @@ class runnable(object):
 proxy_httpd = None
 
 def proxyMain():
-    port = cfg.getint('http','proxy_port')
-    numThreads = cfg.getint('http','proxy_threads', 1)
+    port = cfg.getint('http.proxy_port')
+    numThreads = cfg.getint('http.proxy_threads', 1)
     server_address = ('', port)
     global proxy_httpd
     proxy_httpd = httpserver.PooledHTTPServer(server_address, proxyhandler.ProxyHandler, numThreads)
@@ -52,7 +52,7 @@ def proxyMain():
 admin_httpd = None
 
 def adminMain():
-    port = cfg.getint('http','admin_port')
+    port = cfg.getint('http.admin_port')
     server_address = ('', port)
     global admin_httpd
     admin_httpd = httpserver.HTTPServer(server_address, app_httpserver.AppHTTPRequestHandler)
@@ -64,7 +64,7 @@ def adminMain():
 
 
 def indexMain():
-    interval = cfg.getint('indexing','interval',3)
+    interval = cfg.getint('indexing.interval',3)
     log.info('Scheduled index thread to run every %s minutes' % interval)
     while not _shutdownEvent.wait(interval * 60):
         if _shutdownEvent.isSet():
@@ -148,7 +148,7 @@ def main():
     if 'win32' in sys.platform: platform += str(sys.getwindowsversion())
 
     log.info('-'*70)
-    log.info('%s %s', config.APPLICATION_NAME, cfg.get('version','number'))
+    log.info('%s %s', config.APPLICATION_NAME, cfg.get('version.number'))
     log.info('Python %s', sys.version)
     log.info('  Platform %s', platform)
     log.info('  pwd: %s, defaultencoding: %s', os.getcwd(), sys.getdefaultencoding())

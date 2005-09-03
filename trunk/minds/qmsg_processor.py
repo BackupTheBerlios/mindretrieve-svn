@@ -107,9 +107,9 @@ def _shouldIndex(now, logdir, queued):
 
     # Read config. Note interval and max_interval are compared against
     # different base. See rule 1 & 2 for detail.
-    numDoc       = cfg.getint('indexing','numDoc',50)
-    interval     = datetime.timedelta( seconds=cfg.getint('indexing','interval',3      )*60 )
-    max_interval = datetime.timedelta( seconds=cfg.getint('indexing','max_interval',360)*60 )
+    numDoc       = cfg.getint('indexing.numDoc',50)
+    interval     = datetime.timedelta( seconds=cfg.getint('indexing.interval',3      )*60 )
+    max_interval = datetime.timedelta( seconds=cfg.getint('indexing.max_interval',360)*60 )
 
 
     # Rule 1. time elapsed since 'lastIssued' > 'interval' and has 'numDoc'
@@ -184,7 +184,7 @@ def backgroundIndexTask(forceIndex=False):
         Returns transformed, index, discarded
     """
 
-    interval= cfg.getint('indexing','interval',3)
+    interval= cfg.getint('indexing.interval',3)
     logdir  = cfg.getPath('logs')
     now = datetime.datetime.now()
 
@@ -230,8 +230,8 @@ class TransformProcess(object):
 
         # initialize configuration parameters
         global g_maxuri, g_archive_interval
-        g_maxuri = cfg.getint('messagelog','maxuri',1024)
-        g_archive_interval = cfg.getint('indexing','archive_interval',1)
+        g_maxuri = cfg.getint('messagelog.maxuri',1024)
+        g_archive_interval = cfg.getint('indexing.archive_interval',1)
 
         for filename in qlogs:              # main loop
 

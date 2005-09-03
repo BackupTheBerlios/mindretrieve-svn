@@ -57,7 +57,7 @@ class ProxyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         messagelog.mlog.lastRequest = datetime.datetime.now()
 
         self.minfo = messagelog.MessageInfo()
-        max_messagelog = cfg.getint('messagelog', 'max_messagelog', 2048)
+        max_messagelog = cfg.getint('messagelog.max_messagelog', 2048)
         self.logfp = cachefile.CacheFile(max_messagelog*1024)
 
         try:
@@ -237,7 +237,7 @@ class ProxyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         fp.complete()
 
         # write reposne body in a new block
-        maxresponse = cfg.getint('messagelog', 'maxresponse', 1024)    # max maxresponse size in kb
+        maxresponse = cfg.getint('messagelog.maxresponse', 1024)    # max maxresponse size in kb
         rspLogFp = multiblockfile.MbWriter(self.logfp)
         rspLogFp = fileutil.BoundedFile(rspLogFp, maxresponse*1024)
         rspBuf.seek(bodyPos)

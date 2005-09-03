@@ -228,12 +228,12 @@ class TestMsgLogger(unittest.TestCase):
     def _invoke_dispose(self, minfo, cfp, mlog):
         """ Helper to set 'mlog' config and then invoke dispose() """
 
-        mlog0 = cfg.get('messagelog', 'mlog')
+        mlog0 = cfg.get('messagelog.mlog')
         cfg.cparser.set('messagelog', 'mlog', mlog)
         try:
             self.mlog.dispose(minfo, cfp, self.starttime)
         finally:
-            cfg.set('messagelog', 'mlog', mlog0)
+            cfg.set('messagelog.mlog', mlog0)
 
 
     def testDispose_00(self):

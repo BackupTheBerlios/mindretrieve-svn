@@ -12,6 +12,15 @@ import os.path
 import StringIO
 import sys
 
+# 2005-09-03 Config Design (Why do we have this module instead of using ConfigParser directly?)
+#
+# - config (along with logging) is the most fundamental services. Allow customerization.
+# - ConfigParser helps parsing and saving
+# - 2 level address cumbersome. API to accept single address section.name.
+# - bind together 2 config files and present as a single configuration.
+# - parse boolean and integer fields with default fallback.
+
+
 # This is intended to synchronize with the CONFIG_FILE edited by user.
 # This can be a hardcoded fallback in case user has mess up the file.
 
@@ -65,10 +74,10 @@ APPLICATION_NAME = 'MindRetrieve'
 bootstrapHdlr = None
 
 def setupLogging():
-    """ Setup a bootstrap logging to console """
-
-    # why do we need to setup a bootstrap logger?
-    # Can't logging send to console by default?
+    """ 
+    Setup a bootstrap logging to console. 
+    Main program would use config to log to file later.
+    """
     global bootstrapHdlr
     bootstrapHdlr = logging.StreamHandler(sys.stdout)
     formatter = logging.Formatter('%(asctime)s %(name)-10s - %(message)s')
@@ -80,6 +89,7 @@ def setupLogging():
 setupLogging()
 
 
+
 ### config file ########################################################
 
 class Config(object):
@@ -89,7 +99,8 @@ class Config(object):
         """ initialize with default config file """
         self.cparser = ConfigParser.ConfigParser()
         self.cparser.readfp( StringIO.StringIO(SYSTEM_DEFAULT_CONFIG), 'System Default')
-        self.application_name = '%s %s' % (APPLICATION_NAME, self.get('version', 'number', '?'))
+        self.application_name = '%s %s' % (APPLICATION_NAME, self.get('version.number', '?'))
+        self.pathname = ''
 
 
     def load(self, pathname):
@@ -107,98 +118,76 @@ class Config(object):
         """ Create directories specified in [path] """
         self._setupPath(self.getPath('logs'))
         self._setupPath(self.getPath('archive'))
+        self._setupPath(self.getPath('weblib'))
 
 
     def _setupPath(self, path):
         """ create directory if not already exists """
         if os.path.isdir(path): return
         try:
-            # raise exception if path exist but is not a directory
             os.makedirs(path)
         except OSError, e:
+            # path exist but is not a directory?
             raise OSError, 'Unable to create directory specified in %s\n%s' % (self.pathname, e)
 
 
-    def get(self, section, name, default=None):
+    def parseKey(self, key):
+        parts = key.split('.',1)
+        if len(parts) < 2:
+            raise KeyError('Invalid configuration key: %s' % key)
+        return parts
+        
+            
+    def get(self, key, default=None):
+        section, name = self.parseKey(key)
         try:
             return self.cparser.get(section, name)
         except Exception, e:
             if default != None: return default
-            raise e
+            raise
 
 
-    def getint(self, section, name, default=None):
+    def getint(self, key, default=None):
+        section, name = self.parseKey(key)
         try:
             return self.cparser.getint(section, name)
         except Exception, e:
             if default != None: return default
-            raise e
+            raise
 
 
-    def getboolean(self, section, name, default=None):
+    def getboolean(self, key, default=None):
+        section, name = self.parseKey(key)
         try:
             return self.cparser.getboolean(section, name)
         except Exception, e:
             if default != None: return default
-            raise e
+            raise
 
 
     def getPath(self, name, default='.'):
         """ helper to get config from path section """
-        return self.get('path', name, default)
+        return self.get('path.%s' % name, default)
 
 
-    def set(self, section, option, value):
+    def set(self, key, value):
+        section, option = self.parseKey(key)
         self.cparser.set(section, option, value)
 
 
-    def dump(self, out):
-        out.write('Config object: %s\n' % str(self.cparser))
+    def __str__(self):
+        buf = StringIO.StringIO()
+        buf.write('Config pathname: %s\n' % self.pathname)
+        buf.write('Config object: %s\n' % str(self.cparser))
         for s in self.cparser.sections():
-            out.write('Section: %s\n' % s)
+            buf.write('\n[%s]\n' % s)
             for name, value in self.cparser.items(s):
-                out.write('  %s=%s\n' % (name,value))
+                buf.write('%s=%s\n' % (name,value))
+        return buf.getvalue()        
 
 
 cfg = Config()
 
-
-### testing ############################################################
-
-import unittest
-
-TEST_FILENAME = 'config.ini'
-
-class TestConfig(unittest.TestCase):
-
-  def setUp(self):
-    # save cfg which would get modified in testConfig
-    global cfg
-    self.cfg0 = cfg
-    cfg = Config()
-
-  def testConfig(self):
-    print '\n@testConfig:', TEST_FILENAME
-    cfg.load(TEST_FILENAME)
-    cfg.setupPaths()
-    cfg.dump(sys.stdout)
-    self.assert_( cfg.get('version','created').find('2005') >= 0)
-
-  def testDefault(self):
-    self.assertNotEqual( cfg.get('version','created','X'), 'X')         # not using default
-
-    self.assertEqual( cfg.get('version','keyX', 'default'), 'default')
-    self.assertEqual( cfg.get('version','keyX', ''       ), '')         # Test out default of ''
-
-    self.assertEqual( cfg.getint    ('version','keyX', 1     ), 1)
-    self.assertEqual( cfg.getint    ('version','keyX', 0     ), 0)      # Test out default of 0
-
-    self.assertEqual( cfg.getboolean('version','keyX', True  ), True )
-    self.assertEqual( cfg.getboolean('version','keyX', False ), False)  # Test out default of False
-
-  def tearDown(self):
-    global cfg
-    cfg = self.cfg0
 
 if __name__ == '__main__':
     unittest.main()

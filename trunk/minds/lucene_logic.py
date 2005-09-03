@@ -16,7 +16,7 @@ def initDirectory(directory):
     """ initialize a new directory """
     writer = PyLucene.IndexWriter(directory, PyLucene.StandardAnalyzer(), True)
 
-    version = cfg.get('version', 'number', '?')
+    version = cfg.get('version.number', '?')
     doc = PyLucene.Document()
     doc.add(PyLucene.Field('version', version, True, True, False))
 

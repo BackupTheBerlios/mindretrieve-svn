@@ -76,7 +76,7 @@ def log(msg):
 def init():
     global domainMap
     domainMap = {}
-    ###path = proxy.cfg.get('path','logs','.')
+    ###path = proxy.cfg.get('path.logs','.')
     ###fp = file(os.path.join(path,DOMAINFILE),'r')
     for line in openDomainFp('a+'):
         # validation (lower case, etc)

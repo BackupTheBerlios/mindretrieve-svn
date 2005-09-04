@@ -12,22 +12,19 @@ Options
  --prefix   subclasses of unittest.TestCase with the prefix would be
             included in unit testing. Default is 'Test'.
 '''
+# todo: need to handle basedir = . e.g. import without package
 
 import datetime
 import fnmatch
 import getopt
+import logging
 import StringIO
 import sys, os, os.path
 import traceback
 import types
 import unittest
 
-# todo: need to handle basedir = . e.g. import without package
-
-try:
-    from minds import allmodules
-except ImportError, e:
-    print e
+from toollib import HTMLTestRunner
 
 
 def listModules(basedir, recurse=True):
@@ -59,28 +56,31 @@ def generate_allmodules(basedir, recurse):
         # no need to regenerate and reload allmodules.py
         return
 
-    fp = file(os.path.join(basedir,'allmodules.py'),'wb')
+    fp = file('minds/allmodules.py','wb')
     fp.write('modules = ')
     s = repr(module_list)
     s = s.replace('),','),\n')
     fp.write(s)
     fp.close()
 
+
+def loadModules(prefix):
+    """ Return modules, errorlist and tests found. """
+
+    try:
+        from minds import allmodules
+    except ImportError:
+        traceback.print_exc()
+        
     try:
         reload(allmodules)
     except ImportError:
         pass    # bug [856103] (https://sourceforge.net/tracker/?func=detail&atid=105470&aid=856103&group_id=5470)
 
-
-
-def loadModules(prefix):
-    """ Return modules, errorlist and tests found. """
     modules = []
     errorlist = []
     suite = unittest.TestSuite()
     num_testmodules = 0
-
-    print '-'*72
 
     for (package, name) in allmodules.modules:
         package_name = '%s.%s' % (package, name)
@@ -90,7 +90,6 @@ def loadModules(prefix):
             buf = StringIO.StringIO()
             traceback.print_exc(file=buf)
             errorlist.append(buf.getvalue())
-            print 'X %s' % package_name
             continue
 
         modules.append(mod)
@@ -98,11 +97,7 @@ def loadModules(prefix):
         if module_suite:
             num_testmodules += 1
             suite.addTest(module_suite)
-            print '  %s (%s tests)' % (package_name, module_suite.countTestCases())
-        else:
-            print '  %s' % package_name
 
-    print '-'*72
     if errorlist:
         for e in errorlist:
             sys.stderr.write('\n')
@@ -135,18 +130,14 @@ def loadTestCases(module, prefix):
 
 
 def sanity_test(basedir, recurse, prefix):
-
-    print 'Date:', datetime.datetime.now()
-    print 'Basedir:', basedir
-    print
+    logging.basicConfig(stream=HTMLTestRunner.stdout_redirector)
+    print >>sys.stderr, 'Date:', datetime.datetime.now()
+    print >>sys.stderr, 'Basedir:', basedir
 
     generate_allmodules(basedir, recurse)
-
     modules, errorlist, num_testmodules, suite = loadModules(prefix)
-    unittest.TextTestRunner(verbosity=2).run(suite)
-    sys.stderr.write('\nModules imported: %d  errors: %d  tested: %d\n' % \
-        (len(modules), len(errorlist), num_testmodules))
-
+#    unittest.TextTestRunner(verbosity=2).run(suite)
+    HTMLTestRunner.HTMLTestRunner(verbosity=2).run(suite)
 
 
 def main(argv):

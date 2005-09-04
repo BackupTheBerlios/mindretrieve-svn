@@ -61,7 +61,14 @@ def load(rstream):
         except Exception, e:
             log.warn('Parsing error line %s: %s', lineno, e)
             raise
-    wlib.fix()
+
+    # completed reading all tags and webpages, convert tagIds to tag
+    for item in wlib.webpages:
+        tags = [wlib.tags.getById(id) for id in item.tagIds]
+        item.tags = filter(None, tags)
+        # remove tagIds to avoid duplicated data?
+
+    wlib.categorize()
     return wlib
 
 

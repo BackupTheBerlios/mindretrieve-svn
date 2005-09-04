@@ -21,7 +21,6 @@ class Bean(object):
         self.form = form     
         self.item = None
 
-        # tags string. This is tentative and may contain new tags.
         self.tags = ''
         self.related = ''
         
@@ -62,6 +61,8 @@ class Bean(object):
                     url         = form.getfirst('u','').decode('utf-8'),
                     description = form.getfirst('ds','').decode('utf-8'),
                 )
+                item.tags = [wlib.getDefaultTag()]
+                item.tags = filter(None, item.tags) # don't want [None]
                 
             self.item = item
             self.tags  = ', '.join([l.name for l in item.tags])
@@ -145,7 +146,7 @@ def doPutResource(wfile, env, bean):
         item0.name        = item.name       
         item0.url         = item.url        
         item0.description = item.description
-        item0.tagIds      = item.tagIds   
+        item0.tags        = item.tags[:]
         item0.relatedIds  = item.relatedIds 
         item0.modified    = item.modified   
         item0.lastused    = item.lastused   
@@ -158,7 +159,7 @@ def doPutResource(wfile, env, bean):
     else:    
         log.info('Updating WebPage: %s' % unicode(item))
     
-    wlib.fix()
+    wlib.categorize()
     store.save(wlib)
     response.redirect(wfile, return_url)
 
@@ -170,7 +171,7 @@ def doDeleteResource(wfile, env, bean):
         log.info('Deleting WebPage %s' % unicode(item))
         # todo: may need to delete tags too.    
         wlib.deleteWebPage(item)
-        wlib.fix()  ## <-- what is this???
+        wlib.categorize()
         store.save(wlib)  
     return_url = request.get_return_url(env, bean.form)
     response.redirect(wfile, return_url)

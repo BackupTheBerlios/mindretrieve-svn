@@ -19,10 +19,18 @@ def main(rfile, wfile, env):
     method, form, rid, rid_path = request.parseURL(rfile, env)
     log.debug('method %s rid %s', method, rid)
 
-    # other parameters
+    querytxt = form.getfirst('query','').decode('utf-8')
     tag = form.getfirst('tag','').decode('utf-8')
-    querytxt  = form.getfirst('query','').decode('utf-8')
 
+    wlib = store.getMainBm()
+    if rid is None and (not form.has_key('tag')) and (not querytxt):
+        # redirect to default tag (if it is defined)
+        dt = wlib.getDefaultTag()
+        if dt:
+            url = request.tag_url([dt])
+            response.redirect(wfile, url)
+            return
+    
     if form.getfirst('action ') == 'cancel':
         response.redirect(wfile, request.WEBLIB_URL)
         
@@ -61,7 +69,6 @@ def queryWebLib(wfile, env, form, tag, querytxt):
         go_direct = True
     
     wlib = store.getMainBm()
-
     tags, unknown = weblib.parseTags(wlib, tag)
     items, related, most_visited = weblib.query(wlib, querytxt, tags)
 

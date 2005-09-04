@@ -33,6 +33,14 @@
     padding-left: 1em;
     padding-bottom: 1ex;
   }
+  .btn {
+    color:#fff;
+    border: 2px outset #3c3;
+    background-color:#3c3;
+    font-weight:bold;
+    padding-left: 1em;
+    padding-right: 1em;
+  }
   .filler       {
     line-height: 0.5ex;
   }  
@@ -103,8 +111,8 @@ function close_form() {
     <tr>
         <td></td>
         <td>
-            <input type='submit' name='action' value='OK' />
-            <input type='button' name='action' value='Cancel' onclick='close_form()' />
+            <input class='btn' type='submit' name='action' value='OK' />
+            <input class='btn' type='button' name='action' value='Cancel' onclick='close_form()' />
         </td>
     </tr>    
     </table>

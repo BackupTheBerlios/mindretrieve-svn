@@ -27,7 +27,7 @@ weblib/%id/cache?cid=
 weblib/%id/go;http://xyz    Redirect to page
 """
 
-def parseURL(rfile, env):
+def parseURL(rfile, env, keep_blank_values=1):
     """
     Parse the input request base on the URL scheme.
     @return 
@@ -36,7 +36,7 @@ def parseURL(rfile, env):
         rid - resource id, -1 for new, None for n/a
         rid_path - if rid is define, the path follows rid
     """  
-    form = cgi.FieldStorage(fp=rfile, environ=env)
+    form = cgi.FieldStorage(fp=rfile, environ=env, keep_blank_values=keep_blank_values)
 
     # the HTTP method
     method = env.get('REQUEST_METHOD','GET')

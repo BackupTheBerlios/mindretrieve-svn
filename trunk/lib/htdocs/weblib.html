@@ -185,6 +185,9 @@ function countSelected() {
 
 <div id='categorytPane'>
 <ul>
+  <ul>
+    <a href='/weblib?tag=' class='CategoryItem'>-</a><br />
+  </ul>
   <ul node='rep:catList'>
     <a node='con:link' href='#' class='CategoryItem'>MainCat</a><br />
     <li node='rep:catItem' class='CategorySubItem'><a node='con:link' href='#'>Sub cat</a></li>
@@ -224,8 +227,8 @@ function countSelected() {
   <tr class='libTableHeader'>
     <td><input id='checkAll_top' type='checkbox' onclick='selectAll("checkAll_top");'></td>
     <td colspan='4' align='right'>
-       <input type='button' value='organize' onclick='organizeSelected();' />
-       <input type='button' value='delete'  onclick='deleteSelected();' />
+       <input type='button' value='Organize' onclick='organizeSelected();' />
+       <input type='button' value='Delete'  onclick='deleteSelected();' />
     </td>
   </tr>
 
@@ -297,8 +300,8 @@ function countSelected() {
   <tr class='libTableFooter'>
     <td><input id='checkAll_bottom' type='checkbox' onclick='selectAll("checkAll_bottom")'></td>
     <td colspan='4' align='right'>
-       <input type='button' value='organize' onclick='organizeSelected();' />
-       <input type='button' value='delete'  onclick='deleteSelected();' />
+       <input type='button' value='Organize' onclick='organizeSelected();' />
+       <input type='button' value='Delete'  onclick='deleteSelected();' />
     </td>
   </tr>
 

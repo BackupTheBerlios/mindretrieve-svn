@@ -2,6 +2,9 @@
     -q:     query
 """
 
+# TODO: how do I make sure WebPage fields is the right type? e.g. id is int.
+# date fields: modified, cached, accessed
+
 import codecs
 import datetime
 import random
@@ -10,12 +13,12 @@ import string
 import sys
 import urlparse
 
-import util
+from minds.config import cfg
 from minds.util import dsv
+import util
 
-# TODO: how do I make sure WebPage fields is the right type? e.g. id is int.
 
-# date fields: modified, cached, accessed
+TAG_DEFAULT = 'inbox'
 
 class WebPage(object):
 
@@ -130,20 +133,34 @@ class WebLibrary(object):
         ## TODO: optimize!!!
         store.save(self)
         
-         
+                
+    def getDefaultTag(self):
+        d = cfg.get('weblib.tag.default', TAG_DEFAULT)
+        if not d:
+            return None
+        tag = self.tags.getByName(d)
+        if tag:
+            return tag
+        # default tag is not previous used; or user has chosen a new default?
+        tag = Tag(name=d)
+        self.tags.append(tag)
+        self.categorize()
+        return tag
+        
+ 
     def updateWebPage(self, updatedItem):
         pass
         
                        
-    def fix(self):
-        """ call this when finished loading """
-        
-        # set item.tags from tagIds
-        for item in self.webpages:
-            tags = [self.tags.getById(id) for id in item.tagIds]
-            item.tags = filter(None, tags)
-            # remove tagIds to avoid duplicated data?
-            
+    def categorize(self):
+##        """ call this when finished loading """
+##        
+##        # set item.tags from tagIds
+##        for item in self.webpages:
+##            tags = [self.tags.getById(id) for id in item.tagIds]
+##            item.tags = filter(None, tags)
+##            # remove tagIds to avoid duplicated data?            
+        #TODO: clean this
         import category
         self.categories = category.buildCategory(self)
         
@@ -222,9 +239,6 @@ def query(wlib, querytxt, tags):
             related, 
             most_visited
     """
-    print >>sys.stderr, 'querytxt', querytxt##
-    print >>sys.stderr, 'tags', tags##
-
     querywords = querytxt.lower().split()
     if not querywords and not tags:
         return queryMain(wlib)

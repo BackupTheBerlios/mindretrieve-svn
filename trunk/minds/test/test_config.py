@@ -1,8 +1,3 @@
-#import ConfigParser
-#import logging, logging.handlers
-#import os
-#import os.path
-#import StringIO
 import sys
 import unittest
 
@@ -18,16 +13,6 @@ class TestConfig(unittest.TestCase):
   def tearDown(self):
     pass
 
-  def testConfig(self):
-    self.cfg.load(TEST_FILENAME)
-    print str(self.cfg)
-    self.assert_( self.cfg.get('version.created').find('2005') >= 0)
-
-
-  def testSetupPaths(self):
-    self.cfg.load(TEST_FILENAME)
-    self.cfg.setupPaths()                # this will have side effect on the FS!
-
 
   def testDefault(self):
     self.cfg.load(TEST_FILENAME)
@@ -42,6 +27,30 @@ class TestConfig(unittest.TestCase):
 
     self.assertEqual( self.cfg.getboolean('version.nonexist', True ), True )
     self.assertEqual( self.cfg.getboolean('version.nonexist', False), False) # Test out default of False
+
+
+  def testGet(self):
+    self.cfg.load(TEST_FILENAME)
+    print str(self.cfg)
+    self.assert_( self.cfg.get('version.created').find('2005') >= 0)
+
+
+  def testGetPref(self):
+    self.fail()  
+
+
+  def testGetPath(self):
+    self.fail()  
+
+
+  def testUpdate_pref(self):
+    self.fail()  
+
+  
+  def testSetupPaths(self):
+    self.cfg.load(TEST_FILENAME)
+    self.cfg.setupPaths()                # this will have side effect on the FS!
+
 
 
 if __name__ == '__main__':

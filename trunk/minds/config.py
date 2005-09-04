@@ -12,6 +12,8 @@ import os.path
 import StringIO
 import sys
 
+from toollib.path import path
+
 # 2005-09-03 Config Design (Why do we have this module instead of using ConfigParser directly?)
 #
 # - config (along with logging) is the most fundamental services. Allow customerization.
@@ -28,12 +30,20 @@ import sys
 #   logs=testlogs, archive=testdata/archive, etc
 
 SYSTEM_DEFAULT_CONFIG="""
+[version]
+number=0.4.3
+created=2005-02-21
+copyright=2005
+
 [path]
+data=testdata
 archive=testdata/archive
 archiveindex=testdata/archive/index
+weblib=testdata/weblib
+weblibindex=testdata/weblib/index
 docBase=lib/htdocs
 testDoc=lib/testdocs
-logs=testlogs
+logs=logs
 
 [http]
 proxy_port=8051
@@ -51,22 +61,15 @@ interval=3
 numDoc=50
 max_interval=360
 archive_interval=1
-
-[filter]
-domain.0=.googlesyndication.com
-domain.1=
-domain.2=
-domain.3=
-domain.4=
-
-[version]
-number=0.4.3
-created=2005-02-21
-copyright=2005
 """
 
 APPLICATION_NAME = 'MindRetrieve'
 
+# essential system configuration; usually ship with product
+CONFIG_FILE = 'config.ini'
+
+# user preference
+PREFERENCE_FILE = 'preference.ini'
 
 
 ### logging ############################################################
@@ -99,8 +102,10 @@ class Config(object):
         """ initialize with default config file """
         self.cparser = ConfigParser.ConfigParser()
         self.cparser.readfp( StringIO.StringIO(SYSTEM_DEFAULT_CONFIG), 'System Default')
+        self.pparser = ConfigParser.ConfigParser()
         self.application_name = '%s %s' % (APPLICATION_NAME, self.get('version.number', '?'))
-        self.pathname = ''
+        self.config_pathname = ''
+        self.pref_pathname = ''
 
 
     def load(self, pathname):
@@ -109,9 +114,19 @@ class Config(object):
         # ConfigParser.read() do nothing if name does not exist. Check first.
         if not os.path.exists(pathname):
             logging.getLogger().error('Config file does not exist: %s', pathname)
-        else:
-            self.pathname = pathname
-            self.cparser.read(pathname)
+            return
+            
+        self.config_pathname = pathname
+        self.cparser.read(pathname)
+        
+        self.pref_pathname = path(self.getPath('data')) / PREFERENCE_FILE
+        logging.getLogger().info('Loading preference file: %s', self.pref_pathname)
+        
+        # merge with pref
+        self.cparser.read(self.pref_pathname)
+        
+        # pparser is mainly used for save
+        self.pparser.read(self.pref_pathname)
 
 
     def setupPaths(self):
@@ -121,14 +136,14 @@ class Config(object):
         self._setupPath(self.getPath('weblib'))
 
 
-    def _setupPath(self, path):
+    def _setupPath(self, pathname):
         """ create directory if not already exists """
-        if os.path.isdir(path): return
+        if os.path.isdir(pathname): return
         try:
-            os.makedirs(path)
+            os.makedirs(pathname)
         except OSError, e:
             # path exist but is not a directory?
-            raise OSError, 'Unable to create directory specified in %s\n%s' % (self.pathname, e)
+            raise OSError, 'Unable to create directory specified in %s\n%s' % (pathname, e)
 
 
     def parseKey(self, key):
@@ -175,19 +190,51 @@ class Config(object):
         self.cparser.set(section, option, value)
 
 
+    def update_pref(items):
+        """
+        @params items - list of key, value tuples 
+        """
+        for k,v in items:
+            section, name = self.parseKey(key)
+            self.cparser.set(section, name, value)
+            self.pparser.set(section, name, value)
+            
+        logging.getLogger().error('Updating preference: %s', self.pref_pathname)
+        fp = file(self.pref_pathname,'wb')
+        try:
+            self.pparser.write(fp)
+        finally:
+            fp.close()    
+        
+        
     def __str__(self):
         buf = StringIO.StringIO()
-        buf.write('Config pathname: %s\n' % self.pathname)
-        buf.write('Config object: %s\n' % str(self.cparser))
+        buf.write('Config file: %s\n' % self.config_pathname)
+        buf.write('Preference file: %s\n' % self.pref_pathname)
         for s in self.cparser.sections():
             buf.write('\n[%s]\n' % s)
             for name, value in self.cparser.items(s):
                 buf.write('%s=%s\n' % (name,value))
         return buf.getvalue()        
 
-
 cfg = Config()
 
+# ----------------------------------------------------------------------
+# cmdline testing
 
-if __name__ == '__main__':
-    unittest.main()
+def main(argv):
+    cfg.load(CONFIG_FILE)
+    print cfg
+    while True:
+        line = raw_input('Config key: ')
+        if not line:
+            break
+        try:    
+            value = cfg.get(line,'n/a')
+            print line,'=',value
+        except Exception, e:
+            print e    
+        
+
+if __name__ =='__main__':
+    main(sys.argv)

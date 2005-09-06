@@ -50,9 +50,6 @@ def main(argv):
         print __doc__
         sys.exit(-1)
 
-    from minds import proxy
-    proxy.init(proxy.CONFIG_FILENAME)
-
     index_path = argv[1]
     shutil.rmtree(index_path, True)
 

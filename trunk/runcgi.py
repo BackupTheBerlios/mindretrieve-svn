@@ -23,14 +23,11 @@ from minds.util import fileutil
 def fix_link(rfile,wfile):
    for line in rfile:
         line = line.replace('href="/main.css"', 'href="lib/htdocs/main.css"')
+        line = line.replace('href="main.css"', 'href="lib/htdocs/main.css"')
         wfile.write(line)
 
 
 def main():
-
-    from minds import proxy
-    proxy.init(proxy.CONFIG_FILENAME)
-
     buf = fileutil.aStringIO()
     sys.stdout = buf
     try:

@@ -471,9 +471,6 @@ def main(argv):
         print main.__doc__
         sys.exit(-1)
 
-    from minds import proxy
-    proxy.init('')  # use test config
-
     next_proxy = len(argv) > 2 and argv[2] or ''
 
     pHandler = testHandleMlog(argv[1], server=TestServer(next_proxy))

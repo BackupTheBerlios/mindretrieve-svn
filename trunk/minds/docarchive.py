@@ -197,10 +197,6 @@ class ArchiveHandler(object):
 ## cmdline testing #####################################################
 
 def main(argv):
-
-    from minds import proxy
-    proxy.init(proxy.CONFIG_FILENAME)
-
     if len(argv) <= 1:
         print __doc__
 
@@ -214,8 +210,7 @@ def main(argv):
     if option == '-r':
         id = argv[2]
         id = ('000000000' + id)[-9:]
-        arc_path, filename = parseId(id)
-        print get_document(arc_path, filename).read()
+        print get_document(id).read()
 
     elif option == '-a':
         filename = argv[2]

@@ -12,16 +12,19 @@ from minds.util.multiblockfile import MbReader
 
 testdir = os.path.join(cfg.getPath('testDoc'),'.')[:-1]
 
+# Do not disturb data directory. Use test directories.
+cfg.load_test_config()
+cfg.setupPaths()
+
 
 class TestProxyHandler(unittest.TestCase):
 
     # note that we uses proxyhandler.testHandleMlog() to run through most
     # of ProxyHandler. However network element like select is not exercised.
 
-
     def setUp(self):
-        from minds import proxy
-        proxy.init('')                              # use test config
+        #from minds import proxy
+        #proxy.init('')                              # use test config
         self.cleanup()
 
 
@@ -119,8 +122,6 @@ class TestProxyHandler(unittest.TestCase):
             self.assertEqual(messagelog.mlog.currentId, None)
         finally:
             fp1.close()
-
-
 
 
 if __name__ == '__main__':

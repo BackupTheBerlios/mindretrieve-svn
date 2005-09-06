@@ -1,4 +1,4 @@
-"""Usage: distillparse.py options [docid|pathname]
+"""Usage: distillparse.py options [9 digit docid|pathname]
 
 options:
     -r  render in HTML
@@ -168,9 +168,6 @@ def main(argv):
         print __doc__
         sys.exit(-1)
 
-    from minds import proxy
-    proxy.init(proxy.CONFIG_FILENAME)       # config to read the actual archive
-
     option = argv[1]
     path_or_id = argv[2]
 
@@ -179,6 +176,7 @@ def main(argv):
         if os.path.exists(path_or_id):
             fp = file(path_or_id, 'rb')
         else:
+            path_or_id = ('000000000' + path_or_id)[-9:]
             fp = docarchive.get_document(path_or_id)
 
         if option == '-s':
@@ -194,4 +192,4 @@ def main(argv):
 
 
 if __name__ == '__main__':
-    main(sys.argv)\
+    main(sys.argv)

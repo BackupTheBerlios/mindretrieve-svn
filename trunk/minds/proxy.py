@@ -21,7 +21,6 @@ from minds.util import threadutil
 
 ### System Globals #####################################################
 
-CONFIG_FILENAME = 'config.ini'
 log = logging.getLogger('proxy')
 _shutdownEvent = threading.Event()
 
@@ -75,15 +74,16 @@ def indexMain():
 
 ########################################################################
 
-def init(config_filename):
-    """ Basic configuration. Designed to be light weight enough to invoke for unit testing. """
-
-    cfg.load(config_filename)
-    cfg.setupPaths()
+#def init():
+#    """ Basic configuration. Designed to be light weight enough to invoke for unit testing. """
+#    # load() is now redundant    
+#    #cfg.load(config_filename)
+#    cfg.setupPaths()
 
 
 def setup():
     """ module startup """
+    cfg.setupPaths()
     setupLogging()
     #urifs.init()
 
@@ -140,7 +140,6 @@ def main():
 
     import PyLucene
 
-    init(CONFIG_FILENAME)
     setup()
 
     # log some system info

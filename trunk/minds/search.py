@@ -7,7 +7,7 @@ import sys
 from PyLucene import QueryParser, StandardAnalyzer
 from PyLucene import Highlighter, QueryScorer, SimpleFragmenter, SimpleHTMLFormatter
 
-from config import cfg
+from minds.config import cfg
 from minds import docarchive
 from minds import distillparse
 from minds import lucene_logic
@@ -169,7 +169,7 @@ def run_search(querystring, start):
     print "\nFrom %s of %s documents found." % (start, length)
 
 
-def run():
+def main(argv):
 
     lastQuery = ''
     lastStart = 0
@@ -205,15 +205,6 @@ def run():
         lastStart = start
 
         run_search(querystring, start)
-
-
-def main(argv):
-    from minds import proxy
-    proxy.init(proxy.CONFIG_FILENAME)
-    global cfg  #####
-    cfg = proxy.cfg
-    #print sys.getdefaultencoding()
-    run()
 
 
 if __name__ == '__main__':

@@ -584,10 +584,6 @@ def isSimilar(meta0, meta1):
 # Command line utility
 
 def main(argv):
-    from minds import proxy
-    proxy.init('')
-    print
-
     if len(argv) <= 1:
         print __doc__
         sys.exit(-1)

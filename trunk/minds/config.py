@@ -17,23 +17,44 @@ from toollib.path import path
 # 2005-09-03 Config Design (Why do we have this module instead of using ConfigParser directly?)
 #
 # - config (along with logging) is the most fundamental services. Allow customerization.
-# - ConfigParser helps parsing and saving
-# - 2 level address cumbersome. API to accept single address section.name.
-# - bind together 2 config files and present as a single configuration.
+# - ConfigParser helps parsing and saving.
+# - 2 level address cumbersome. API to accept single address as 'section.name'.
+# - bind together 2 config files and present as a single configuration. (is 2 config files a good idea?)
 # - parse boolean and integer fields with default fallback.
 
+# The order configuration 
 
-# This is intended to synchronize with the CONFIG_FILE edited by user.
-# This can be a hardcoded fallback in case user has mess up the file.
+# 1. user setting
+# 2. factory shipped config value
+# 3. SYSTEM_DEFAULT_CONFIG
+# 4. logic default
 
-# Note: Keep the setting below to put test log is its own directory
-#   logs=testlogs, archive=testdata/archive, etc
+# A note about 3 and 4. "4. logic default" is the default value a module
+# pass when calling cfg.getXXX(). A module is encouraged to supply a
+# sensible default to protect the system in case of failure to find the
+# configuration file. The choice of default is delegated to the module
+# that has best knowledge. Ideally the value should be the same as 2.
+# "3. SYSTEM_DEFAULT_CONFIG" is a backup to 4. when it make more sense
+# to have centralized definition.
 
+# Issue: since 3 is recommended to be the same as 2. This introduced
+# some redundancy the is best minimized.
+
+
+APPLICATION_NAME = 'MindRetrieve'
+
+# essential system configuration; usually ship with product
+CONFIG_FILE = 'config.ini'
+
+# user preference
+PREFERENCE_FILE = 'preference.ini'
+
+# Note: the path section points to testdata/ and testlogs for unit 
+# testing. Configuration file would override them with actual paths.
 SYSTEM_DEFAULT_CONFIG="""
 [version]
-number=0.4.3
-created=2005-02-21
-copyright=2005
+number=0.4.5
+created=2005-09-06
 
 [path]
 data=testdata
@@ -43,33 +64,8 @@ weblib=testdata/weblib
 weblibindex=testdata/weblib/index
 docBase=lib/htdocs
 testDoc=lib/testdocs
-logs=logs
-
-[http]
-proxy_port=8051
-proxy_threads=10
-admin_port=8050
-http_proxy=
-
-[messagelog]
-max_messagelog=2048
-maxuri=1024
-mlog=
-
-[indexing]
-interval=3
-numDoc=50
-max_interval=360
-archive_interval=1
+logs=testlogs
 """
-
-APPLICATION_NAME = 'MindRetrieve'
-
-# essential system configuration; usually ship with product
-CONFIG_FILE = 'config.ini'
-
-# user preference
-PREFERENCE_FILE = 'preference.ini'
 
 
 ### logging ############################################################
@@ -108,7 +104,7 @@ class Config(object):
         self.pref_pathname = ''
 
 
-    def load(self, pathname):
+    def load(self, pathname=CONFIG_FILE):
         """ Load a configuration file. Intended to be called only once. """
         logging.getLogger().info('Loading config file: %s', pathname)
         # ConfigParser.read() do nothing if name does not exist. Check first.
@@ -129,6 +125,14 @@ class Config(object):
         self.pparser.read(self.pref_pathname)
 
 
+    def load_test_config(self):
+        """ set paths to default test directory """
+        
+        # reapply SYSTEM_DEFAULT_CONFIG here to override config.ini
+        self.cparser.readfp( StringIO.StringIO(SYSTEM_DEFAULT_CONFIG), 'System Default')
+        logging.getLogger().info('Load test config. Data path: %s', self.getPath('data'))
+
+
     def setupPaths(self):
         """ Create directories specified in [path] """
         self._setupPath(self.getPath('logs'))
@@ -146,7 +150,7 @@ class Config(object):
             raise OSError, 'Unable to create directory specified in %s\n%s' % (pathname, e)
 
 
-    def parseKey(self, key):
+    def _parseKey(self, key):
         parts = key.split('.',1)
         if len(parts) < 2:
             raise KeyError('Invalid configuration key: %s' % key)
@@ -154,7 +158,7 @@ class Config(object):
         
             
     def get(self, key, default=None):
-        section, name = self.parseKey(key)
+        section, name = self._parseKey(key)
         try:
             return self.cparser.get(section, name)
         except Exception, e:
@@ -163,7 +167,7 @@ class Config(object):
 
 
     def getint(self, key, default=None):
-        section, name = self.parseKey(key)
+        section, name = self._parseKey(key)
         try:
             return self.cparser.getint(section, name)
         except Exception, e:
@@ -172,7 +176,7 @@ class Config(object):
 
 
     def getboolean(self, key, default=None):
-        section, name = self.parseKey(key)
+        section, name = self._parseKey(key)
         try:
             return self.cparser.getboolean(section, name)
         except Exception, e:
@@ -186,7 +190,7 @@ class Config(object):
 
 
     def set(self, key, value):
-        section, option = self.parseKey(key)
+        section, option = self._parseKey(key)
         self.cparser.set(section, option, value)
 
 
@@ -195,7 +199,7 @@ class Config(object):
         @params items - list of key, value tuples 
         """
         for k,v in items:
-            section, name = self.parseKey(key)
+            section, name = self._parseKey(key)
             self.cparser.set(section, name, value)
             self.pparser.set(section, name, value)
             
@@ -218,12 +222,13 @@ class Config(object):
         return buf.getvalue()        
 
 cfg = Config()
+cfg.load()
 
+#raise 'x'
 # ----------------------------------------------------------------------
 # cmdline testing
 
 def main(argv):
-    cfg.load(CONFIG_FILE)
     print cfg
     while True:
         line = raw_input('Config key: ')

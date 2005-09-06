@@ -5,8 +5,10 @@
 import logging
 import sys
 
+from minds.config import cfg
 from minds.weblib import minds_lib
 from minds.weblib import opera_lib
+from toollib.path import path
 
 log = logging.getLogger('weblib')
 
@@ -26,17 +28,22 @@ def _run_close(fp, func, *args):
         fp.close()       
 
 
+def _open(filename, mode):
+    """ open filename relative to weblib directory """
+    return file(path(cfg.getPath('weblib')) / filename, mode)
+    
+    
 def load(filename=None):
-    filename = filename or WEBLIB_FILENAME
-    fp = file(filename,'rb')
+    # note: WEBLIB_FILENAME is not default parameter because it may change
+    fp = _open(filename or WEBLIB_FILENAME,'rb')
     wlib = _run_close(fp, def_store.load, fp)
     log.debug('Loaded %s items:%s,%s', filename, len(wlib.tags), len(wlib.webpages))
     return wlib
 
     
 def save(wlib, filename=None):
-    filename = filename or WEBLIB_FILENAME
-    fp = file(filename,'wb')            
+    # note: WEBLIB_FILENAME is not default parameter because it may change
+    fp = _open(filename or WEBLIB_FILENAME,'wb')
     _run_close(fp, def_store.save, fp, wlib)
     log.debug('Saved %s items:%s,%s', filename, len(wlib.tags), len(wlib.webpages))
 
@@ -67,6 +74,8 @@ def useMainBm(pathname):
     
     
 # ----------------------------------------------------------------------
+
+# adhoc cmdline tool. May not work
 def main(argv):
     from minds.weblib import minds045_lib
     

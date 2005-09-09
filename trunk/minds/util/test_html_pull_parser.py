@@ -97,7 +97,9 @@ class TestParser(BaseTest):
 
             ])
 
-
+    def test_comment(self):
+        self.fail()
+        
 
 class TestSGMLPatch(BaseTest):
 
@@ -180,6 +182,9 @@ class TestSGMLPatch(BaseTest):
                 (ENDTAG, u'html'),
                 ])
 
+
+    def test_xml_CDATA(self):
+        self.fail()
 
 
 if __name__ == '__main__':

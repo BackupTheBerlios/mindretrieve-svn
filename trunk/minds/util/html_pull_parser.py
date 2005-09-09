@@ -10,9 +10,7 @@ from toollib import sgmllib         # a custom version of sgmllib
 #       Break into 2 classes?
 
 
-DATA    = 1
-TAG     = 2
-ENDTAG  = 3
+DATA, TAG, ENDTAG, COMMENT = range(1,5)
 
 class HtmlPullParser(sgmllib.SGMLParser):
 
@@ -22,8 +20,9 @@ class HtmlPullParser(sgmllib.SGMLParser):
       'amp': 1,
     }
 
-    def __init__(self, verbose=0):
+    def __init__(self, verbose=0, comment=False):
         self.stream = []
+        self.includeComment = comment        
         sgmllib.SGMLParser.__init__(self, verbose)
 
     def handle_data(self, data):
@@ -68,8 +67,16 @@ class HtmlPullParser(sgmllib.SGMLParser):
         else:
             self.stream.append((DATA,unichr(ch)))
 
-    def unknown_decl(self, data):
-        pass
+    def handle_comment(self, comment):
+        if self.includeComment:
+            self.stream.append((COMMENT,comment))
+        
+    def unknown_decl(self, data):       
+        # Treat XML CDATA block <![CDATA[...]]> as data 
+        # Are we stretching sgmllib here?
+        if data[:6].lower() == 'cdata[':
+            self.stream.append((DATA, data[6:]))
+            # TODO: test
 
     MAX_DECLARATION = 32768
 
@@ -88,7 +95,6 @@ class HtmlPullParser(sgmllib.SGMLParser):
 
             return sgmllib.SGMLParser.parse_declaration(self, i)
         except sgmllib.SGMLParseError, e:
-            pass
             j = self.rawdata.find('>', i)
             if j  >= 0:                                         # skip
                 return j+1
@@ -100,8 +106,8 @@ class HtmlPullParser(sgmllib.SGMLParser):
 
 BUFSIZE = 32768
 
-def generate_tokens(fp):
-    parser = HtmlPullParser()
+def generate_tokens(fp,comment=False):
+    parser = HtmlPullParser(comment=comment)
     while True:
         data = fp.read(BUFSIZE)
         if data:

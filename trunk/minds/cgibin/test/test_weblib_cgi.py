@@ -4,15 +4,14 @@ import shutil
 import unittest
 
 from minds import app_httpserver
-#from minds import messagelog
 from minds.test.config_help import cfg
 from minds.util import fileutil
 from minds.util import patterns_tester
 from minds import weblib
 from minds.weblib import store
+from toollib.path import path
 
-
-testdir = os.path.join(cfg.getPath('testDoc'),'.')[:-1]
+testdir = path(cfg.getPath('testDoc'))
 
 class TestWeblibCGI(unittest.TestCase):
 
@@ -21,9 +20,13 @@ class TestWeblibCGI(unittest.TestCase):
     ## todo: move to some util?
     from minds.weblib import store
     # rewire store to use the working copy of test weblib.dat
-    TEST_FILENAME = os.path.join(testdir,'test_weblib/weblib.dat')
-    TEST_WORK_FILENAME = os.path.join(testdir,'test_weblib/weblib.work.dat')
-    shutil.copy(TEST_FILENAME, TEST_WORK_FILENAME)
+    TEST_PATHNAME = testdir / 'test_weblib/weblib.dat'
+    # TODO: now that we have testdata directory, don't need to call it weblib.work.dat anymore.
+    # TODO: clean up
+    TEST_WORK_FILENAME = 'weblib.work.dat'
+    weblibdir = path(cfg.getPath('weblib'))
+    shutil.copy(TEST_PATHNAME, weblibdir / TEST_WORK_FILENAME)
+    print >>sys.stderr, TEST_PATHNAME, weblibdir / TEST_WORK_FILENAME, '##',path(cfg.getPath('weblib'))
     store.useMainBm(TEST_WORK_FILENAME)
 
 #  def tearDown(self):

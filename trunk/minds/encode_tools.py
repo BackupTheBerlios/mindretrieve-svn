@@ -14,9 +14,9 @@ import logging
 import sys
 import StringIO
 
-from minds import generator_parser
 from toollib import sgmllib         # custom version of sgmllib
-from util import rspreader
+from minds.util import html_pull_parser
+from minds.util import rspreader
 
 
 log = logging.getLogger('encodetool')
@@ -53,34 +53,11 @@ def _getvalue(attrs, name):
     return ''
 
 
-#class Parser(sgmllib.SGMLParser):
-#    """ Find the charset from http-equiv tag in the format of
-#            <META http-equiv="Content-Type" content="text/html; charset=big5">
-#    """
-#
-#    def __init__(self):
-#        sgmllib.SGMLParser.__init__(self)
-#        self.reset()
-#
-#    def reset(self):
-#        sgmllib.SGMLParser.reset(self)
-#        self.charset = ''
-#
-#    def unknown_starttag(self, tag, attrs):
-#        if tag != 'meta':
-#            return
-#        if _getvalue(attrs,'http-equiv').lower() != 'content-type':
-#            return
-#        self.charset = findCharSet(_getvalue(attrs,'content'))
-#        raise StopIteration()
-
-
-
 def findMetaHttpEquiv(first_block):
     fp = StringIO.StringIO(first_block)
     try:
-        for token in generator_parser.generate_tokens(fp):
-            if token[:2] == (generator_parser.TAG, 'meta'):
+        for token in html_pull_parser.generate_tokens(fp):
+            if token[:2] == (html_pull_parser.TAG, 'meta'):
                 http_equiv = _getvalue(token[2],'http-equiv').lower()
                 if http_equiv == 'content-type':
                     attrs = token[2]

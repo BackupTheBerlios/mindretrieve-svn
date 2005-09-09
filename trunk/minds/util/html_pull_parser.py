@@ -1,12 +1,12 @@
-"""Usage: generator_parser.py filename
+"""Usage: html_pull_parser.py filename
 """
 
 import htmlentitydefs
 import sys
 
-from toollib import sgmllib         # custom version of sgmllib
+from toollib import sgmllib         # a custom version of sgmllib
 
-# todo: GeneratorParser has two purposes, it fixes some SGMLParser issue and it generates the tokens
+# todo: HtmlPullParser has two purposes, it fixes some SGMLParser issue and it generates the tokens
 #       Break into 2 classes?
 
 
@@ -14,7 +14,7 @@ DATA    = 1
 TAG     = 2
 ENDTAG  = 3
 
-class GeneratorParser(sgmllib.SGMLParser):
+class HtmlPullParser(sgmllib.SGMLParser):
 
     retain_entityref = {
       'gt' : 1,
@@ -101,7 +101,7 @@ class GeneratorParser(sgmllib.SGMLParser):
 BUFSIZE = 32768
 
 def generate_tokens(fp):
-    parser = GeneratorParser()
+    parser = HtmlPullParser()
     while True:
         data = fp.read(BUFSIZE)
         if data:

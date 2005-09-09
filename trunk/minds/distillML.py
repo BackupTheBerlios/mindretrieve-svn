@@ -33,8 +33,8 @@ from toollib import sgmllib         # custom version of sgmllib
 from minds.config import cfg
 from minds import domain_filter
 from minds import encode_tools
-from minds import generator_parser
 from minds import messagelog
+from minds.util import html_pull_parser
 from minds.util import magic
 
 # todo: common tag
@@ -53,9 +53,9 @@ from minds.util import magic
 
 log = logging.getLogger('distill')
 
-DATA    = generator_parser.DATA
-TAG     = generator_parser.TAG
-ENDTAG  = generator_parser.ENDTAG
+DATA    = html_pull_parser.DATA
+TAG     = html_pull_parser.TAG
+ENDTAG  = html_pull_parser.ENDTAG
 
 
 # todo: collapse is not good for asian text.
@@ -203,7 +203,7 @@ def process(fp, out, meta):
 
     first_td    = False     # state for iterating td inside tr
 
-    iterator = generator_parser.generate_tokens(fp)
+    iterator = html_pull_parser.generate_tokens(fp)
 
     # General HTML format
     # <html>

@@ -1,18 +1,63 @@
 """Usage: snapshot.py url
 """
 
+
+# TODO: report progress, not parsing result or css error.
+# TODO: httplib may not need to handle broken connection.
+# TODO: always use httplib rather than urllib for http to reduce testing variation.
+# TODO: give partial report when error happens
+# TODO: redirect, proxy
+# TODO: handle fetching error
+# TODO: https
+
+
 # Resources
 # ---------
 # RFC1808 - Relative Uniform Resource Locators
-
+#
 # RFC2616 - Hypertext Transfer Protocol -- HTTP/1.1
 #   14.14 Content-Location
-
+#
 # HTML 4.01 Specification (http://www.w3.org/TR/html401)
 #   12 - Links
-#   14 - Style Sheets 
-
+#   14 - Style Sheets
+#
 # CSS2 Specification (http://www.w3.org/TR/REC-CSS2)
+
+
+# ----------------------------------------------------------------------------
+#
+# Snapshot
+#
+#
+#  +-------------------------------+       +---------------------------------+
+#  |Snapshot                       |       |Fetcher                          |
+#  |-------------------------------|       |---------------------------------|
+#  |Download, parse and traverse   |       |Fetch a series of URIs using     |
+#  |linked documents. Manage the   |       |various transports. Use          |
+#  |tree structured result.        |<>---->|optimization technique such as   |
+#  |                               |       |HTTP persistent connection,      |
+#  |                               |       |multiple connections to same     |
+#  |                               |       |or different hosts, etc.         |
+#  |                               |       |                                 |
+#  +-------------------------------+       +---------------------------------+
+#                 <>                                 |          <>
+#                 |                                  |          |
+#                 |                                  |          |
+#                 |----------------------------------+          |
+#                 |                                             |
+#                 v*                                            v*
+#  +------------------------+                   +---------------------------+
+#  |Resource                |                   |ConnectionObject           |
+#  |------------------------|  parent           |---------------------------|
+#  |uri                     |<-----------+      |Maintain persistent HTTP   |
+#  |content-type            |            |      |connection                 |
+#  |content                 |            |      |                           |
+#  |etc                     |* children  |      |                           |
+#  |                        |<-----------+      |                           |
+#  +------------------------+                   +---------------------------+
+#
+
 
 
 # Design discussion
@@ -27,7 +72,11 @@
 # - IE refetch.
 
 
+import cStringIO
+import datetime
+import httplib
 import logging
+import Queue
 import re
 import sets
 import StringIO
@@ -36,6 +85,7 @@ import urllib2
 import urlparse
 
 from cssutils.cssparser import *
+from minds.config import cfg
 from minds.util import html_pull_parser as hpp
 from minds.util import httputil
 
@@ -230,9 +280,9 @@ def scan_css(fp, baseuri, append, prefix=''):
     """ scan a CSS for all its external links """
     
     # prefix is the HTML tag that has inline CSS
-    if prefix: 
+    if prefix:
         prefix += ' '
-        
+
     cp = CSSParser()
     stylesheet = cp.parseString(fp.read().decode('UTF-8'))               ##HACK encoding
     for rule in stylesheet.cssRules:                # rule: CSSRule
@@ -247,7 +297,7 @@ def scan_css(fp, baseuri, append, prefix=''):
                     if url:
                         append(baseuri, url, APPLICATION, prefix + property)
                 elif property in LINKABLE_SHORTHAND_PROPERTIES:
-                    # HACK: we are taking shortcut here. Match the URL 
+                    # HACK: we are taking shortcut here. Match the URL
                     # attribute without regard to its position in the list.
                     url = _get_url(pvalue)
                     if url:
@@ -258,18 +308,18 @@ def scan_css(fp, baseuri, append, prefix=''):
                 append(baseuri, rule.href, TEXT_CSS, prefix + '@import')
 
 
-# ----------------------------------------------------------------------
-# Fetcher
-
 class Resource(object):
     """ Represents a resource fetched. """
     def __init__(self, parent, uri='', ctype='', tag=''):
-        self.parent = parent
         self.uri = uri          # absolute URI
         self.ctype = ctype
         self.tag = tag
         self.size = None
+
+        self.mimepart = None
+
         # tree structre data
+        self.parent = parent
         self.children = []
         self.level = parent and parent.level+1 or 0
 
@@ -277,59 +327,158 @@ class Resource(object):
         return '%s%s %s %s (%s)' % (
             '  ' * self.level,
             self.tag,
-            self.uri,
             self.ctype,
+            self.uri,
             self.size,
         )
-        
 
-class Fetcher(object):
+
+class Snapshot(object):
     """ Fetch resources recursively. """
     def __init__(self):
-        self.to_fetch = []
         self.resource_list = []
         self.uri_set = sets.Set()
+        self.fetcher = Fetcher()
 
-        
+
     def fetch(self, uri):
         self.append(None, '', uri, TEXT_HTML, '')
-        while self.to_fetch:
-            res = self.to_fetch.pop(0)
+        while True:
+            res = self.fetcher.dequeue()
+            if not res:
+                break
+            data = res.fp.read()
+            res.size = len(data)
+            res.fp.close()
+            
             append = lambda baseuri, uri, ctype, tag: \
                 self.append(res, baseuri, uri, ctype, tag)
             if res.ctype == TEXT_HTML:
-                fp = urllib2.urlopen(res.uri)
-                scan_html(fp, res.uri, append)
-                fp.close()
-                # TODO: size
+                scan_html(cStringIO.StringIO(data), res.uri, append)
             elif res.ctype == TEXT_CSS:
-                fp = urllib2.urlopen(res.uri)
-                scan_css(fp, res.uri, append)
-                fp.close()
+                scan_css(cStringIO.StringIO(data), res.uri, append)
+                
+        self.fetcher.close()
+
+        t = self.fetcher.endtime - self.fetcher.starttime
         self._show_result(self.resource_list[0])
-        print '%s resources fetched' % len(self.resource_list)
-                
-                
+        print '%s bytes from %s resources fetched in %s' % (
+            sum([r.size for r in self.resource_list]), 
+            len(self.resource_list), 
+            str(t)[2:7],
+        )
+        print '\nFetch report'
+        print '\n'.join(['%s from %s' % (r[1], r[0]) for r in self.fetcher.report()])
+
+
     def append(self, parent, baseuri, uri, ctype, tag):
         abs_uri = urlparse.urljoin(baseuri, uri)
         abs_uri = httputil.canonicalize(abs_uri)    # TODO: test
         if abs_uri in self.uri_set:
-            log.warn('Skip repeated resource - %s %s' % (tag, uri))
+            #log.warn('Skip repeated resource - %s %s' % (tag, uri))
             return
         res = Resource(parent, uri=abs_uri, ctype=ctype, tag=tag)
         if parent:
             parent.children.append(res)
-        self.to_fetch.append(res)
         self.resource_list.append(res)
         self.uri_set.add(abs_uri)
+        self.fetcher.queue(res)
         log.debug('append %s', str(res))
-                    
+
+
     def _show_result(self, res):
         print str(res)
         for c in res.children:
-            self._show_result(c)  
+            self._show_result(c)
+
+# ----------------------------------------------------------------------
+# Fetcher
+
+MAX_HTTP_CONN = 10      # max number of persistent HTTP connection. Use one-off urllib2 if exceeded.
+HTTP_CONN_TIMEOUT = 10  # timeout in number of seconds
+
+HEADERS = {
+'User-Agent': cfg.application_name,
+}
+
+class ConnectionObject(object):
+    """ Object to maintain persistent HTTP connection. """
+    def __init__(self, netloc):
+        self.netloc = netloc
+        self.lastused = None    # datetime
+        self.conn = None        # HTTPConnection
+        self.count = 0
     
-    
+    def connect(self):
+        self.conn = httplib.HTTPConnection(self.netloc)
+        self.conn.connect()
+        
+        
+class Fetcher(object):
+
+    def __init__(self):
+        self.queue1 = []    # higher priority queue (HTML,CSS)
+        self.queue2 = []    # lower priority queue
+        self.conns = []     # list of ConnectionObject
+        self.count = 0      # fetch count (not via conns)
+        self.starttime = datetime.datetime.now()
+        self.endtime = self.starttime
+
+    def queue(self, res):
+        if res.ctype in [TEXT_HTML, TEXT_CSS]:
+            self.queue1.append(res)
+        else:
+            self.queue2.append(res)
+
+    def dequeue(self):
+        if self.queue1:
+            res = self.queue1.pop(0)
+        elif self.queue2:
+            res = self.queue2.pop(0)
+        else:
+            return None        
+
+        scheme, netloc, _, _, _, _ = urlparse.urlparse(res.uri)
+        conn = scheme == 'http' and self._get_conn(netloc)
+        if not conn:
+            # non-http or no more room in self.conns
+            res.fp = urllib2.open(res.uri)
+            return res
+        
+        conn.conn.request('GET', res.uri, '', HEADERS)
+        res.fp = conn.conn.getresponse()
+        return res
+     
+    def _get_conn(self, netloc):
+        for conn in self.conns:
+            if conn.netloc == netloc:
+                conn.count += 1
+                return conn   
+        # create new conn? 
+        if len(self.conns) < MAX_HTTP_CONN:
+            conn = ConnectionObject(netloc)
+            self.conns.append(conn)
+            conn.connect()
+            conn.count += 1
+            return conn
+        return None    
+
+    def close(self):
+        for conn in self.conns:
+            try:
+                conn.conn.close()
+            except:
+                log.exception('Problem closing for %s' % netloc)
+        self.endtime = datetime.datetime.now()
+       
+    def report(self):
+        """ Return list of (netloc, count). '' is fetches not via conn """
+        result = [('', self.count)]
+        result.extend([(c.netloc, c.count) for c in self.conns])
+        return result
+       
+       
+        
 # ----------------------------------------------------------------------
 # Testing
 
@@ -349,12 +498,8 @@ def main(argv):
         print __doc__
         sys.exit(-1)
 
-    # we don't even load cfg yet
-    logging.basicConfig()
-    logging.getLogger().setLevel(logging.DEBUG)
-        
     url = argv[1]
-    f = Fetcher()
+    f = Snapshot()
     f.fetch(url)                        
     
 if __name__ =='__main__':

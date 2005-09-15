@@ -7,9 +7,10 @@ To build in Windows it requires these software modules:
 * py2exe 0.5.4
 * Inno Setup version 4.2.6
 
-Run build.bat. It will produce a Windows installer in the output
-directory. The installer have Python interpreter embedded so that the
-whole application is self-contained.
+Run the sanity test first (which refresh allmodules.py). Then run
+build.bat. It will produce a Windows installer in the output directory.
+The installer have Python interpreter embedded so that the whole
+application is self-contained.
 
 
 To run in Linux it requires these software modules:

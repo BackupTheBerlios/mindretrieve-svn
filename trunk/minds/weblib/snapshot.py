@@ -1,15 +1,18 @@
 """Usage: snapshot.py url
 """
 
-
+# CGI save and read to weblib dir
+# character encoding default wrong? Content-Type: text/html; charset=ISO-8859-1
+# why MIME-Version: 1.0 always?
 # TODO: report progress, not parsing result or css error.
+# TODO: make append generator?
+# TODO: redirect, proxy, https
+# TODO: character encoding, transfer-encoding
+# TODO: give partial report when error happens
+# TODO: handle fetching error
 # TODO: httplib may not need to handle broken connection.
 # TODO: always use httplib rather than urllib for http to reduce testing variation.
-# TODO: give partial report when error happens
-# TODO: redirect, proxy
-# TODO: handle fetching error
 # TODO: https
-
 
 # Resources
 # ---------
@@ -74,6 +77,10 @@
 
 import cStringIO
 import datetime
+from email import Encoders
+from email.Generator import Generator
+from email.MIMEMultipart import MIMEMultipart
+from email.MIMENonMultipart import MIMENonMultipart
 import httplib
 import logging
 import Queue
@@ -94,8 +101,6 @@ log = logging.getLogger('snapshot')
 APPLICATION = 'application/octet-stream'
 TEXT_HTML = 'text/html'
 TEXT_CSS = 'text/css'
-
-# links is list of (tag, baseuri, uri, content-type)
 
 
 # ----------------------------------------------------------------------
@@ -236,7 +241,7 @@ def _scan_html_style(tag, style, baseuri, append):
 
 # ----------------------------------------------------------------------
 # CSS Parsing
-
+#
 # See CSS2 4.3.4 URL + URN = URI for syntax rule 
 #   http://www.w3.org/TR/REC-CSS2/syndata.html#uri
 
@@ -283,8 +288,8 @@ def scan_css(fp, baseuri, append, prefix=''):
     if prefix:
         prefix += ' '
 
-    cp = CSSParser()
-    stylesheet = cp.parseString(fp.read().decode('UTF-8'))               ##HACK encoding
+    cp = CSSParser(loglevel=logging.ERROR)
+    stylesheet = cp.parseString(fp.read().decode('UTF-8'))               ##HACK TODO encoding 
     for rule in stylesheet.cssRules:                # rule: CSSRule
         if rule.type == rule.STYLE_RULE:            # CSSStyleRule
             #print rule.type, rule.selectorText
@@ -308,15 +313,16 @@ def scan_css(fp, baseuri, append, prefix=''):
                 append(baseuri, rule.href, TEXT_CSS, prefix + '@import')
 
 
+# ----------------------------------------------------------------------
+
 class Resource(object):
     """ Represents a resource fetched. """
     def __init__(self, parent, uri='', ctype='', tag=''):
         self.uri = uri          # absolute URI
         self.ctype = ctype
         self.tag = tag
+        self.data = None
         self.size = None
-
-        self.mimepart = None
 
         # tree structre data
         self.parent = parent
@@ -342,21 +348,23 @@ class Snapshot(object):
 
 
     def fetch(self, uri):
-        self.append(None, '', uri, TEXT_HTML, '')
+        self._append(None, '', uri, TEXT_HTML, '')
         while True:
             res = self.fetcher.dequeue()
             if not res:
                 break
-            data = res.fp.read()
-            res.size = len(data)
+            log.debug('Fetching %s', res)
+            res.data = res.fp.read()
+            res.size = len(res.data)
             res.fp.close()
+            res.ctype_actual = res.fp.getheader('content-type')
             
             append = lambda baseuri, uri, ctype, tag: \
-                self.append(res, baseuri, uri, ctype, tag)
+                self._append(res, baseuri, uri, ctype, tag)
             if res.ctype == TEXT_HTML:
-                scan_html(cStringIO.StringIO(data), res.uri, append)
+                scan_html(cStringIO.StringIO(res.data), res.uri, append)
             elif res.ctype == TEXT_CSS:
-                scan_css(cStringIO.StringIO(data), res.uri, append)
+                scan_css(cStringIO.StringIO(res.data), res.uri, append)
                 
         self.fetcher.close()
 
@@ -371,7 +379,7 @@ class Snapshot(object):
         print '\n'.join(['%s from %s' % (r[1], r[0]) for r in self.fetcher.report()])
 
 
-    def append(self, parent, baseuri, uri, ctype, tag):
+    def _append(self, parent, baseuri, uri, ctype, tag):
         abs_uri = urlparse.urljoin(baseuri, uri)
         abs_uri = httputil.canonicalize(abs_uri)    # TODO: test
         if abs_uri in self.uri_set:
@@ -383,13 +391,33 @@ class Snapshot(object):
         self.resource_list.append(res)
         self.uri_set.add(abs_uri)
         self.fetcher.queue(res)
-        log.debug('append %s', str(res))
 
 
+    def generate(self, fp):
+        msg = MIMEMultipart(_subtype='related')
+        msg['Subject'] = 'archived'
+        msg.epilogue = ''   # Guarantees the message ends in a newline
+
+        for res in self.resource_list:
+            if '/' in res.ctype_actual:
+                maintype, subtype = res.ctype_actual.split('/',1)
+            else:    
+                maintype, subtype = res.ctype_actual, ''
+            part = MIMENonMultipart(maintype, subtype)
+            part.set_payload(res.data)
+            part['content-location'] = res.uri
+            Encoders.encode_base64(part)
+            msg.attach(part)
+            
+        # generate the MIME message    
+        Generator(fp, False).flatten(msg)
+        
+        
     def _show_result(self, res):
         print str(res)
         for c in res.children:
             self._show_result(c)
+
 
 # ----------------------------------------------------------------------
 # Fetcher
@@ -491,7 +519,7 @@ class Fetcher(object):
 
 # g:\>minds\weblib\snapshot.py file://localhost/bin/py_repos/mindretrieve/trunk/lib/snapshot_sample/opera/creativecommons/createcommons.html
 # g:\>minds\weblib\snapshot.py file://localhost/x/creativecommons/createcommons.html
-
+# g:\>minds\weblib\snapshot.py http://localhost/ss/opera/wikipedia/Moscow_Kremlin.htm
 
 def main(argv):
     if len(argv) <= 1:
@@ -499,8 +527,11 @@ def main(argv):
         sys.exit(-1)
 
     url = argv[1]
-    f = Snapshot()
-    f.fetch(url)                        
+    snapshot = Snapshot()
+    snapshot.fetch(url)                        
+    fp = file('1.mhtml','wb')
+    snapshot.generate(fp)
+    fp.close()
     
 if __name__ =='__main__':
     main(sys.argv)

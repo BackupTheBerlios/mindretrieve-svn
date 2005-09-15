@@ -19,6 +19,7 @@ from minds import cachefile
 from minds import messagelog
 from minds.util import multiblockfile
 from minds.util import fileutil
+from minds.weblib import mhtml
 
 # todo: ftp request
 # todo: test _isHeaderEnd()
@@ -80,17 +81,20 @@ class ProxyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
 
     def do_GET(self):
+        # look into LoadedWebArchive first
+        #print >>sys.stderr, mhtml.LoadedWebArchive.loadedObj,'##'
+        resp = mhtml.LoadedWebArchive.fetch_uri(self.path)
+        if resp:
+            self._serve_HTTPResponse(resp)
+            return
 
-    # record request properties
-
+        # record request properties
         self.minfo.setReq( self.command, self.path, self.headers)
 
-    # verify request
-
+        # verify request
         (scm, netloc, path, params, query, fragment) = urlparse.urlparse( self.path, 'http')
 
-    # proxy connection
-
+        # proxy connection
         soc = None
         try:
             try:
@@ -122,8 +126,7 @@ class ProxyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             except Exception, e:
                 log.exception('Unable to close incoming socket')
 
-    # interpret response
-
+        # interpret response
         self.minfo.parseRsp(rspBuf, bytes_received)
 
         if self.logfp.isOverflow():
@@ -131,8 +134,15 @@ class ProxyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             log.warn('logOverflow bytes received: %s', bytes_received)
             return
 
-        ## ???
-        #self.minfo._updateUriFs()
+
+    def _serve_HTTPResponse(self, resp):
+        self.wfile.write(self.protocol_version + " 200 OK\r\n")
+        headers = ['%s: %s\r\n' % (n,v) for n,v in resp.getheaders()] # TODO: we got the unnecessary MIME HEADER HERE
+        self.wfile.write(''.join(headers))
+        self.wfile.write('via: MindRetrieve Cache\r\n') # TODO: TESTING
+        self.wfile.write('\r\n')
+        self.wfile.write(resp.read())
+        self.wfile.write('\r\n') # TODO: IS THIS NECESSARY? CHECK OUT THE CORRECT METHOD
 
 
     def _send_request(self, netloc, fullpath, path, params, query):

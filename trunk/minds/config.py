@@ -137,6 +137,7 @@ class Config(object):
         """ Create directories specified in [path] """
         self._setupPath(self.getPath('logs'))
         self._setupPath(self.getPath('archive'))
+        self._setupPath(self.getPath('weblibsnapshot'))
         self._setupPath(self.getPath('weblib'))
 
 

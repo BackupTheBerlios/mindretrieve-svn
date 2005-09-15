@@ -5,12 +5,15 @@ import sets
 import urllib
 
 from minds.config import cfg
+from minds.cgibin import weblibSnapshot
 from minds.cgibin import weblibForm
 from minds.cgibin.util import request
 from minds.cgibin.util import response
 from minds import weblib
 from minds.weblib import graph
 from minds.weblib import store
+
+from toollib.path import path
 
 log = logging.getLogger('cgi.weblib')
 
@@ -37,6 +40,9 @@ def main(rfile, wfile, env):
     elif rid_path and rid_path.startswith('go;'):
         doGoResource(wfile, rid, rid_path)
         
+    elif rid and rid_path and rid_path.startswith('snapshot'):
+        weblibSnapshot.main(rfile, wfile, env, method, form, rid, rid_path)
+        
     elif querytxt:
         queryWebLib(wfile, env, form, tag, querytxt)
         
@@ -61,11 +67,10 @@ def doGoResource(wfile, rid, rid_path):
     response.redirect(wfile, item.url)        
 
 
-
 def queryWebLib(wfile, env, form, tag, querytxt):
     go_direct = form.getfirst('submit') == '>'
-    if querytxt.lower().startswith('g '):
-        querytxt = querytxt[2:]
+    if querytxt.endswith('>'):
+        querytxt = querytxt[:-1]
         go_direct = True
     
     wlib = store.getMainBm()
@@ -172,7 +177,12 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
         node.itemTag.tag.repeat(self.renderWebItemTag, tags)
         node.edit.atts['href'] = '%s/%s/form' % (request.WEBLIB_URL, item.id)
         node.delete.atts['href'] = '%s/%s?method=delete' % (request.WEBLIB_URL, item.id)
-        node.cache.atts['href'] = '%s/%s/cache' % (request.WEBLIB_URL, item.id)
+        if item.cached:
+            node.cache.atts['href'] = '%s/%s/snapshotFrame' % (request.WEBLIB_URL, item.id)
+            node.cache.content = item.cached
+        else:    
+            node.cache.atts['href'] = '%s/%s/snapshot/get' % (request.WEBLIB_URL, item.id)
+            node.cache.content = 'download'
 
     def renderWebItemTag(self, node, tag):
         node.content = unicode(tag)

@@ -150,7 +150,7 @@ def doPutResource(wfile, env, bean):
         item0.relatedIds  = item.relatedIds 
         item0.modified    = item.modified   
         item0.lastused    = item.lastused   
-        item0.cached      = item.cached     
+#        item0.cached      = item.cached     
         item = item0
 
     if item.id < 0:

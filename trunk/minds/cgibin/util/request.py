@@ -21,12 +21,14 @@ weblib/%id                  entry %id               GET, same as form?
 
 weblib/%id/form             form for entry %id
 
-weblib/%id/cache
-weblib/%id/cache?cid=
+weblib/%id/snapshot
+
+weblib/%id/snapshot?cid=
 
 weblib/%id/go;http://xyz    Redirect to page
 """
 
+# TODO: parseURL is specific to weblib? should rename?
 def parseURL(rfile, env, keep_blank_values=1):
     """
     Parse the input request base on the URL scheme.

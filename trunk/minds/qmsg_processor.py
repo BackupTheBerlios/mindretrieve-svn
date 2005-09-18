@@ -11,9 +11,7 @@ The following commands are available in interactive mode:
 
 import datetime
 import logging
-import os, os.path
 import re
-import shutil
 import sys
 import StringIO
 import time
@@ -37,12 +35,12 @@ def getQueueStatus():
 
     global totalIndexed
     if totalIndexed < 0:
-        dbindex = cfg.getPath('archiveindex')
-        reader = lucene_logic.Reader(dbindex)
+        indexpath = cfg.getpath('archiveindex')
+        reader = lucene_logic.Reader(indexpath)
         totalIndexed = reader.reader.	numDocs()
         reader.close()
-    logdir = cfg.getPath('logs')
-    numQueued = len(_getQueuedText(logdir)) + len(_getQueuedLogs(logdir))
+    logpath = cfg.getpath('logs')
+    numQueued = len(_getQueuedText(logpath)) + len(_getQueuedLogs(logpath))
     return totalIndexed, numQueued
 
 
@@ -50,11 +48,11 @@ def getQueueStatus():
 QLOG_PATTERN = re.compile('\d{9}\.qlog')
 QTXT_PATTERN = re.compile('\d{9}\.qtxt')
 
-def _getQueuedLogs(baseDir):
+def _getQueuedLogs(logpath):
     """ Get the list of *.qlog. Sorted in ascending order """
 
     try:
-        files = os.listdir(baseDir)
+        files = [p.name for p in logpath.listdir()]
     except:
         # assume baseDir does not exist
         return []
@@ -64,11 +62,11 @@ def _getQueuedLogs(baseDir):
 
 
 
-def _getQueuedText(baseDir):
+def _getQueuedText(logpath):
     """ Get the list of *.qtxt. Sorted in ascending order """
 
     try:
-        files = os.listdir(baseDir)
+        files = [p.name for p in logpath.listdir()]
     except:
         # assume baseDir does not exist
         return []
@@ -84,7 +82,7 @@ def _shouldTransform(now, interval):
 
 
 
-def _shouldIndex(now, logdir, queued):
+def _shouldIndex(now, logpath, queued):
     """ Checks queue status. Returns a flag indicates whether background
         indexing should be invoked.
 
@@ -147,7 +145,7 @@ def _shouldIndex(now, logdir, queued):
 
     # Rule 2. time elapsed since first queued > 'max_interval'
     firstfile = min(queued)
-    mtime = os.path.getmtime( os.path.join(logdir, firstfile))
+    mtime = (logpath/firstfile).mtime
     d0 = datetime.datetime.fromtimestamp(mtime)
     elapsed = now - d0
     if elapsed.days < 0:
@@ -185,7 +183,7 @@ def backgroundIndexTask(forceIndex=False):
     """
 
     interval= cfg.getint('indexing.interval',3)
-    logdir  = cfg.getPath('logs')
+    logpath = cfg.getpath('logs')
     now = datetime.datetime.now()
 
     transformed = 0
@@ -193,14 +191,14 @@ def backgroundIndexTask(forceIndex=False):
     indexed = 0
     discarded_i = 0
 
-    qlogs = _getQueuedLogs(logdir)
+    qlogs = _getQueuedLogs(logpath)
     if forceIndex or _shouldTransform(now, interval):
-        transformed, discarded_t = TransformProcess().run(logdir, qlogs)
+        transformed, discarded_t = TransformProcess().run(logpath, qlogs)
 
-    qtxts = _getQueuedText(logdir)
+    qtxts = _getQueuedText(logpath)
     if forceIndex or \
-        (_shouldTransform(now, interval) and _shouldIndex(now, logdir, qtxts)): # first check is if there is new activity
-        indexed, discarded_i = IndexProcess().run(logdir, qtxts)
+        (_shouldTransform(now, interval) and _shouldIndex(now, logpath, qtxts)): # first check is if there is new activity
+        indexed, discarded_i = IndexProcess().run(logpath, qtxts)
 
     return transformed, indexed, discarded_t + discarded_i
 
@@ -220,10 +218,10 @@ class TransformProcess(object):
         self.removeQlog = removeQlog
 
 
-    def run(self, logdir, qlogs):
+    def run(self, logpath, qlogs):
         """ Transform documents in qlogs. Returns number of transformed, discarded """
 
-        qlogs = filter(None, qlogs)         # defensively remove '' entries. Otherwise path would point to logdir for '' entry.
+        qlogs = filter(None, qlogs)         # defensively remove '' entries. Otherwise path would point to logpath for '' entry.
         if not qlogs: return 0, 0
 
         log.info('Transforming %s documents starting from %s' % (len(qlogs), qlogs[0]))
@@ -235,8 +233,8 @@ class TransformProcess(object):
 
         for filename in qlogs:              # main loop
 
-            inpath = os.path.join(logdir,filename)
-            outpath = os.path.splitext(inpath)[0] + '.qtxt'
+            inpath = logpath/filename
+            outpath = inpath.splitext()[0] + '.qtxt'
 
             transformed = False             # transform
             try:
@@ -249,15 +247,15 @@ class TransformProcess(object):
             # postprocess qlog
             try:
                 if self.backupQlog:
-                    savepath = os.path.join(logdir,'tmp',filename)
-                    if os.path.exists(savepath): os.remove(savepath)
-                    os.rename(inpath, savepath)
+                    savepath = logpath/'tmp'/filename
+                    if savepath.exists(): savepath.remove()
+                    inpath.rename(savepath)
 
                 # whether it is successfully transformed or not, remove the
                 # input file to avoid build up. Hopefully the error message is
                 # informative enough for diagnosis.
                 elif self.removeQlog:
-                    os.remove(inpath)
+                    inpath.remove()
 
             except OSError:
                 log.exception('Error in postprocess of %s', inpath)
@@ -266,16 +264,6 @@ class TransformProcess(object):
                 self.num_transformed += 1
             else:
                 self.num_discarded += 1
-
-    ##        # make tmppath into a .qtxt
-    ##        outpath = os.path.join(logdir, outfile)
-    ##        try:
-    ##            if os.path.exists(outpath):     # rename will fail in Windows if outpath exists
-    ##                os.remove(outpath)
-    ##            os.rename(tmppath, outpath)
-    ##        except:
-    ##            log.exception('Error outputing %s', outpath)
-
 
         log.info('Transformed %s; Discarded %s', self.num_transformed, self.num_discarded)
 
@@ -290,17 +278,16 @@ class TransformProcess(object):
             @return whether the document is transformed.
         """
 
-        mtime = os.path.getmtime(inpath)
-        dt = datetime.datetime.utcfromtimestamp(mtime)
+        dt = datetime.datetime.utcfromtimestamp(inpath.mtime)
         timestamp = _formatTimestamp(dt)
 
-        rfile = file(inpath,'rb')
+        rfile = inpath.open('rb')
         try:
             minfo = messagelog.MessageInfo.parseMessageLog(rfile)
             if minfo.discard:
                 # these should be filtered in logging phrase, but double
                 # check here perhaps for logs collected from other sources.
-                log.info('discard %s %s - %s' % (os.path.split(inpath)[1], minfo.flags, minfo.req_path))
+                log.info('discard %s %s - %s' % (inpath.name, minfo.flags, minfo.req_path))
                 return False
 
             meta = _extract_meta(minfo, timestamp)
@@ -315,14 +302,14 @@ class TransformProcess(object):
             contentFp = rspreader.ContentReader(rfile, inpath)
 
             discard = False
-            wfile = file(outpath, 'wb')
+            wfile = outpath.open('wb')
             try:
                 if minfo.ctype == 'html':
                     result = distillML.distill(contentFp, wfile, meta=meta)
                 else:
                     result = distillML.distillTxt(contentFp, wfile, meta=meta)
                 if result != 0:
-                    log.info('discard %s %s - %s' % (os.path.split(inpath)[1], str(result), minfo.req_path))
+                    log.info('discard %s %s - %s' % (inpath.name, str(result), minfo.req_path))
                     discard = True
             finally:
                 wfile.close()
@@ -331,11 +318,10 @@ class TransformProcess(object):
             rfile.close()
 
         if discard:
-            os.remove(outpath)      # remove unwanted output
+            outpath.remove()    # remove unwanted output
             return False
         else:
-            filename = os.path.split(outpath)[1]
-            log.debug('transformed %s (%s) - %s', filename, meta.get('encoding','?'), minfo.req_path)
+            log.debug('transformed %s (%s) - %s', outpath.name, meta.get('encoding','?'), minfo.req_path)
 
         return True
 
@@ -407,15 +393,11 @@ class IndexProcess(object):
         self.numDiscarded = 0
 
 
-
     def _open(self):
-
         from minds import lucene_logic
-
-        dbindex = cfg.getPath('archiveindex')
-        self.writer = lucene_logic.Writer(dbindex)
-        self.searcher = lucene_logic.Searcher(pathname=dbindex)
-
+        indexpath = cfg.getpath('archiveindex')
+        self.writer = lucene_logic.Writer(indexpath)
+        self.searcher = lucene_logic.Searcher(pathname=indexpath)
 
 
     def _finish(self):
@@ -424,10 +406,8 @@ class IndexProcess(object):
         if self.searcher:   self.searcher.close()
 
 
-
-    def run(self, logdir, qtxts):
-
-        qtxts = filter(None, qtxts)         # defensively remove '' entries. Otherwise path would point to logdir for '' entry.
+    def run(self, logpath, qtxts):
+        qtxts = filter(None, qtxts)         # defensively remove '' entries. Otherwise path would point to logpath for '' entry.
         if not qtxts: return 0, 0
 
         log.info('Indexing %s documents starting from %s' % (len(qtxts), qtxts[0]))
@@ -436,21 +416,20 @@ class IndexProcess(object):
         self.arcHandler = docarchive.ArchiveHandler('w')
         try:
             for filename in qtxts:
-
-                path = os.path.join(logdir, filename)
+                filepath = logpath/filename
                 try:
-                    if self.indexDoc(path):
+                    if self.indexDoc(filepath):
                         self.numIndexed += 1
                     else:
                         self.numDiscarded += 1
                 except:
                     self.numDiscarded += 1
-                    log.exception('Failed in indexDoc: %s', path)
+                    log.exception('Failed in indexDoc: %s', filepath)
 
                 try:
-                    os.remove(path)     # remove whether it is success or not
+                    filepath.remove()   # remove whether it is success or not
                 except:
-                    log.exception('Error removing %s', path)
+                    log.exception('Error removing %s', filepath)
 
         finally:
             try:
@@ -467,9 +446,9 @@ class IndexProcess(object):
 
 
 
-    def indexDoc(self, path):
+    def indexDoc(self, filepath):
 
-        fp = file(path,'rb')
+        fp = filepath.open('rb')
         try:
             meta, content = distillparse.parseDistillML(fp, distillparse.writeHeader)
             uri = meta['uri']                               # if there is no uri, throw an exception and discard this doc
@@ -477,7 +456,7 @@ class IndexProcess(object):
             # check index to see if document already indexed
             result = self._searchForArchived(uri, meta)
             if result:
-                log.info('discard %s archived(%s) - %s' % (os.path.split(path)[1], result, uri))
+                log.info('discard %s archived(%s) - %s' % (filepath.name, result, uri))
                 return False
 
             # add this document in the archive
@@ -492,7 +471,7 @@ class IndexProcess(object):
             # note if there are existing uri, it will be overwritten by the new one
             self.freshdocs[uri] = meta
 
-            log.info('%s -> %s' % (os.path.split(path)[1], id))
+            log.info('%s -> %s' % (filepath.name, id))
 
         finally:
             fp.close()
@@ -594,15 +573,15 @@ def main(argv):
         print 'getQueueStatus numIndexed %s numQueued %s' % getQueueStatus()
 
     elif option == '-t':
-        logdir  = cfg.getPath('logs')
-        qlogs = _getQueuedLogs(logdir)
-        transformed, discarded = TransformProcess().run(logdir, qlogs)
+        logpath = cfg.getpath('logs')
+        qlogs = _getQueuedLogs(logpath)
+        transformed, discarded = TransformProcess().run(logpath, qlogs)
         print transformed, discarded
 
     elif option == '-i':
-        logdir  = cfg.getPath('logs')
-        qtxts = _getQueuedText(logdir)
-        indexed, discarded = IndexProcess().run(logdir, qtxts)
+        logpath  = cfg.getpath('logs')
+        qtxts = _getQueuedText(logpath)
+        indexed, discarded = IndexProcess().run(logpath, qtxts)
         print indexed, discarded
 
     elif option == '-b':

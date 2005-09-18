@@ -2,10 +2,9 @@
 """
 
 from cStringIO import StringIO
-import os, os.path
 
-from minds.util import fileutil
 from minds.config import cfg
+from minds.util import fileutil
 
 
 # Discussion 2004/11/23
@@ -48,13 +47,13 @@ class CacheFile(fileutil.BoundedFile):
         self._save(id+'.qlog')
 
     def _save(self, filename):
-        pathname = os.path.join(cfg.getPath('logs'), filename)
-        tmppathname = pathname+'.tmp'
-        fp = file(tmppathname,'wb')
+        filepath = cfg.getpath('logs') / filename
+        tmppath = filepath +'.tmp'
+        fp = tmppath.open('wb')
         fp.write(self.buf.getvalue())
         fp.close()
         # write to a tmp file first and then rename to make it more atomic.
-        os.rename(tmppathname, pathname)
+        tmppath.rename(filepath)
 
     def discard(self):
         self.buf = None

@@ -99,8 +99,8 @@ def sortHits(hits, maxDoc):
 def search(query, start, end):
 
     # search
-    dbindex = cfg.getPath('archiveindex')
-    searcher = lucene_logic.Searcher(pathname=dbindex)
+    indexpath = cfg.getpath('archiveindex')
+    searcher = lucene_logic.Searcher(pathname=indexpath)
     query = query.rewrite(searcher.reader.reader)
     hits = searcher.search(query)
 

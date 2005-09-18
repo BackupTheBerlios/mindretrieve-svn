@@ -14,7 +14,7 @@ from minds import lucene_logic
 
 NOTIFY_INTERVAL = 100
 
-def reindex(dbdoc, beginId, endId, index_path):
+def reindex(apath, beginId, endId, index_path):
 
     ah = docarchive.ArchiveHandler('r')
 
@@ -54,13 +54,13 @@ def main(argv):
     shutil.rmtree(index_path, True)
 
     starttime = datetime.datetime.now()
-    dbdoc = cfg.getPath('archive')
+    apath = cfg.getpath('archive')
     idc = docarchive.idCounter
     idc._findIdRange()
     beginId = idc._beginId
     endId   = idc._endId
-    print 'Reindex %s(#%d-%d) -> %s' % (dbdoc, beginId, endId, index_path)
-    reindex(dbdoc, beginId, endId, index_path)
+    print 'Reindex %s(#%d-%d) -> %s' % (apath, beginId, endId, index_path)
+    reindex(apath, beginId, endId, index_path)
     print 'Reindex finished:', datetime.datetime.now() - starttime
 
 

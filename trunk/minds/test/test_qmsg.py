@@ -2,15 +2,14 @@
 """
 
 import calendar, datetime, time
-import os, os.path, sys
-import shutil
 import StringIO
+import sys
 import traceback
 import unittest
 
 import PyLucene
 
-from config_help import cfg
+from minds.safe_config import cfg as testcfg
 from minds import messagelog
 from minds import qmsg_processor
 from minds import distillML
@@ -20,8 +19,7 @@ from minds.util import fileutil
 from minds.util import patterns_tester
 
 
-testdir = os.path.join(cfg.getPath('testDoc'),'.')[:-1]
-
+testpath = testcfg.getpath('testDoc')
 
 
 def _makeMeta(uri, date, etag, last_modified):
@@ -47,32 +45,32 @@ class TestBackgroundTask(unittest.TestCase):
         messagelog.mlog = messagelog.MsgLogger()
 
         # prepare some configuration for this test
-        self.interval0     = cfg.get('indexing.interval'    )
-        self.numDoc0       = cfg.get('indexing.numDoc'      )
-        self.max_interval0 = cfg.get('indexing.max_interval')
-        cfg.set('indexing.interval'    , '3'  )
-        cfg.set('indexing.numDoc'      , '5' )
-        cfg.set('indexing.max_interval', '360')
+        self.interval0     = testcfg.get('indexing.interval'    )
+        self.numDoc0       = testcfg.get('indexing.numDoc'      )
+        self.max_interval0 = testcfg.get('indexing.max_interval')
+        testcfg.set('indexing.interval'    , '3'  )
+        testcfg.set('indexing.numDoc'      , '5' )
+        testcfg.set('indexing.max_interval', '360')
 
         # make dummy queued msg 0.tmp
-        self.logdir = cfg.getPath('logs')
-        self.path = os.path.join(self.logdir, '0.tmp')
-        file(self.path, 'wb').close()
+        self.logpath = testcfg.getpath('logs')
+        self.path0 = self.logpath/'0.tmp'
+        self.path0.touch() # create empty file
 
         dt0 = datetime.datetime(2000,1,1,10,00,0)
         mtime = time.mktime(dt0.timetuple())            # first queued: 2000-1-1 10:00 localtime
-        os.utime(self.path, (mtime, mtime))
+        self.path0.utime((mtime, mtime))
 
 
 
     def tearDown(self):
         """ Reset things we have altered. """
         messagelog.mlog = messagelog.MsgLogger()                # reset messagelog.mlog
-        cfg.set('indexing.interval'    , self.interval0    ) # reset configurations
-        cfg.set('indexing.numDoc'      , self.numDoc0      )
-        cfg.set('indexing.max_interval', self.max_interval0)
+        testcfg.set('indexing.interval'    , self.interval0    ) # reset configurations
+        testcfg.set('indexing.numDoc'      , self.numDoc0      )
+        testcfg.set('indexing.max_interval', self.max_interval0)
 
-        os.remove(self.path)                                    # remove dummy queued msg
+        self.path0.remove()                             # remove dummy queued msg
 
 
 
@@ -96,7 +94,7 @@ class TestBackgroundTask(unittest.TestCase):
         # 2000-1-1 10:30 localtime
         now = datetime.datetime(2000,1,1,10,30,0)
 
-        self.assertEqual(0, qmsg_processor._shouldIndex(now, self.logdir, []))
+        self.assertEqual(0, qmsg_processor._shouldIndex(now, self.logpath, []))
 
 
 
@@ -108,16 +106,16 @@ class TestBackgroundTask(unittest.TestCase):
         # 2000-1-1 10:30 localtime
         now = datetime.datetime(2000,1,1,10,30,0)
                                                                                     # lastIssued is None
-        self.assertEqual(0, qmsg_processor._shouldIndex(now, self.logdir, queued))  # 0 - do not index
+        self.assertEqual(0, qmsg_processor._shouldIndex(now, self.logpath, queued)) # 0 - do not index
 
         messagelog.mlog.lastIssued = datetime.datetime(2000,1,1,10,29,0)            # 1 min elapsed
-        self.assertEqual(0, qmsg_processor._shouldIndex(now, self.logdir, queued))  # 0 - do not index
+        self.assertEqual(0, qmsg_processor._shouldIndex(now, self.logpath, queued)) # 0 - do not index
 
         messagelog.mlog.lastIssued = datetime.datetime(2000,1,1,10,27,0)            # 3 min elapsed
-        self.assertEqual(0, qmsg_processor._shouldIndex(now, self.logdir, queued))  # 0 - do not index
+        self.assertEqual(0, qmsg_processor._shouldIndex(now, self.logpath, queued)) # 0 - do not index
 
         messagelog.mlog.lastIssued = datetime.datetime(2000,1,1,9,30,0)             # -60 min elapsed
-        self.assertEqual(0, qmsg_processor._shouldIndex(now, self.logdir, queued))  # 0 - do not index
+        self.assertEqual(0, qmsg_processor._shouldIndex(now, self.logpath, queued)) # 0 - do not index
 
 
 
@@ -129,19 +127,19 @@ class TestBackgroundTask(unittest.TestCase):
         # 2000-1-1 10:30 localtime
         now = datetime.datetime(2000,1,1,10,30,0)
                                                                                     # lastIssued is None
-        self.assertEqual(1, qmsg_processor._shouldIndex(now, self.logdir, queued))  # 1 - numDoc has met
+        self.assertEqual(1, qmsg_processor._shouldIndex(now, self.logpath, queued)) # 1 - numDoc has met
 
         messagelog.mlog.lastIssued = datetime.datetime(2000,1,1,10,29,0)            # 1 min elapsed
-        self.assertEqual(0, qmsg_processor._shouldIndex(now, self.logdir, queued))  # 0 - do not index
+        self.assertEqual(0, qmsg_processor._shouldIndex(now, self.logpath, queued)) # 0 - do not index
 
         messagelog.mlog.lastIssued = datetime.datetime(2000,1,1,10,27,0)            # 3 min elapsed
-        self.assertEqual(1, qmsg_processor._shouldIndex(now, self.logdir, queued))  # 1 - numDoc has met
+        self.assertEqual(1, qmsg_processor._shouldIndex(now, self.logpath, queued)) # 1 - numDoc has met
 
         messagelog.mlog.lastIssued = datetime.datetime(2000,1,1,10,31,0)            # -1 min elapsed (new activity)
-        self.assertEqual(0, qmsg_processor._shouldIndex(now, self.logdir, queued))  # 0 - do not index
+        self.assertEqual(0, qmsg_processor._shouldIndex(now, self.logpath, queued)) # 0 - do not index
 
         messagelog.mlog.lastIssued = datetime.datetime(2000,1,1,11,30,0)            # -60 min elapsed
-        self.assertEqual(-1, qmsg_processor._shouldIndex(now, self.logdir, queued)) # -1 - fail to evaluate time elapsed
+        self.assertEqual(-1, qmsg_processor._shouldIndex(now, self.logpath, queued))# -1 - fail to evaluate time elapsed
         # see source code for the logic of this decision
 
 
@@ -154,13 +152,13 @@ class TestBackgroundTask(unittest.TestCase):
         # 2000-1-1 10:30 localtime
         now = datetime.datetime(2000,1,1,10,30,0)
                                                                                     # 30 min elapsed
-        self.assertEqual(0, qmsg_processor._shouldIndex(now, self.logdir, queued))  # 0 - do not index
+        self.assertEqual(0, qmsg_processor._shouldIndex(now, self.logpath, queued)) # 0 - do not index
 
         now = datetime.datetime(2000,1,1,16,0,0)                                    # 360 min elapsed
-        self.assertEqual(2, qmsg_processor._shouldIndex(now, self.logdir, queued))  # 2 - max_interval has reached
+        self.assertEqual(2, qmsg_processor._shouldIndex(now, self.logpath, queued)) # 2 - max_interval has reached
 
         now = datetime.datetime(2000,1,1,9,0,0)                                     # -60 min elapsed
-        self.assertEqual(-2, qmsg_processor._shouldIndex(now, self.logdir, queued)) # -2 = fail to evaluete time elapsed
+        self.assertEqual(-2, qmsg_processor._shouldIndex(now, self.logpath, queued))# -2 = fail to evaluete time elapsed
 
 
 
@@ -368,16 +366,16 @@ class TestQmsg(unittest.TestCase):
 
     def setUp(self):
 
-        self.dbindex = cfg.getPath('archiveindex')
+        self.indexpath = testcfg.getpath('archiveindex')
         self.assertEqual(
-            self.dbindex,'testdata/archive/index')      # check to prevent deleting things in wrong dir due to config goof
-        shutil.rmtree(self.dbindex, True)               # start with empty index
+            self.indexpath,'testdata/archive/index')    # check to prevent deleting things in wrong dir due to config goof
+        self.indexpath.rmtree(True)                     # start with empty index
 
-        self.dbdoc = cfg.getPath('archive')
-        self.assertEqual(self.dbdoc,'testdata/archive')
+        self.arcdocpath = testcfg.getpath('archive')
+        self.assertEqual(self.arcdocpath,'testdata/archive')
 
-        self.logdir = cfg.getPath('logs')
-        self.assertEqual(self.logdir,'testlogs')
+        self.logpath = testcfg.getpath('logs')
+        self.assertEqual(self.logpath,'testlogs')
 
         id = docarchive.idCounter.getNewId()
         self.assert_(int(id) < 999000, id)              # don't expect this to happen for test data; just double check.
@@ -390,19 +388,18 @@ class TestQmsg(unittest.TestCase):
 
     def _cleanup(self):
         # remove *.qlog and *.qtxt
-        files = filter(qmsg_processor.QLOG_PATTERN.match, os.listdir(self.logdir)) + \
-                filter(qmsg_processor.QTXT_PATTERN.match, os.listdir(self.logdir))
+        files = fileutil.listdir(self.logpath, qmsg_processor.QLOG_PATTERN) + \
+                fileutil.listdir(self.logpath, qmsg_processor.QTXT_PATTERN)
         for f in files:
-            pathname = os.path.join(self.logdir,f)
-            try: os.remove(pathname)
+            try: (self.logpath/f).remove()
             except OSError: traceback.print_exc()
 
 
 
     def tearDown(self):
-        arcpath = os.path.join(self.dbdoc, '000999.zip')
-        if os.path.exists(arcpath):
-            os.remove(arcpath)
+        arcpath = self.arcdocpath/'000999.zip'
+        if arcpath.exists():
+            arcpath.remove()
         docarchive.idCounter = docarchive.IdCounter()   # reinstantiate to reset its id range
 
 
@@ -412,8 +409,7 @@ class TestQmsg(unittest.TestCase):
         for i, src in enumerate(files):
             dest = '%09d.qlog' % (i+1)
             queued.append(dest)
-            shutil.copy(os.path.join(testdir, src),
-                        os.path.join(self.logdir, dest))
+            (testpath/src).copy(self.logpath/dest)
 
         return queued
 
@@ -440,45 +436,46 @@ class TestQmsg(unittest.TestCase):
         queued = self._fetch_qlogs(TEST_FILES)
 
         for src in queued:                                          # controlled test: .qlog files are copied
-            path = os.path.join(self.logdir, src)
-            self.assert_(os.path.exists(path), path)
+            qlogpath = self.logpath/src
+            self.assert_(qlogpath.exists(), qlogpath)
 
         dt0 = datetime.datetime(2000,1,1,12,34,56)                  # mtime 2000-1-1 12:34:56 GMT
         mtime = calendar.timegm(dt0.utctimetuple())                 # tricky to convert to time.gmtime()?!
-        os.utime(os.path.join(self.logdir, queued[-1]), (mtime, mtime))
+        lastpath = self.logpath/queued[-1]
+        lastpath.utime((mtime, mtime))
 
         invalid_entries = ['non_exist', '']                         # throw a monkey wrench into the process!
 
         # -------------------------------------
         # This is the main process to be tested
         # -------------------------------------
-        transformed, discarded = qmsg_processor.TransformProcess().run(self.logdir, invalid_entries + queued)
+        transformed, discarded = qmsg_processor.TransformProcess().run(self.logpath, invalid_entries + queued)
 
         self.assertEqual(3, transformed)
         self.assertEqual(4, discarded)                              # 3 bad + 1 invalid + 1 empty
 
         for src in queued:                                          # test all .qlog files are being removed
-            path = os.path.join(self.logdir, src)
-            self.assert_(not os.path.exists(path), path)
+            srcpath = self.logpath/src
+            self.assert_(not srcpath.exists(), srcpath)
 
         qtxts = ['000000001', '000000004', '000000006']             # test .qtxt created
         for qtxt in qtxts:
-            path = os.path.join(self.logdir, qtxt + '.qtxt')
-            self.assert_(os.path.exists(path), path)
+            qtxtpath = self.logpath/(qtxt + '.qtxt')
+            self.assert_(qtxtpath.exists(), qtxtpath)
 
 
 
     def test_discarded_archived(self):
 
         # add a doc to index that matches creative_commons.qlog's etag
-        writer = lucene_logic.Writer(self.dbindex)
+        writer = lucene_logic.Writer(self.indexpath)
         writer.addDocument('1',
             _makeMeta('http://www.getopt.org/luke/', '2000-01-01T10:00:00Z', '"d00b7-2491-40d75aea"', None),
             'dummy content')
         writer.close()
 
         queued = self._fetch_qlogs(['200(getopt_org).mlog', 'gzipped(slashdot).mlog', 'gzipped(slashdot).mlog'])
-        transformed, discarded = qmsg_processor.TransformProcess().run(self.logdir, queued)
+        transformed, discarded = qmsg_processor.TransformProcess().run(self.logpath, queued)
         self.assertEqual(3, transformed)
         self.assertEqual(0, discarded)
 
@@ -487,7 +484,7 @@ class TestQmsg(unittest.TestCase):
             '000000002.qtxt',
             '000000003.qtxt',                                       # archived(v=W/13865) found in freshdocs
         ]
-        indexed, discarded = qmsg_processor.IndexProcess().run(self.logdir, queued)
+        indexed, discarded = qmsg_processor.IndexProcess().run(self.logpath, queued)
         self.assertEqual(1, indexed)
         self.assertEqual(2, discarded)
 
@@ -499,21 +496,20 @@ class TestQmsg(unittest.TestCase):
 
         files = ['000000001.qtxt', '000000004.qtxt', '000000006.qtxt']
         for f in files:
-            shutil.copy(os.path.join(testdir, f),
-                        os.path.join(self.logdir, f))
+            (testpath/f).copy(self.logpath/f)
 
         invalid_entries = ['non_exist', '']                         # throw a monkey wrench into the process!
 
         # -------------------------------------
         # This is the main process to be tested
         # -------------------------------------
-        numIndexed, numDiscarded = qmsg_processor.IndexProcess().run(self.logdir, invalid_entries + files)
+        numIndexed, numDiscarded = qmsg_processor.IndexProcess().run(self.logpath, invalid_entries + files)
 
         self.assertEqual(3, numIndexed)
 
         self.assertEqual(999003, int(docarchive.idCounter.getNewId())) # test only 3 archive id being used
 
-        searcher = lucene_logic.Searcher(pathname=self.dbindex)
+        searcher = lucene_logic.Searcher(pathname=self.indexpath)
 
         # todo: put the search logic into lucene_logic?
 
@@ -637,9 +633,5 @@ class TestQmsg(unittest.TestCase):
         self._check_archive_doc('000999002', 'All rights reserved.')
 
 
-def main(argv):
-    unittest.main()
-
-
 if __name__ == '__main__':
-    main(sys.argv)
+    unittest.main()

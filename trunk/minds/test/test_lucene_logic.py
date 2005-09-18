@@ -1,19 +1,17 @@
 """
 """
 
-import os, os.path, sys
-import shutil
+import sys
 import unittest
 
-from config_help import cfg
+from minds.safe_config import cfg as testcfg
 from minds import lucene_logic
-
 
 
 class TestLuceneLogic(unittest.TestCase):
 
     def setUp(self):
-        self.dbindex = cfg.getPath('archiveindex')
+        self.indexpath = testcfg.getpath('archiveindex')
         self.cleanup()
 
 
@@ -22,9 +20,9 @@ class TestLuceneLogic(unittest.TestCase):
 
 
     def cleanup(self):
-        self.assertEqual('testdata/archive/index', self.dbindex)      # don't delete wrong data
-        if os.path.exists(self.dbindex):
-            shutil.rmtree(self.dbindex)
+        self.assertEqual('testdata/archive/index', self.indexpath)    # make sure don't delete wrong data
+        if self.indexpath.exists():
+            self.indexpath.rmtree()
 
 
     def _test_index_and_search(self, **args):
@@ -64,25 +62,25 @@ class TestLuceneLogic(unittest.TestCase):
 
 
     def test_RAM(self):
-        self.assert_(not os.path.exists(self.dbindex))
+        self.assert_(not self.indexpath.exists())
         self._test_index_and_search()
-        self.assert_(not os.path.exists(self.dbindex))
+        self.assert_(not self.indexpath.exists())
 
 
     def test_FSDirectory(self):
         # iteration 1: start with empty diretory
-        self.assert_(not os.path.exists(self.dbindex))
-        self._test_index_and_search(pathname=self.dbindex)
+        self.assert_(not self.indexpath.exists())
+        self._test_index_and_search(pathname=self.indexpath)
 
         # iteration 2: with existing index
-        self.assert_(os.path.exists(self.dbindex))
-        self._test_index_and_search(pathname=self.dbindex)
+        self.assert_(self.indexpath.exists())
+        self._test_index_and_search(pathname=self.indexpath)
 
 
     def test_version(self):
         # check for the version document added to new index
         reader = lucene_logic.Reader()
-        version = cfg.get('version.number', '?')
+        version = testcfg.get('version.number', '?')
         self.assertEqual(1, reader.numDocs())
         self.assertEqual(version, reader.getVersion())
 

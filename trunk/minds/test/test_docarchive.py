@@ -1,13 +1,12 @@
 """
 """
 
-import os, os.path, sys
-import shutil
 import StringIO
+import sys
 import unittest
 import zipfile
 
-from config_help import cfg
+from minds.safe_config import cfg as testcfg
 from minds import docarchive
 
 
@@ -29,13 +28,13 @@ class BaseTest(unittest.TestCase):
     """ Clean up the $archive to prepare for testing """
 
     def setUp(self):
-        self.apath = cfg.getPath('archive')
+        self.apath = testcfg.getpath('archive')
         self.cleanup()
-        cfg.setupPaths()
 
     def cleanup(self):
         assert(self.apath == 'testdata/archive')    # avoid deleting wrong data in config goof
-        shutil.rmtree(self.apath, True)
+        self.apath.rmtree(True)
+        self.apath.mkdir()
 
 
 
@@ -96,7 +95,7 @@ class TestIdCounter(BaseTest):
     def test_findIdRange_no_file_in_zip(self):
 
         # 000001.zip contains no file.
-        arc_path = os.path.join(self.apath, '000001.zip')
+        arc_path = self.apath/'000001.zip'
         zfile = zipfile.ZipFile(arc_path, 'w', zipfile.ZIP_DEFLATED)
         zfile.close()
 
@@ -122,7 +121,7 @@ class TestIdCounter(BaseTest):
             ('000000099', 'this is file 000000099'),
         ])
 
-        arc_path = os.path.join(self.apath, '000000.zip')
+        arc_path = self.apath/'000000.zip'
         zfile = zipfile.ZipFile(arc_path, 'a', zipfile.ZIP_DEFLATED)
         zfile.writestr('---', 'filename should be 3 digits')
         zfile.writestr('aaa', 'filename should be 3 digits')
@@ -185,8 +184,8 @@ class TestArchiveHandler(BaseTest):
         ah.close()
 
         # check two zip files are created
-        self.assert_(os.path.exists(os.path.join(self.apath, '000000.zip')))
-        self.assert_(os.path.exists(os.path.join(self.apath, '000001.zip')))
+        self.assert_((self.apath/'000000.zip').exists())
+        self.assert_((self.apath/'000001.zip').exists())
 
         # check content
         fp = docarchive.get_document('000000001')

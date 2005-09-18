@@ -4,22 +4,19 @@ Also assit the background archiver to process the messages logged.
 """
 
 import datetime
-import os, os.path
 import StringIO
 import time
 import unittest
 
-from config_help import cfg
+from minds.safe_config import cfg as testcfg
 from minds import cachefile
 from minds import messagelog
 from minds.util import multiblockfile
 
-testdir = os.path.join(cfg.getPath('testDoc'),'.')[:-1]
-
 
 class TestMessageInfo(unittest.TestCase):
 
-    TEST_FILE = testdir + 'creative_commons.qlog'
+    TESTFILE_PATH = testcfg.getpath('testDoc')/'creative_commons.qlog'
     req_path  = 'http://creativecommons.org/'
     host_only = 'creativecommons.org'
 
@@ -45,7 +42,7 @@ class TestMessageInfo(unittest.TestCase):
 
 
     def testParseMessageLog(self):
-        self.fp = file(self.TEST_FILE,'rb')
+        self.fp = file(self.TESTFILE_PATH,'rb')
         m = messagelog.MessageInfo.parseMessageLog(self.fp)
 
         self.assertEqual(m.id               , None          )
@@ -228,12 +225,12 @@ class TestMsgLogger(unittest.TestCase):
     def _invoke_dispose(self, minfo, cfp, mlog):
         """ Helper to set 'mlog' config and then invoke dispose() """
 
-        mlog0 = cfg.get('messagelog.mlog')
-        cfg.cparser.set('messagelog', 'mlog', mlog)
+        mlog0 = testcfg.get('messagelog.mlog')
+        testcfg.cparser.set('messagelog', 'mlog', mlog)
         try:
             self.mlog.dispose(minfo, cfp, self.starttime)
         finally:
-            cfg.set('messagelog.mlog', mlog0)
+            testcfg.set('messagelog.mlog', mlog0)
 
 
     def testDispose_00(self):

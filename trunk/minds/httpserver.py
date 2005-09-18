@@ -8,11 +8,10 @@ import socket
 import threading
 import urlparse
 
-from config import cfg
+from minds.config import cfg
 from minds.util import threadutil
 
 log = logging.getLogger('httpserver')
-
 
 
 class HTTPServer(BaseHTTPServer.HTTPServer):
@@ -136,11 +135,8 @@ class PooledHTTPServer(HTTPServer):
 
 
 
-
-
 def main():
     """ command line tester """
-
     print 'Launch HTTP port 8080 (#4)'
     server = PooledHTTPServer(('', 8080), SimpleHTTPServer.SimpleHTTPRequestHandler, 4)
     server.serve_forever()

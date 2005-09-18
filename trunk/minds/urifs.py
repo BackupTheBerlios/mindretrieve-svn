@@ -10,15 +10,12 @@
 # when to urldecode?
 
 
-
-
 import os.path
 import urlparse
 import sys
 
 from minds.config import cfg
 
-###dataBase = './data'
 DOMAINFILE = 'domain.txt'
 domainMap = {}
 
@@ -32,8 +29,7 @@ class UriResources(object):
 
 def openDomainFp(*args):
     """ open the domain data file """
-    path = cfg.getPath('logs')
-    filename = os.path.join(path,DOMAINFILE)
+    filename = cfg.getpath('logs')/DOMAINFILE
     return file(filename,*args)
 
 

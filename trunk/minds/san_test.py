@@ -24,6 +24,7 @@ import traceback
 import types
 import unittest
 
+from minds.safe_config import cfg
 from toollib import HTMLTestRunner
 
 
@@ -130,7 +131,12 @@ def loadTestCases(module, prefix):
 
 
 def sanity_test(basedir, recurse, prefix):
-    logging.basicConfig(stream=HTMLTestRunner.stdout_redirector)
+    # remove any bootstrap log handler installed
+    rootlog = logging.getLogger()
+    map(rootlog.removeHandler, rootlog.handlers)
+
+    # reinitialize logging with stdout_redirector
+    logging.basicConfig(stream=HTMLTestRunner.stdout_redirector, level=logging.DEBUG)
     print >>sys.stderr, 'Date:', datetime.datetime.now()
     print >>sys.stderr, 'Basedir:', basedir
 

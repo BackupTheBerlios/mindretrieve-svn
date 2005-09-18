@@ -11,13 +11,14 @@
 
 
 import logging
-import os, os.path, sys
 import re
 import StringIO
+import sys
 import threading
 import zipfile
 
 from minds.config import cfg
+from minds.util import fileutil
 from toollib import zipfile_single
 
 log = logging.getLogger('docarc')
@@ -33,8 +34,8 @@ def parseId(id):
     if not id.isdigit() or len(id) != 9:
         raise KeyError, 'Invalid id: %s' % str(id)
 
-    apath = cfg.getPath('archive')
-    return os.path.join(apath, id[:6]+'.zip'), id[6:]
+    arc_path = cfg.getpath('archive') / id[:6]+'.zip'
+    return arc_path, id[6:]
 
 
 
@@ -45,10 +46,10 @@ def get_document(id):
 
     arc_path, filename = parseId(id)
 
-    if not os.path.exists(arc_path):
+    if not arc_path.exists():
         raise KeyError, 'archive file does not exist %s' % arc_path
 
-    zfile = zipfile_single.ZipFile(file(arc_path,'rb'), 'r')
+    zfile = zipfile_single.ZipFile(arc_path.open('rb'), 'r')
     try:
         return StringIO.StringIO(zfile.read(filename))
     finally:
@@ -75,8 +76,8 @@ class IdCounter(object):
     def _findIdRange(self):
         """ Scan the $archive directory for zip files for the begin and end id. """
 
-        apath = cfg.getPath('archive')
-        files = filter(self.arc_pattern.match, os.listdir(apath))
+        apath = cfg.getpath('archive')
+        files = fileutil.listdir(apath, self.arc_pattern)
         if not files:
             self._beginId = 0
             self._endId = 0
@@ -85,17 +86,17 @@ class IdCounter(object):
         first_arc = min(files)
         last_arc  = max(files)
 
-        first = self._findId(os.path.join(apath, first_arc), min)
-        last  = self._findId(os.path.join(apath, last_arc ), max)
+        first = self._findId(apath/first_arc, min)
+        last  = self._findId(apath/last_arc, max)
 
         self._beginId = int(first_arc[:6] + first)   # would be a 9 digit id
         self._endId   = int(last_arc[:6]  + last )+1 # would be a 9 digit id
 
 
-    def _findId(self, path, min_or_max):
+    def _findId(self, arcpath, min_or_max):
         """ return the min_or_max filename in path (as a 3 dight string) """
 
-        zfile = zipfile.ZipFile(path, 'r')                      # would throw BadZipfile if not a zip file
+        zfile = zipfile.ZipFile(arcpath, 'r')                   # would throw BadZipfile if not a zip file
         try:
             files = zfile.namelist()
             files = filter(self.filename_pattern.match, files)  # filter invalid filename
@@ -129,6 +130,10 @@ class IdCounter(object):
 
         finally:
             self.currentIdLock.release()
+
+
+    def __str__(self):
+        return '[%s:%s]' % (self._beginId,self._endId)
 
 
 idCounter = IdCounter()
@@ -165,7 +170,7 @@ class ArchiveHandler(object):
 
         # It would be easier if ZipFile can use 'a' to create new archive.
         # Instead do some checking first.
-        if self.mode == 'w' and os.path.exists(arc_path):
+        if self.mode == 'w' and arc_path.exists():
             self.zfile = zipfile.ZipFile(arc_path, 'a', zipfile.ZIP_DEFLATED)
         else:
             self.zfile = zipfile.ZipFile(arc_path, self.mode, zipfile.ZIP_DEFLATED)

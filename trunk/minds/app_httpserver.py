@@ -26,20 +26,20 @@ statement to the end of your script:
 
 
 
-import SimpleHTTPServer
 import logging
 import os
 import posixpath
+import SimpleHTTPServer
 import sys
 import traceback
 import urllib
 from StringIO import StringIO
 
-from toollib import HTMLTemplate
 from minds.config import cfg
+from minds import base_config
 from minds import cgibin
-from minds import config
 from minds.util import fileutil
+from toollib import HTMLTemplate
 
 log = logging.getLogger('app')
 
@@ -56,11 +56,11 @@ class AppHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
     """
 
     # configurations
-    server_version = config.APPLICATION_NAME + "/" + cfg.get('version.number','?')
+    server_version = base_config.APPLICATION_NAME + "/" + cfg.get('version.number','?')
     protocol_version = "HTTP/1.0"
 
     # todo: actually these class variables got initialized too early. Before cfg.setup is called from proxy
-    docBase = cfg.getPath('docBase')
+    docBase = cfg.getpath('docBase')
 
 
     # Make rfile unbuffered -- we need to read one line and then pass
@@ -303,26 +303,14 @@ def forwardTmpl(wfile, env, tmpl, renderMod, *args):
     #scriptname = env.get('SCRIPT_NAME','')                          # '/admin/snoop.py'
     #scriptpath, scriptfile = os.path.split(scriptname.lstrip('/'))  # 'admin', 'snoop'
 
-    tmplPathname = os.path.join(cfg.getPath('docBase'), tmpl)
-
     # invoke tmpl's render() method
-    fp = file(tmplPathname)
+    fp = file(cfg.getpath('docBase') / tmpl)
 
     template = HTMLTemplate.Template(renderMod.render, fp.read())
     wfile.write(template.render(*args))
 
-
-## TODO: clean up
-## cleaned up version of forwardTmpl()
-#def forwardTmpl1(wfile, tmpl, render, *args):
-#
-#    tmplPathname = os.path.join(cfg.getPath('docBase'), tmpl)
-#    fp = file(tmplPathname,'rb')
-#
-#    template = HTMLTemplate.Template(render, fp.read())
-#
-#    wfile.write(template.render(*args))
-
+# TODO: clean up
+# cleaned up version of forwardTmpl()
 
 
 class CGIFileFilter(fileutil.FileFilter):

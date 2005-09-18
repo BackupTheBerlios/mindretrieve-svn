@@ -1,13 +1,13 @@
 import StringIO
-import os.path, sys
+import sys
 import unittest
 
-from config_help import cfg
+from minds.safe_config import cfg as testcfg
 from minds import distillML
 from minds.util import rspreader
 from minds.util import patterns_tester
 
-testdir = os.path.join(cfg.getPath('testDoc'),'.')[:-1]
+testpath = testcfg.getpath('testDoc')
 
 
 class TestDistill(unittest.TestCase):
@@ -25,7 +25,7 @@ class TestDistill(unittest.TestCase):
 
         # Check basic meta data parsing
 
-        self.fp = rspreader.openlog(testdir + 'basictags.html')
+        self.fp = rspreader.openlog(testpath/'basictags.html')
         meta = {}
         result = distillML.distill(self.fp, self.buf, meta)
         self.assertEqual(u'Basic HTML Sample Document', meta['title'])
@@ -38,7 +38,7 @@ class TestDistill(unittest.TestCase):
 
         # See meta_variations.html for variations of attributes formatting
 
-        self.fp = rspreader.openlog(testdir + 'meta_variations.html')
+        self.fp = rspreader.openlog(testpath/'meta_variations.html')
         meta = {}
         result = distillML.distill(self.fp, self.buf, meta)
         self.assertEqual(u'word1 word2 word3', meta['title'])            # title span multiple lines
@@ -51,7 +51,7 @@ class TestDistill(unittest.TestCase):
 
         # check distilling basic HTML with all tags supported.
 
-        self.fp = rspreader.openlog(testdir + 'basictags.html')  # have all tags supported
+        self.fp = rspreader.openlog(testpath/'basictags.html')  # have all tags supported
         result = distillML.distill(self.fp, self.buf, {})
         self.assertEqual(0, result)
 
@@ -109,7 +109,7 @@ class TestDistill(unittest.TestCase):
 
 
     def testDistillTxt(self):
-        self.fp = rspreader.openlog(testdir + 'plaintext.mlog')
+        self.fp = rspreader.openlog(testpath/'plaintext.mlog')
         result = distillML.distillTxt(self.fp, self.buf, {})
         self.assertEqual(0, result)
 
@@ -123,7 +123,7 @@ class TestDistill(unittest.TestCase):
 
         PROBLEM_LINE = '<! -- this is bad -->'
 
-        self.fp = rspreader.openlog(testdir + 'malformed_html.mlog')
+        self.fp = rspreader.openlog(testpath/'malformed_html.mlog')
         s = self.fp.read(1024)
         self.assert_(s.find(PROBLEM_LINE) > 0)   # make sure the PROBLEM_LINE is in the test data
         self.fp.seek(0)
@@ -233,7 +233,7 @@ class TestCharEncoding(unittest.TestCase):
 
         # Best view using full unicode font such as 'Gulim'
 
-        fp = file(testdir + 'test_encoding_data.utf8.txt', 'rb')
+        fp = file(testpath/'test_encoding_data.utf8.txt', 'rb')
         self.test_data = [line.decode('utf8').rstrip() for line in fp]
         fp.close()
 
@@ -244,7 +244,7 @@ class TestCharEncoding(unittest.TestCase):
 
     def test_utf8(self):
 
-        self.fp = file(testdir + 'ah_ying_utf8.qlog', 'rb')
+        self.fp = file(testpath/'ah_ying_utf8.qlog', 'rb')
         title, content = self.test_data[1:3]
 
         result = distillML.test_distill(self.fp, self.buf, self.meta)
@@ -258,7 +258,7 @@ class TestCharEncoding(unittest.TestCase):
 
     def test_iso_8851_1(self):
 
-        self.fp = file(testdir + 'apache_ISO-8859-1.qlog', 'rb')
+        self.fp = file(testpath/'apache_ISO-8859-1.qlog', 'rb')
         title, content = self.test_data[4:6]
 
         result = distillML.test_distill(self.fp, self.buf, self.meta)
@@ -272,7 +272,7 @@ class TestCharEncoding(unittest.TestCase):
 
     def test_koi8_r(self):
 
-        self.fp = file(testdir + 'apache_koi8-r.qlog', 'rb')
+        self.fp = file(testpath/'apache_koi8-r.qlog', 'rb')
         title, content = self.test_data[7:9]
 
         result = distillML.test_distill(self.fp, self.buf, self.meta)
@@ -286,7 +286,7 @@ class TestCharEncoding(unittest.TestCase):
 
     def test_big5(self):
 
-        self.fp = file(testdir + 'hk.yahoo_big5.qlog', 'rb')
+        self.fp = file(testpath/'hk.yahoo_big5.qlog', 'rb')
         title, content = self.test_data[10:12]
 
         result = distillML.test_distill(self.fp, self.buf, self.meta)
@@ -300,7 +300,7 @@ class TestCharEncoding(unittest.TestCase):
 
     def test_euc_jp(self):
 
-        self.fp = file(testdir + 'apache_euc-jp.qlog', 'rb')
+        self.fp = file(testpath/'apache_euc-jp.qlog', 'rb')
         title, content = self.test_data[13:15]
 
         result = distillML.test_distill(self.fp, self.buf, self.meta)
@@ -314,7 +314,7 @@ class TestCharEncoding(unittest.TestCase):
 
     def test_euc_kr(self):
 
-        self.fp = file(testdir + 'apache_euc-kr.qlog', 'rb')
+        self.fp = file(testpath/'apache_euc-kr.qlog', 'rb')
         title, content = self.test_data[16:18]
 
         result = distillML.test_distill(self.fp, self.buf, self.meta)
@@ -328,7 +328,7 @@ class TestCharEncoding(unittest.TestCase):
 
     def test_big5_txt(self):
 
-        self.fp = file(testdir + 'ah_ying.txt', 'rb')
+        self.fp = file(testpath/'ah_ying.txt', 'rb')
         title, content = self.test_data[19:21]
 
         self.meta['content-type'] = 'text/plain; charset=big5'
@@ -344,7 +344,7 @@ class TestCharEncoding(unittest.TestCase):
 
     def test_bad_encoding(self):
 
-        self.fp = file(testdir + 'ah_ying_bad.qlog', 'rb')
+        self.fp = file(testpath/'ah_ying_bad.qlog', 'rb')
 
         result = distillML.test_distill(self.fp, self.buf, self.meta)
         self.assertEqual(self.meta['encoding'], 'iso-8859-1 [DEFAULT]')     # invalid encoding -> default
@@ -375,70 +375,70 @@ class TestWeeding(unittest.TestCase):
 
 
     def testMagicFiltered(self):
-        self.fp = rspreader.openlog(testdir + 'gif.qlog')
+        self.fp = rspreader.openlog(testpath/'gif.qlog')
         result = distillML.distill(self.fp, self.buf, {})
         self.assertEqual((distillML.NON_HTML, 'image/gif'), result)
 
 
     def testMagicFilteredTxt(self):
        """ Wrong media type text/plain """
-       self.fp = rspreader.openlog(testdir + 'favicon.ico_text(nutch).mlog')
+       self.fp = rspreader.openlog(testpath/'favicon.ico_text(nutch).mlog')
        result = distillML.distillTxt(self.fp, self.buf, {})
        self.assertEqual((distillML.NON_HTML, 'image/vnd.microsoft.icon'), result)
 
 
 #    def testPlaintext(self):
-#        self.fp = rspreader.openlog(testdir + 'plaintext.txt')
+#        self.fp = rspreader.openlog(testpath/'plaintext.txt')
 #        result = distillML.distill(self.fp, self.buf, {})
 #        self.assertEqual((distillML.NON_HTML, 'unknown'), result)
 
 
 #    def testXML(self):
-#        self.fp = rspreader.openlog(testdir + 'xmltext.xml')
+#        self.fp = rspreader.openlog(testpath/'xmltext.xml')
 #        result = distillML.distill(self.fp, self.buf, {})
 #        self.assertEqual((distillML.NON_HTML, 'unknown'), result)
 
 
     def testFrameset(self):
-        self.fp = rspreader.openlog(testdir + 'frameset.html')
+        self.fp = rspreader.openlog(testpath/'frameset.html')
         result = distillML.distill(self.fp, self.buf, {})
         self.assertEqual((distillML.FRAMESET), result[0])
 
 
     def testCSS(self):
-        self.fp = rspreader.openlog(testdir + 'main.css')
+        self.fp = rspreader.openlog(testpath/'main.css')
         result = distillML.distill(self.fp, self.buf, {})
         self.assertEqual((distillML.NON_HTML, 'unknown'), result)
 
 
     def testJavascript(self):
-        self.fp = rspreader.openlog(testdir + 'js/doc_write_html.js')
+        self.fp = rspreader.openlog(testpath/'js/doc_write_html.js')
         result = distillML.distill(self.fp, self.buf, {})
         self.assertEqual((distillML.JS, u'document.write('), result)
 
-        self.fp = rspreader.openlog(testdir + 'js/function.js')
+        self.fp = rspreader.openlog(testpath/'js/function.js')
         result = distillML.distill(self.fp, self.buf, {})
         self.assertEqual((distillML.JS, u'function YADopenWindow(x){'), result)
 
-        self.fp = rspreader.openlog(testdir + 'js/ibHtml1=.js')
+        self.fp = rspreader.openlog(testpath/'js/ibHtml1=.js')
         result = distillML.distill(self.fp, self.buf, {})
         self.assertEqual((distillML.JS, u'ibHtml1="'), result)
 
-        self.fp = rspreader.openlog(testdir + 'js/var_with_html.js')
+        self.fp = rspreader.openlog(testpath/'js/var_with_html.js')
         result = distillML.distill(self.fp, self.buf, {})
         self.assertEqual((distillML.JS,  u'var pophtml ='), result)
 
-        self.fp = rspreader.openlog(testdir + 'js/small1.js')
+        self.fp = rspreader.openlog(testpath/'js/small1.js')
         result = distillML.distill(self.fp, self.buf, {})
         self.assertEqual((distillML.NON_HTML, 'unknown'), result)
 
-        self.fp = rspreader.openlog(testdir + 'js/small2.js')
+        self.fp = rspreader.openlog(testpath/'js/small2.js')
         result = distillML.distill(self.fp, self.buf, {})
         self.assertEqual((distillML.NON_HTML, 'unknown'), result)
 
 
     def testLowvisible(self):
-       self.fp = rspreader.openlog(testdir + 'lowvisible(doubleclick).mlog')
+       self.fp = rspreader.openlog(testpath/'lowvisible(doubleclick).mlog')
        result = distillML.distill(self.fp, self.buf, {})
        self.assertEqual(distillML.LOWVISIBLE, result[0])
 

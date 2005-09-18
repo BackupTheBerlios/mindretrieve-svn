@@ -1,20 +1,25 @@
 """
 """
 
-import os, os.path, sys
+import sys
 import unittest
 
-from config_help import cfg
+from minds.safe_config import cfg as testcfg
 from minds import cachefile
-
 
 
 class TestCacheFile(unittest.TestCase):
 
-    FILE1 = 'testcache'
+    FILE_BASE = 'testcache'
 
     def setUp(self):
-        self.pathname = os.path.join(cfg.getPath('logs'), self.FILE1)
+        logpath = testcfg.getpath('logs')
+        # check test path to avoid config goof
+        # we will delete files!
+        self.assert_('testlogs' in logpath)
+        
+        self.qlogpath = logpath/(self.FILE_BASE+'.qlog')
+        self.mlogpath = logpath/(self.FILE_BASE+'.mlog')
         self.cleanup()
 
 
@@ -23,15 +28,13 @@ class TestCacheFile(unittest.TestCase):
 
 
     def cleanup(self):
-        # hardcode path to avoid deleting real data in config goof
-        try: os.remove('testlogs/' + self.FILE1 + '.mlog')
+        try: self.qlogpath.remove()
         except OSError: pass
-        try: os.remove('testlogs/' + self.FILE1 + '.qlog')
+        try: self.mlogpath.remove()
         except OSError: pass
 
 
     def test_write(self):
-
         c = cachefile.CacheFile(10)
 
         c.write('hello')
@@ -40,20 +43,19 @@ class TestCacheFile(unittest.TestCase):
         c.write('how are you?')
         self.assert_(c.isOverflow())
 
-        self.assert_(not os.path.exists(self.pathname+'.qlog'))
-        self.assert_(not os.path.exists(self.pathname+'.mlog'))
+        self.assert_(not self.qlogpath.exists())
+        self.assert_(not self.mlogpath.exists())
 
-        c.write_qlog(self.FILE1)
-        self.assert_(os.path.exists(self.pathname+'.qlog'))
-        self.assert_(os.path.getsize(self.pathname+'.qlog'),5)
+        c.write_qlog(self.FILE_BASE)
+        self.assert_(self.qlogpath.exists())
+        self.assert_(self.qlogpath.size==5)
 
-        c.write_mlog(self.FILE1)
-        self.assert_(os.path.exists(self.pathname+'.mlog'))
-        self.assert_(os.path.getsize(self.pathname+'.mlog'),5)
+        c.write_mlog(self.FILE_BASE)
+        self.assert_(self.mlogpath.exists())
+        self.assert_(self.mlogpath.size==5)
 
 
     def test_discard(self):
-
         c = cachefile.CacheFile(10)
 
         c.write('hello')
@@ -63,8 +65,8 @@ class TestCacheFile(unittest.TestCase):
         self.assert_(c.isOverflow())
 
         c.discard()
-        self.assert_(not os.path.exists(self.pathname+'.qlog'))
-        self.assert_(not os.path.exists(self.pathname+'.mlog'))
+        self.assert_(not self.qlogpath.exists())
+        self.assert_(not self.mlogpath.exists())
 
 
 if __name__ == '__main__':

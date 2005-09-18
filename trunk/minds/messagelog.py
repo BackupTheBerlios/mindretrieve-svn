@@ -13,12 +13,12 @@ import datetime
 import httplib
 import logging
 import mimetools
-import os, os.path
+import os 
 import re
 import threading
 import sys
 
-from config import cfg
+from minds.config import cfg
 from minds import urifs
 from minds.util import fileutil
 from minds.util import httputil
@@ -236,7 +236,7 @@ class MsgLogger(object):
         """ Scan logs dir for files for the highest id.
             0 if no file found.
         """
-        logdir = cfg.getPath('logs')
+        logdir = cfg.getpath('logs')
         files = filter(self.log_pattern.match, self._listdir(logdir))
         if not files:
             return 0
@@ -287,7 +287,7 @@ class MsgLogger(object):
 
     @staticmethod
     def _getMsgLogPath(id):
-        return os.path.join( cfg.getPath('logs'), id+'.qlog')
+        return cfg.getpath('logs')/(id+'.qlog')
 
 mlog = MsgLogger()
 

@@ -3,39 +3,39 @@
 
 import unittest
 
-from config_help import cfg
+from minds.safe_config import cfg as testcfg
 from minds import domain_filter
 
 
 class TestDomainFilter(unittest.TestCase):
 
     def setUp(self):
-        self.domain0 = cfg.set('filter.domain.0', '')
-        self.domain1 = cfg.set('filter.domain.1', '')
-        self.domain2 = cfg.set('filter.domain.2', '')
-        self.domain3 = cfg.set('filter.domain.3', '')
-        self.domain4 = cfg.set('filter.domain.4', '')
-        cfg.set('filter.domain.0', '.xyz.com')           # domain start by '.'
-        cfg.set('filter.domain.1', ' abc.com , , def ')  # whitespaces, nothing between ,,
-        cfg.set('filter.domain.2', ',')                  # lone ,
-        cfg.set('filter.domain.3', '')                   # blank
-        cfg.set('filter.domain.4', '')
+        self.domain0 = testcfg.set('filter.domain.0', '')
+        self.domain1 = testcfg.set('filter.domain.1', '')
+        self.domain2 = testcfg.set('filter.domain.2', '')
+        self.domain3 = testcfg.set('filter.domain.3', '')
+        self.domain4 = testcfg.set('filter.domain.4', '')
+        testcfg.set('filter.domain.0', '.xyz.com')           # domain start by '.'
+        testcfg.set('filter.domain.1', ' abc.com , , def ')  # whitespaces, nothing between ,,
+        testcfg.set('filter.domain.2', ',')                  # lone ,
+        testcfg.set('filter.domain.3', '')                   # blank
+        testcfg.set('filter.domain.4', '')
 
 
     def tearDown(self):
-        cfg.set('filter.domain.0', self.domain0)
-        cfg.set('filter.domain.1', self.domain1)
-        cfg.set('filter.domain.2', self.domain2)
-        cfg.set('filter.domain.3', self.domain3)
-        cfg.set('filter.domain.4', self.domain4)
+        testcfg.set('filter.domain.0', self.domain0)
+        testcfg.set('filter.domain.1', self.domain1)
+        testcfg.set('filter.domain.2', self.domain2)
+        testcfg.set('filter.domain.3', self.domain3)
+        testcfg.set('filter.domain.4', self.domain4)
 
 
     def testLoad0(self):
-        cfg.set('filter.domain.0', '')
-        cfg.set('filter.domain.1', '')
-        cfg.set('filter.domain.2', '')
-        cfg.set('filter.domain.3', '')
-        cfg.set('filter.domain.4', '')
+        testcfg.set('filter.domain.0', '')
+        testcfg.set('filter.domain.1', '')
+        testcfg.set('filter.domain.2', '')
+        testcfg.set('filter.domain.3', '')
+        testcfg.set('filter.domain.4', '')
         domain_filter.load()
         self.assertEqual(0, len(domain_filter.g_exdm))
 
@@ -50,11 +50,11 @@ class TestDomainFilter(unittest.TestCase):
 
 
     def testFilter0(self):
-        cfg.set('filter.domain.0', '')
-        cfg.set('filter.domain.1', '')
-        cfg.set('filter.domain.2', '')
-        cfg.set('filter.domain.3', '')
-        cfg.set('filter.domain.4', '')
+        testcfg.set('filter.domain.0', '')
+        testcfg.set('filter.domain.1', '')
+        testcfg.set('filter.domain.2', '')
+        testcfg.set('filter.domain.3', '')
+        testcfg.set('filter.domain.4', '')
         domain_filter.g_exdm = None                                 # force reload
         self.assertEqual(None, domain_filter.match(''))
         self.assertEqual(None, domain_filter.match('http://abc'))

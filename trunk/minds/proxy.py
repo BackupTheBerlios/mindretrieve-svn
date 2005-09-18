@@ -2,28 +2,22 @@
 """
 
 import logging
-import os, os.path, sys
+import os, sys
 import threading
 
-# it is recommend that all modules load cfg from config at the beginning.
-# it loads the test setup and help prepare basic logging
-from config import cfg
-
+from minds.config import cfg
 import app_httpserver
 import config
 import httpserver
 import proxyhandler
 import qmsg_processor
-#import urifs
 from minds.util import threadutil
-
 
 
 ### System Globals #####################################################
 
 log = logging.getLogger('proxy')
 _shutdownEvent = threading.Event()
-
 
 
 ########################################################################
@@ -74,13 +68,6 @@ def indexMain():
 
 ########################################################################
 
-#def init():
-#    """ Basic configuration. Designed to be light weight enough to invoke for unit testing. """
-#    # load() is now redundant    
-#    #cfg.load(config_filename)
-#    cfg.setupPaths()
-
-
 def setup():
     """ module startup """
     cfg.setupPaths()
@@ -89,20 +76,21 @@ def setup():
 
 
 def setupLogging():
-    filename = os.path.join(cfg.getPath('logs'), 'system.log')
-    hdlr = logging.handlers.RotatingFileHandler(filename, 'a', 1100000, 4)
+    # remove any bootstrap log handler installed
+    rootlog = logging.getLogger()
+    map(rootlog.removeHandler, rootlog.handlers)
+
+    syslogpath = cfg.getpath('logs')/'system.log'
+    hdlr = logging.handlers.RotatingFileHandler(syslogpath, 'a', 1100000, 4)
     formatter = logging.Formatter('%(asctime)s %(name)-10s - %(message)s')
     hdlr.setFormatter(formatter)
-    rootlog = logging.getLogger()
+        
     rootlog.addHandler(hdlr)
-    rootlog.removeHandler(config.bootstrapHdlr)
     rootlog.setLevel(logging.DEBUG)
 
     # redirect stdout and stderr to log
-    stdoutFp = LogFileObj(logging.getLogger('stdout'))
-    stderrFp = LogFileObj(logging.getLogger('stderr'))
-    sys.stdout = stdoutFp
-    sys.stderr = stderrFp
+    sys.stdout = LogFileObj(logging.getLogger('stdout'))
+    sys.stderr = LogFileObj(logging.getLogger('stderr'))
     print 'stdout ready'
     print >>sys.stderr, 'stderr ready'
 
@@ -137,7 +125,6 @@ def isShutdown():
 
 
 def main():
-
     import PyLucene
 
     setup()
@@ -155,7 +142,7 @@ def main():
 
     # show index version
     import lucene_logic
-    dbindex = cfg.getPath('archiveindex')
+    dbindex = cfg.getpath('archiveindex')
     reader = lucene_logic.Reader(pathname=dbindex)
     version = reader.getVersion()
     log.info('  Index version %s', version)
@@ -186,5 +173,6 @@ def main():
     log.fatal('End of main thread.')
 
 
-#if __name__ == '__main__':
-#    main()
+if __name__ == '__main__':
+    print >>sys.stderr, 'Please launch proxy from run.py'
+    sys.exit(-1)

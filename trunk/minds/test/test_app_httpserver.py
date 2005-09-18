@@ -4,7 +4,7 @@
 import StringIO
 import unittest
 
-from config_help import cfg
+from minds.safe_config import cfg as testcfg
 from minds import app_httpserver
 
 

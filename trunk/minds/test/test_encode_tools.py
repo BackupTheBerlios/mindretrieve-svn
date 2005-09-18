@@ -1,13 +1,11 @@
 """
 """
 
-import os, os.path, sys
 import StringIO
+import sys
 import unittest
 
-#from config_help import cfg
 from minds import encode_tools
-
 
 
 class TestEncodeTools(unittest.TestCase):

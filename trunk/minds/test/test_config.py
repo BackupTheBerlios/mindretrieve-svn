@@ -1,22 +1,18 @@
 import sys
 import unittest
 
-from minds import config
-
-TEST_FILENAME = 'config.ini'
+from minds.safe_config import cfg
 
 class TestConfig(unittest.TestCase):
 
-  def setUp(self):
-    self.cfg = config.Config()
+ def setUp(self):
+    self.cfg = cfg
 
-  def tearDown(self):
-    pass
+# def tearDown(self):
+#    pass
 
 
-  def testDefault(self):
-    self.cfg.load(TEST_FILENAME)
-
+ def testDefault(self):
     self.assertNotEqual( self.cfg.get('version.created','X'), 'X')           # not using default
 
     self.assertEqual( self.cfg.get('version.nonexist', 'default'), 'default')
@@ -29,27 +25,50 @@ class TestConfig(unittest.TestCase):
     self.assertEqual( self.cfg.getboolean('version.nonexist', False), False) # Test out default of False
 
 
-  def testGet(self):
-    self.cfg.load(TEST_FILENAME)
-    print str(self.cfg)
+ def testGet(self):
     self.assert_( self.cfg.get('version.created').find('2005') >= 0)
 
 
-  def testGetPref(self):
-    self.fail()  
+ def testGetPref(self):
+    self.fail('need test')  
 
 
-  def testGetPath(self):
-    self.fail()  
+ def testGetPath(self):
+    datapath = cfg.getpath('data')
+    # Test
+    # a. data is a path object.
+    # b. datapath exists (because implicit call to setupPaths()
+    self.assert_(datapath.exists())
 
 
-  def testUpdate_pref(self):
-    self.fail()  
+ def testUpdate_pref(self):
+    self.fail('need test')  
 
-  
-  def testSetupPaths(self):
-    self.cfg.load(TEST_FILENAME)
-    self.cfg.setupPaths()                # this will have side effect on the FS!
+
+ def testStr(self):   
+    print str(self.cfg)
+
+
+ def testSafeConfig(self):
+    # make sure we are using safe test config
+    
+    keys = [n for n,v in cfg.cparser.items('path')]
+    # take these items outside of test
+    keys.remove('docbase')    
+    keys.remove('testdoc')    
+    # check that the above code do what we want
+    self.assert_('data' in keys)
+    self.assert_('logs' in keys)
+    self.assert_('weblibsnapshot' in keys)
+    self.assert_('archiveindex' in keys)
+    
+    for name in keys:
+        self.assert_('test' in cfg.getpath(name))
+
+    # we get test path even if we import from config
+    from minds.config import cfg as config_cfg
+    for name in keys:
+        self.assert_('test' in config_cfg.getpath(name))
 
 
 

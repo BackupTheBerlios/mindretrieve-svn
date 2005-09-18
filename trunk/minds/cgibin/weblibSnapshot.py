@@ -13,8 +13,6 @@ from minds.weblib import mhtml
 from minds.weblib import snapshot
 from minds.weblib import store
 
-from toollib.path import path
-
 log = logging.getLogger('cgi.snapsh')
 
 # Handles these URI
@@ -40,6 +38,7 @@ def main(rfile, wfile, env, method, form, rid, rid_path):
         doShowSnapshot(wfile, rid, rid_path)
     elif rid_path == 'snapshot/get':
         doSnapshot(wfile, form, str_rid, item)
+        wlib.updateWebPage(item)
     else:
         wfile.write('404 not found\r\n\r\n%s not found' % rid)
 
@@ -54,8 +53,8 @@ def doShowSnapshot(wfile, rid, rid_path):
         return
         
     filename = rid == -1 and '_.mhtml' or '%s.mhtml' % rid
-    p = path(cfg.getPath('weblibsnapshot')) / filename
-    fp = file(p,'rb')   # TODO: check file exist, move to weblib? getSnapshotFile()?
+    # TODO: check file exist, move to weblib? getSnapshotFile()?
+    fp = (cfg.getpath('weblibsnapshot')/filename).open('rb')
     
     obj = mhtml.LoadedWebArchive.load_fp(fp)
     # do visit?
@@ -69,12 +68,13 @@ def doSnapshot(wfile, form, str_rid, item):
         url = item.url
     shot = snapshot.Snapshot()
     shot.fetch(url)
-    fp = file(path(cfg.getPath('weblibsnapshot')) / '%s.mhtml' % str_rid,'wb')
-    shot.generate(fp)
+    spath = cfg.getpath('weblibsnapshot')/('%s.mhtml' % str_rid)
+    shot.generate(spath.open('wb'))
     fp.close()
     if item:
         t = datetime.datetime.now()
         item.cached = str(t)[:10]
+
     response.redirect(wfile, '../snapshotFrame')
 
     

@@ -13,8 +13,6 @@ from minds import weblib
 from minds.weblib import graph
 from minds.weblib import store
 
-from toollib.path import path
-
 log = logging.getLogger('cgi.weblib')
 
 

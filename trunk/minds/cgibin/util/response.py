@@ -3,7 +3,6 @@
 Run from command line to display the HTMLTemplate parse tree.
 """
 import codecs
-import os.path
 import sys
 import urllib
 
@@ -82,8 +81,8 @@ class CGIRenderer(object):
         cache_control='no-cache'):
 
         # load template
-        pathname = os.path.join(cfg.getPath('docBase'), self.TEMPLATE_FILE)
-        fp = file(pathname,'rb')
+        tpath = cfg.getpath('docBase')/self.TEMPLATE_FILE
+        fp = tpath.open('rb')
         try:
             self.template = HTMLTemplate.Template(self._render0, fp.read())
         finally:    
@@ -131,8 +130,8 @@ class CGIRendererHeadnFoot(CGIRenderer):
         
     def _format_template(self, tmpl, render, *args):
         """ helper to render header and footer """
-        pathname = os.path.join(cfg.getPath('docBase'), tmpl)
-        fp = file(pathname,'rb')
+        tpath = cfg.getpath('docBase')/tmpl
+        fp = tpath.open('rb')
         try:
             template = HTMLTemplate.Template(render, fp.read())
         finally:

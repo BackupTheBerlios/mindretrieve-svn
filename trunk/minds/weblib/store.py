@@ -8,7 +8,6 @@ import sys
 from minds.config import cfg
 from minds.weblib import minds_lib
 from minds.weblib import opera_lib
-from toollib.path import path
 
 log = logging.getLogger('weblib')
 
@@ -30,7 +29,7 @@ def _run_close(fp, func, *args):
 
 def _open(filename, mode):
     """ open filename relative to weblib directory """
-    return file(path(cfg.getPath('weblib')) / filename, mode)
+    return (cfg.getpath('weblib')/filename).open(mode)
     
     
 def load(filename=None):
@@ -62,6 +61,7 @@ def getMainBm():
     global wlib_instance
     if not wlib_instance:
         wlib_instance = load()
+        wlib_instance.init_index()
     return wlib_instance
 
 

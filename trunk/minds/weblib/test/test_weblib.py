@@ -1,33 +1,29 @@
 # -*- coding: utf-8 -*-
-import StringIO
-import os.path, sys
 import sets
-import shutil
+import StringIO
+import sys
 import unittest
 
-from minds.test.config_help import cfg
+from minds.safe_config import cfg as testcfg
 from minds import weblib
 from minds.weblib import minds_lib
 from minds.weblib import store
 
-testdir = os.path.join(cfg.getPath('testDoc'),'.')[:-1]
-
-
-# rewire store to use the working copy of test weblib.dat
-TEST_FILENAME = os.path.join(testdir,'test_weblib/weblib.dat')
-TEST_WORK_FILENAME = os.path.join(testdir,'test_weblib/weblib.work.dat')
-shutil.copy(TEST_FILENAME, TEST_WORK_FILENAME)
-store.useMainBm(TEST_WORK_FILENAME)
+testpath = testcfg.getpath('testDoc')
+wpath = testcfg.getpath('weblib')
 
 
 class TestWeblib(unittest.TestCase):
 
+    TESTFILE_PATH = testpath/'test_weblib/weblib.dat'
+    
     def setUp(self):
-        pass
-
+        # rewire store to use the working copy of test weblib.dat
+        self.TESTFILE_PATH.copy(wpath/'weblib.dat')
+ 
     def tearDown(self):
         pass
-        
+                
     def test0(self):
         null_fp = StringIO.StringIO('')    
         wlib = minds_lib.load(null_fp)
@@ -88,7 +84,7 @@ class TestWeblib(unittest.TestCase):
         # - output may contain time sensitive information
         # - The test weblib.dat is hand edited and may contain artifacts like extra blank lines
         # We can do one more round of load-save to circumvent the last problem though
-        original = file(TEST_FILENAME, 'rb').read()
+        original = file(self.TESTFILE_PATH, 'rb').read()
         wlib = minds_lib.load(StringIO.StringIO(original))
         buf = StringIO.StringIO()
         minds_lib.save(buf, wlib)
@@ -104,6 +100,10 @@ class TestWeblib(unittest.TestCase):
                 line1.encode('string_escape'),
             ))
 
-
+    def test_default_tag(self):
+        self.fail()
+        
+        
 if __name__ == '__main__':
     unittest.main()
+    

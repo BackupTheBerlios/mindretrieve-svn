@@ -37,6 +37,7 @@ class Bean(object):
         wlib = store.getMainBm()
         
         if form.has_key('filled'):
+            # User is submitting form, use the parameters in the query
             item = weblib.WebPage(
                 id          = rid,
                 name        = form.getfirst('title','').decode('utf-8'),
@@ -50,19 +51,36 @@ class Bean(object):
 
             self._parseTags()
 
-        else:    
+        else:
+            # Three variations
+            # 1. Edit link from main page (or other source)
+            #       rid is an existing webpage
+            # 2. Submit new page via bookmarklet
+            #       no rid (or not exist), URL is new
+            # 3. Submit existing page via bookmarklet
+            #       no rid (or not exist), URL found in weblib
             item = wlib.webpages.getById(rid)
             if item:
                 # make a copy of existing item    
                 item = item.__copy__()
             else:    
-                item = wlib.newWebPage(
-                    name        = form.getfirst('title','').decode('utf-8'),
-                    url         = form.getfirst('url','').decode('utf-8'),
-                    description = form.getfirst('description','').decode('utf-8'),
-                )
-                item.tags = [wlib.getDefaultTag()]
-                item.tags = filter(None, item.tags) # don't want [None]
+                url = form.getfirst('url','').decode('utf-8')
+                matches = weblib.find_url(wlib, url)
+                if not matches:
+                    # this is a new webpage
+                    item = wlib.newWebPage(
+                        name        = form.getfirst('title','').decode('utf-8'),
+                        url         = url,
+                        description = form.getfirst('description','').decode('utf-8'),
+                    )
+                    item.tags = [wlib.getDefaultTag()]
+                    item.tags = filter(None, item.tags) # don't want [None]
+                else:
+                    # use existing webpage
+                    item = matches[0].__copy__()
+                    # however override with possibly new title and description
+                    item.name        = form.getfirst('title','').decode('utf-8')
+                    item.description = form.getfirst('description','').decode('utf-8')
                 
             self.item = item
             self.tags  = ', '.join([l.name for l in item.tags])

@@ -308,6 +308,14 @@ def organizeEntries(entries, set_tags, add_tags, remove_tags):
 #----------------------------------------------------------------------
 # Query
 
+def find_url(wlib, url):
+    """
+    @url - url to search for. String matching, no normalization.
+    @return list of matched WebPages
+    """
+    return [item for item in wlib.webpages if item.url == url]
+        
+    
 def query(wlib, querytxt, tags):
     """ @return: 
             cat_list, - tuple of tags -> list of items, 

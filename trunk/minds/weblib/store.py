@@ -58,19 +58,16 @@ def load_opera(filename=None):
 wlib_instance = None
 
 def getMainBm():
+    if wlib_instance:
+        return wlib_instance
+    return reloadMainBm()
+
+
+def reloadMainBm():
     global wlib_instance
-    if not wlib_instance:
-        wlib_instance = load()
-        wlib_instance.init_index()
+    wlib_instance = load()
+#    wlib_instance.init_index()
     return wlib_instance
-
-
-def useMainBm(pathname):
-    """ use pathname instead of default filename (testing only?) """
-    global WEBLIB_FILENAME
-    WEBLIB_FILENAME = pathname
-    global wlib_instance
-    wlib_instance = load(WEBLIB_FILENAME)
     
     
 # ----------------------------------------------------------------------

@@ -10,13 +10,16 @@ import datetime
 import random
 import sets
 import string
+import StringIO
 import sys
 import urlparse
 
 from minds.config import cfg
 from minds.util import dsv
-import util
-
+from minds.weblib import util
+from minds.weblib import mhtml
+from minds import distillML
+from minds import distillparse
 
 TAG_DEFAULT = 'inbox'
 
@@ -94,6 +97,26 @@ class WebLibrary(object):
         self.tags = util.IdNameList()
         # todo: should implement a rfc822.Message style case-insensitive dictionary
         self.headers_list = []
+        
+        self.index_writer = None
+        self.index_reader = None
+        self.index_searcher = None
+#        self.init_index()
+
+
+    def close(self):
+        # TODO: well placed?
+        if self.index_searcher: self.index_searcher.close()
+        if self.index_reader:   self.index_reader.close()
+        if self.index_writer:   self.index_writer.close()
+
+    # TODO: weblib use to be quite standalone container class. However, index need to be careful managed and properly closed. FIND A SYSTEM. use store?
+    def init_index(self):
+        from minds import lucene_logic
+        wpath = cfg.getpath('weblibindex')
+        self.index_writer = lucene_logic.Writer(wpath)
+        self.index_reader = lucene_logic.Reader(wpath)
+        self.index_searcher = lucene_logic.Searcher(pathname=wpath)
 
 
     def addWebPage(self, entry):
@@ -119,6 +142,62 @@ class WebLibrary(object):
         )
 
         
+    def updateWebPage(self, item):
+        print >>sys.stderr, '## index %s' % item.name
+        return
+        self._delete_index(item)
+        scontent = self._get_snapshot_content(item)
+        print >>sys.stderr, '## ss [%s]' % scontent[:50]
+        content = '\n'.join([
+            item.name,
+            item.description,
+            scontent,
+        ])
+            
+        self.index_writer.addDocument(
+            item.id, 
+            dict(
+                uri=item.url, 
+                date='',
+                ), 
+            content,
+        )    # todo date
+        
+
+    def _get_snapshot_content(self, item):
+        # TODO: refactor
+        filename = item.id == -1 and '_.mhtml' or '%s.mhtml' % item.id
+        spath = cfg.getpath('weblibsnapshot')/filename
+        if not spath.exists():
+            return ''
+
+        fp = spath.open('rb')       # TODO: check file exist, move to weblib? getSnapshotFile()?
+        lwa = mhtml.LoadedWebArchive(fp)
+        resp = lwa.fetch_uri(lwa.root_uri)
+        if not resp:
+            return ''
+            
+        # TODO: lucene_logic: use to docid is confusing with lucene's internal docid?    
+        # TODO: mind content-type, encoding, framed objects??    
+        data = resp.read()            
+        meta = {}
+        contentBuf = StringIO.StringIO()
+        result = distillML.distill(resp, contentBuf, meta=meta)
+        contentBuf.seek(0)
+        # TODO: what's the deal with writeHeader?
+        meta, content = distillparse.parseDistillML(contentBuf, writeHeader=None)
+        return content
+        
+                
+    def _delete_index(self, item):
+        print >>sys.stderr, '##index_reader.numDocs(): %s' % self.index_reader.numDocs()
+        if self.index_reader.numDocs() > 0:
+            import PyLucene
+#            term = PyLucene.Term('docid', item.id)
+#            n = self.index_reader.deleteDocuments(term)  # IndexReader.delete(Term)?
+#            print >>sys.stderr, '##deleted docid=%s: %s' % (item.id, n)
+
+
     def deleteWebPage(self, item):
         self.webpages.remove(item)
 
@@ -148,10 +227,6 @@ class WebLibrary(object):
         return tag
         
  
-    def updateWebPage(self, updatedItem):
-        pass
-        
-                       
     def categorize(self):
 ##        """ call this when finished loading """
 ##        

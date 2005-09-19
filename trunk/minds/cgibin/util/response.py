@@ -30,10 +30,8 @@ def redirect(wfile, url):
 BOOKMARKLET = """
 javascript:
     d=document;
-    u=d.location;
-    t=d.title;
-    ds='';
     mt=d.getElementsByTagName('meta');
+    ds='';
     for(i=0;i<mt.length;i++){
         ma=mt[i].attributes;
         na=ma['name'];
@@ -41,7 +39,7 @@ javascript:
             ds=ma['content'].value;
         }
     }
-    d.location='http://%s/weblib/_?u='+encodeURIComponent(u)+'&t='+encodeURIComponent(t)+'&ds='+encodeURIComponent(ds);
+    d.location='http://%s/weblib/_?url='+encodeURIComponent(d.location)+'&title='+encodeURIComponent(d.title)+'&description='+encodeURIComponent(ds);
 """
 
 def buildBookmarklet(env):
@@ -52,7 +50,7 @@ def buildBookmarklet(env):
     host = 'localhost'
     
     b = BOOKMARKLET % ('%s:%s' %  (host, port))
-    # space dehydration
+    # dehydrate spaces
     return b.replace('\n','').replace(' ','')  
 
 

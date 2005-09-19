@@ -39,9 +39,9 @@ class Bean(object):
         if form.has_key('filled'):
             item = weblib.WebPage(
                 id          = rid,
-                name        = form.getfirst('t','').decode('utf-8'),
-                url         = form.getfirst('u','').decode('utf-8'),
-                description = form.getfirst('ds','').decode('utf-8'),
+                name        = form.getfirst('title','').decode('utf-8'),
+                url         = form.getfirst('url','').decode('utf-8'),
+                description = form.getfirst('description','').decode('utf-8'),
                 modified    = form.getfirst('modified','').decode('utf-8'),
                 lastused    = form.getfirst('lastused','').decode('utf-8'),
                 cached      = form.getfirst('cached','').decode('utf-8'),
@@ -57,9 +57,9 @@ class Bean(object):
                 item = item.__copy__()
             else:    
                 item = wlib.newWebPage(
-                    name        = form.getfirst('t','').decode('utf-8'),
-                    url         = form.getfirst('u','').decode('utf-8'),
-                    description = form.getfirst('ds','').decode('utf-8'),
+                    name        = form.getfirst('title','').decode('utf-8'),
+                    url         = form.getfirst('url','').decode('utf-8'),
+                    description = form.getfirst('description','').decode('utf-8'),
                 )
                 item.tags = [wlib.getDefaultTag()]
                 item.tags = filter(None, item.tags) # don't want [None]
@@ -153,10 +153,13 @@ def doPutResource(wfile, env, bean):
 #        item0.cached      = item.cached     
         item = item0
 
+    print >>sys.stderr, '## PUT Res item.id %s' % item.id
     if item.id < 0:
         log.info('Adding WebPage: %s' % unicode(item))
         wlib.addWebPage(item)
+        wlib.updateWebPage(item)
     else:    
+        wlib.updateWebPage(item)
         log.info('Updating WebPage: %s' % unicode(item))
     
     wlib.categorize()

@@ -11,22 +11,19 @@ from minds.weblib import store
 
 
 testpath = testcfg.getpath('testDoc')
+weblib_path = testcfg.getpath('weblib')
 
 class TestWeblibCGI(unittest.TestCase):
 
   def setUp(self):
-    global TEST_WORK_FILENAME  
-    ## todo: move to some util?
+    # we're going to overwrite file in weblib_path, make sure it is test.  
+    assert 'test' in weblib_path 
+    # load the test weblib.dat
     from minds.weblib import store
-    # rewire store to use the working copy of test weblib.dat
-    TEST_PATHNAME = testpath/'test_weblib/weblib.dat'
-    # TODO: now that we have testdata directory, don't need to call it weblib.work.dat anymore.
-    # TODO: clean up
-    TEST_WORK_FILENAME = 'weblib.work.dat'
-    weblib_path = testcfg.getpath('weblib')
-    TEST_PATHNAME.copy(weblib_path/TEST_WORK_FILENAME)
-    print >>sys.stderr, TEST_PATHNAME, weblib_path/TEST_WORK_FILENAME, '##',testcfg.getpath('weblib')
-    store.useMainBm(TEST_WORK_FILENAME)
+    testfile_path = testpath/'test_weblib/weblib.dat'
+    testfile_path.copy(weblib_path/store.MINDS_FILENAME)
+    store.reloadMainBm()
+    # note: this test has a side effect of overwriting and loading a test weblib.dat
 
 
   def checkPathForPattern(self, path, patterns, no_pattern=None):
@@ -45,6 +42,10 @@ class TestWeblibCGI(unittest.TestCase):
 
   def test_weblib(self):
     self.checkPathForPattern("/weblib", [
+        '302 Found',                # redirect user from main page to the default tag
+    ])
+
+    self.checkPathForPattern("/weblib?tag=inbox", [
         '<html>', 
         'www.mindretrieve.net',     # this entry appears on main page
         '</html>',
@@ -52,7 +53,7 @@ class TestWeblibCGI(unittest.TestCase):
 
     # controlled test for below
     # ja.wikipedia.org will not be listed unless there is a right query
-    self.checkPathForPattern("/weblib", [
+    self.checkPathForPattern("/weblib?tag=inbox", [
         '<html>',
         ], 
         'ja.wikipedia.org'

@@ -2,12 +2,13 @@ encoding: UTF8
 versioun: 0.5
 
 id|name|description|tagIds|modified|lastused|cached|archived|flags|url
+@120|inbox||||||||
 @121|Русский||||||||
 @122|Français||||||||
 @123|日本語||||||||
 @124|Kremlin||||||||
 @125|English||||||||
-1|MindRetrieve - Search Your Personal Web|MindRetrieve is an open source personal desktop search engine.||2005-08-24|2005-08-24||||http://www.mindretrieve.net/
+1|MindRetrieve - Search Your Personal Web|MindRetrieve is an open source personal desktop search engine.|@120|2005-08-24|2005-08-24||||http://www.mindretrieve.net/
 2|Московский Кремль — Википедия|Кремль Московский — географический и исторический центр Москвы, расположенный на левом берегу Москвы-реки, на Боровицком холме, наиболее древняя часть города, в настоящее время являющаяся резиденцией высших органов государственной власти РФ и одним из главных историко-художественных комплексов страны.|@124,@121|2005-08-23|2005-08-23||||http://ru.wikipedia.org/wiki/Московский_Кремль
 3|Kremlin de Moscou - Wikipédia|Le Kremlin de Moscou (en russe : Московский Кремль) marque le centre géographique de Moscou et le centre politique de la Russie (résidence officielle du Président de la Fédération de Russie après avoir été celle des Tsars et des dirigeants soviétiques).|@122,@124|2005-08-23|2005-08-23||||http://fr.wikipedia.org/wiki/Kremlin_de_Moscou
 4|クレムリン - Wikipedia|クレムリン（Kremlin、Кремль）とは、ロシア連邦の首都、モスクワ市の中心を流れるモスクワ川沿いにある旧ロシア帝国の皇居。ロシア語では、「城塞」の意味である。|@124,@123|2005-08-23|2005-08-23||||http://ja.wikipedia.org/wiki/クレムリン

@@ -56,7 +56,7 @@ class AppHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
     """
 
     # configurations
-    server_version = base_config.APPLICATION_NAME + "/" + cfg.get('version.number','?')
+    server_version = cfg.application_name
     protocol_version = "HTTP/1.0"
 
     # todo: actually these class variables got initialized too early. Before cfg.setup is called from proxy

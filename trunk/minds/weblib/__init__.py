@@ -7,6 +7,7 @@
 
 import codecs
 import datetime
+import logging
 import random
 import sets
 import string
@@ -21,6 +22,7 @@ from minds.weblib import mhtml
 from minds import distillML
 from minds import distillparse
 
+log = logging.getLogger('weblib')
 TAG_DEFAULT = 'inbox'
 
 class WebPage(object):
@@ -316,78 +318,78 @@ def find_url(wlib, url):
     return [item for item in wlib.webpages if item.url == url]
         
     
-def query(wlib, querytxt, tags):
+def _parse_terms(s):
+    """ break down input into search terms """
+    s = s.lower()
+    # TODO: use pyparsing to parse quotes
+    return map(string.strip, s.split())
+#    try:
+#        return shlex.split(s)
+#    except SyntaxError:
+#        # TODO: hack probably should find a way to report error
+#        return map(string.strip, s.split())
+
+
+def query_tags(wlib, querytxt, select_tags):
+    terms = _parse_terms(querytxt)
+    if not select_tags:
+        select_tags = wlib.tags
+    result = []
+    for tag in select_tags:
+        tagname = tag.name.lower() 
+        for w in terms:
+            if w in tagname:
+                result.append(tag)
+                break
+    return result
+
+
+def query(wlib, querytxt, select_tags):
     """ @return: 
             cat_list, - tuple of tags -> list of items, 
             related, 
             most_visited
     """
-    querywords = querytxt.lower().split()
-    if not querywords and not tags:
+    terms = _parse_terms(querytxt)
+    print >>sys.stderr, querytxt, terms,'###'
+    select_tags_set = sets.Set(select_tags)
+    if not terms and not select_tags:
         return queryMain(wlib)
         
-    # use querytxt to match additional tags
-    tags_set = sets.Set(tags)
-    query_tags_set = sets.Set((tag for tag in wlib.tags if tag.name.lower() in querywords))
-        
-    print >>sys.stderr, 'querywords', querywords##
-    print >>sys.stderr, 'query_tags_set', query_tags_set
-    print >>sys.stderr, 'tags_set', tags
-    
-    most_visited = None
+    log.debug('Search terms %s tags %s', terms, select_tags)    
     cat_list = {}
     related = sets.Set()
-    
-    ## TODO: logic is complicated, need some refactoring
-    # short circuit behavior is hard to archieve.
-    # blank querytxt and tags change the meaning.
+    most_visited = None
     for item in wlib.webpages:
+        # filter by select_tag
+        if select_tags_set and select_tags_set.difference(item.tags):
+            continue
 
-        # first line filtering by tag
-        if tags:
-            _td = tags_set.difference(item.tags)
-            if bool(_td):
-                continue
-
-        if query_tags_set:
-            _qti = query_tags_set.intersection(item.tags)
-            qt_matched = bool(_qti)
-        else:    
-            qt_matched = False
-                
         netloc = urlparse.urlparse(item.url)[1].lower()
-        if querywords:
+        if terms:
             q_matched = True
-            for w in querywords:
+            for w in terms:
                 if (w not in item.name.lower()) and (w not in netloc):
                     q_matched = False
                     break
-            if not q_matched and not qt_matched:
+            if not q_matched:
                 continue
-        
+
             # most visited only activates with a querytxt        
-            if q_matched:
-                if not most_visited or \
-                    item.lastused > most_visited.lastused:
-                    most_visited = item
-        else:
-            q_matched = False
-                
-        if querywords and not (qt_matched or q_matched):
-            continue
+            if not most_visited or item.lastused > most_visited.lastused:
+                most_visited = item
             
-        cat = util.diff(item.tags, tags)
+        cat = util.diff(item.tags, select_tags)
         cat2bookmark = cat_list.setdefault(tuple(cat),[])
         cat2bookmark.append(item)
         related.union_update(item.tags)
     
-    if tags: ##hack
-        related = analyzeRelated(tags[0],related)
+    if select_tags: ##hack
+        related = analyzeRelated(select_tags[0],related)
         print >>sys.stderr, related
     else:
         related = [(t.rel.num_item, t.rel) for t in related]
         related = [related,[],[]]
-        
         
     return cat_list, tuple(related), most_visited 
 

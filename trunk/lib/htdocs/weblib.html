@@ -65,6 +65,10 @@
     margin-left: 17em;
   }  
   
+  #no_match_msg {
+    padding: 1em;
+  }
+  
   #crumb            { 
     margin-bottom: 1ex;
     padding: 0.5ex;
@@ -204,7 +208,11 @@ function countSelected() {
 </ul>
 </div> <!-- categoryPane -->
 
-<div id='itemPane'>
+<div node='con:no_match_msg' id='no_match_msg'>
+    No item match "$querytxt".
+</div>
+
+<div node='con:web_items' id='itemPane'>
 
     <p id='crumb'>
         <a href="/weblib">weblib</a>
@@ -213,6 +221,11 @@ function countSelected() {
         <span node='con:go_hint' class='go_hint'>Go to <a node='con:address' href='#'>website</a>.</span>
     </p>
 
+  <p node='con:tags_matched'>
+      Found tags: 
+      <a node='rep:tag' href='#'>Tag1</a>
+      <a node='rep:tag' href='#'>Tag2</a>
+  </p>
 
   <form id='webpages' action='/weblib' method='GET'>  
   <input id='webpages_method' type='hidden' name='method' value='' />

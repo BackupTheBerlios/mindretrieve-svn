@@ -2,6 +2,7 @@ import cgi
 import logging
 import os, sys
 import sets
+import string
 import urllib
 
 from minds.config import cfg
@@ -74,6 +75,11 @@ def queryWebLib(wfile, env, form, tag, querytxt):
     wlib = store.getMainBm()
     tags, unknown = weblib.parseTags(wlib, tag)
     items, related, most_visited = weblib.query(wlib, querytxt, tags)
+    if querytxt:
+        tags_matched = weblib.query_tags(wlib, querytxt, tags)
+        tags_matched = [t.name for t in tags_matched]
+    else:
+        tags_matched = ()
 
     ##related hack
     parents = []
@@ -107,7 +113,7 @@ def queryWebLib(wfile, env, form, tag, querytxt):
         for l in lst:
             all_items.append((l,tags))
             tags = ()
-    WeblibRenderer(wfile, env, querytxt).output(most_visited, folderNames, categoryList, currentCategory, all_items)
+    WeblibRenderer(wfile, env, querytxt).output(most_visited, folderNames, categoryList, tags_matched, currentCategory, all_items)
 
 
 
@@ -135,23 +141,38 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
             con:cache
     con:footer
     """
-    def render(self, node, most_visited, folderNames, categoryList, currentCategory, webItems):
-        
-        if not most_visited:
-            node.go_hint.omit()
-        else:    
-            node.go_hint.address.atts['href'] = request.go_url(most_visited)
-            node.go_hint.address.content = most_visited.name
-                    
-        node.crumb.repeat(self.renderCrumb, folderNames)
-
+    def render(self, node, most_visited, folderNames, categoryList, tags_matched, currentCategory, webItems):
         node.catList.repeat(self.renderCatItem, categoryList, currentCategory)
 
-        node.webItem.repeat(self.renderWebItem, webItems)
+        if not webItems:
+            node.web_items.omit()
+            t = string.Template(node.no_match_msg.content)
+            node.no_match_msg.content = t.safe_substitute(querytxt=self.querytxt)
+            return
+
+        node.no_match_msg.omit()
+
+        if not most_visited:
+            node.web_items.go_hint.omit()
+        else:    
+            node.web_items.go_hint.address.atts['href'] = request.go_url(most_visited)
+            node.web_items.go_hint.address.content = most_visited.name
+                    
+        if not tags_matched:
+            node.web_items.tags_matched.omit()
+        else:
+            node.web_items.tags_matched.tag.repeat(self.renderTagsmatched, tags_matched)
+
+        node.web_items.crumb.repeat(self.renderCrumb, folderNames)
+        node.web_items.webItem.repeat(self.renderWebItem, enumerate(webItems))
 
     def renderCrumb(self, node, item):
         node.link.content = item
         node.link.atts['href'] = request.tag_url(item)
+
+    def renderTagsmatched(self, node, tag):
+        node.content = tag
+        node.atts['href'] = request.tag_url(tag)
 
     def renderCatItem(self, node, item, currentCategory):
         cat, subcat = item
@@ -167,8 +188,10 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
         if item == currentCategory:
             node.link.atts['class'] = 'CategoryCurrentItem'
 
-    def renderWebItem(self, node, item):
+    def renderWebItem(self, node, (i, item)):
         item, tags = item   ##todo
+        if i % 2 == 1:
+            node.atts['class'] = 'altrow'            
         node.checkbox.atts['name'] = str(item.id)
         node.itemDescription.content = unicode(item)
         node.itemDescription.atts['href'] = request.go_url(item)

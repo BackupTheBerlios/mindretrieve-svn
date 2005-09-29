@@ -17,13 +17,13 @@ class TestAppHTTPRequestHandler(unittest.TestCase):
 
     def test_parse_cgipath(self):
         handler = AppHTTPRequestHandlerFixture()
-        self.assertEqual( handler.parse_cgipath(''),             (''    ,''     ,''   ))
-        self.assertEqual( handler.parse_cgipath('/'),            ('/'   ,''     ,''   ))
-        self.assertEqual( handler.parse_cgipath('/abc'),         ('/abc',''     ,''   ))
-        self.assertEqual( handler.parse_cgipath('/abc/def'),     ('/abc','/def' ,''   ))
-        self.assertEqual( handler.parse_cgipath('/abc?a=b'),     ('/abc',''     ,'a=b'))
-        self.assertEqual( handler.parse_cgipath('/abc/?a=b'),    ('/abc','/'    ,'a=b'))
-        self.assertEqual( handler.parse_cgipath('/abc/def?a=b'), ('/abc','/def' ,'a=b'))
+        self.assertEqual( handler._parse_cgipath(''),             (''    ,''     ,''   ))
+        self.assertEqual( handler._parse_cgipath('/'),            ('/'   ,''     ,''   ))
+        self.assertEqual( handler._parse_cgipath('/abc'),         ('/abc',''     ,''   ))
+        self.assertEqual( handler._parse_cgipath('/abc/def'),     ('/abc','/def' ,''   ))
+        self.assertEqual( handler._parse_cgipath('/abc?a=b'),     ('/abc',''     ,'a=b'))
+        self.assertEqual( handler._parse_cgipath('/abc/?a=b'),    ('/abc','/'    ,'a=b'))
+        self.assertEqual( handler._parse_cgipath('/abc/def?a=b'), ('/abc','/def' ,'a=b'))
 
 
 class TestMisc(unittest.TestCase):
@@ -65,12 +65,14 @@ line4"""
 
     def test1(self):
         self.fp.write('\r\n\r\n')
+        self.fp.flush()
         self.assertEqual(self.buf.getvalue(), 'HTTP/1.0 200 OK\r\n\r\n\r\n')
 
 
     def test_nodirective(self):
         self.fp.write(self.DATA1)
         self.fp.write(self.DATA2)
+        self.fp.flush()
         self.assertEqual(self.buf.getvalue(), 'HTTP/1.0 200 OK\r\n' +
              self.DATA1 + self.DATA2)
 
@@ -79,6 +81,7 @@ line4"""
         self.fp.write('404 not found\r\n')
         self.fp.write(self.DATA1)
         self.fp.write(self.DATA2)
+        self.fp.flush()
         self.assertEqual(self.buf.getvalue(), 'HTTP/1.0 404 not found\r\n'
             + self.DATA1 + self.DATA2)
 
@@ -87,11 +90,40 @@ line4"""
         self.fp.write('loCATion : http://abc.com/index.html\r\n')
         self.fp.write(self.DATA1)
         self.fp.write(self.DATA2)
+        self.fp.flush()
         self.assertEqual(self.buf.getvalue(),
 """HTTP/1.0 302 Found\r
 loCATion : http://abc.com/index.html\r
 """ + \
             self.DATA1 + self.DATA2)
+
+
+    def test_states(self):
+        # verify CGIFileFilter has gone through each state
+        self.assertEqual(self.fp.state, self.fp.INIT)
+
+        self.fp.write('200 ok\r\n\r\n')
+        self.assertEqual(self.fp.state, self.fp.BUFFER)
+
+        self.fp.write('.'*(self.fp.MAX_BUFFER+1))
+        self.assertEqual(self.fp.state, self.fp.SENT)
+
+        buf_size = len(self.buf.getvalue())
+        self.assert_(buf_size > self.fp.MAX_BUFFER+1)   # some HTTP info + content
+
+        # still accepting output at SENT state
+        self.fp.write('.')
+        self.assertEqual(len(self.buf.getvalue()), buf_size+1)
+
+
+    def test_buffer(self):
+        # verify data is buffered until flush
+        self.fp.write('200 ok\r\n\r\n')
+        self.fp.write('.')
+        self.assertEqual(len(self.buf.getvalue()), 0)
+
+        self.fp.flush()
+        self.assert_(len(self.buf.getvalue()) > 0)
 
 
 

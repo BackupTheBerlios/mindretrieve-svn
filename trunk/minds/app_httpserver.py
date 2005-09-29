@@ -46,13 +46,10 @@ log = logging.getLogger('app')
 
 
 class AppHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
-
-    """Complete HTTP server with GET, HEAD and POST commands.
-
+    """
+    Complete HTTP server with GET, HEAD and POST commands.
     GET and HEAD also support running CGI scripts.
-
     The POST command is *only* implemented for CGI scripts.
-
     """
 
     # configurations
@@ -61,7 +58,6 @@ class AppHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
     # todo: actually these class variables got initialized too early. Before cfg.setup is called from proxy
     docBase = cfg.getpath('docBase')
-
 
     # Make rfile unbuffered -- we need to read one line and then pass
     # the rest to a subprocess, so we can't use buffered input.
@@ -73,13 +69,12 @@ class AppHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         })
 
     def do_POST(self):
-        """Serve a POST request.
-
-        This is only implemented for CGI scripts.
-
         """
-        script_name, path_info, query_string = self.parse_cgipath(self.path)
-        if self.is_cgi(script_name):
+        Serve a POST request.
+        This is only implemented for CGI scripts.
+        """
+        script_name, path_info, query_string = self._parse_cgipath(self.path)
+        if self._is_cgi(script_name):
             self.run_cgi(script_name, path_info, query_string)
         else:
             self.send_error(501, "Can only POST to CGI scripts")
@@ -87,28 +82,27 @@ class AppHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
     def send_head(self):
         """Version of send_head that support CGI scripts"""
-        script_name, path_info, query_string = self.parse_cgipath(self.path)
-        if self.is_cgi(script_name):
+        script_name, path_info, query_string = self._parse_cgipath(self.path)
+        if self._is_cgi(script_name):
             return self.run_cgi(script_name, path_info, query_string)
         else:
             return SimpleHTTPServer.SimpleHTTPRequestHandler.send_head(self)
 
 
-    def is_cgi(self, script_name):
+    def _is_cgi(self, script_name):
         return cgibin.cgi_registry.get(script_name.lstrip('/'),None)
 
 
-    def parse_cgipath(self, path):
+    def _parse_cgipath(self, path):
+        """
+        Assume path map to a CGI. Parse the components.
 
-        # Assume path map to a CGI. Parse the components.
-        #
-        # general format of a cgi path for app_httpserver
-        #   [/SCRIPT_NAME][/PATH_INFO]?[QUERY_STRING]
-        #
-        # Return SCRIPT_NAME, PATH_INFO, QUERY_STRING
+        general format of a cgi path for app_httpserver
+          [/SCRIPT_NAME][/PATH_INFO]?[QUERY_STRING]
 
+        Return SCRIPT_NAME, PATH_INFO, QUERY_STRING
+        """
         path, query_string = path.find('?') >= 0 and path.rsplit('?',1) or [path,'']
-
         i = path.find('/',1)
         if i > 0:
             script_name, path_info = path[:i], path[i:]
@@ -118,30 +112,10 @@ class AppHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         return script_name, path_info, query_string
 
 
-
-
     def run_cgi(self, script_name, path_info, query_string):
         """Execute a CGI script."""
 
-###        directory, rest = self.cgi_info
-###        i = rest.rfind('?')
-###        if i >= 0:
-###            rest, query = rest[:i], rest[i+1:]
-###        else:
-###            query = ''
-###        i = rest.find('/')
-###        if i >= 0:
-###            script, rest = rest[:i], rest[i:]
-###        else:
-###            script, rest = rest, ''
-
-###        if not script:
-###            script = 'home' ## todo: magic
-###        scriptname = directory + '/' + script
-
         env = self.makeEnviron(script_name, path_info, query_string)
-
-        #self.send_response(200, "OK")
 
         parsed_wfile = CGIFileFilter(self.wfile)
 
@@ -149,8 +123,6 @@ class AppHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         # decoded_query = query.replace('+', ' ')
 
         try:
-###            modpath = os.path.join(self.cgiBase, scriptname.lstrip('/'))    # make scriptname relative
-###            mod = importModuleByPath(modpath)
             mod = cgibin.cgi_registry.get(script_name.lstrip('/'),None)
             if not mod:
                 self.send_error(404, "Not found %s" % self.path)
@@ -163,15 +135,16 @@ class AppHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                 pass
 
             mod.main(self.rfile, parsed_wfile, env)
+            parsed_wfile.flush()
+
         except:
             log.exception("CGI execution error: %s" % script_name)
+            if parsed_wfile.state >= parsed_wfile.SENT:
+                log.error("CGI content already sent")
+                # meaning the error page below would be precede by some faulty output
 
             # Original exception already logged. It is OK if below raises new exception
-
-
-            # todo: is it too late to send these?
-
-            #too late: self.send_response(500)
+            self.send_response(500)
             self.send_header("Content-type", "text/html")
             self.end_headers()
             out = self.wfile
@@ -313,27 +286,51 @@ def forwardTmpl(wfile, env, tmpl, renderMod, *args):
 # cleaned up version of forwardTmpl()
 
 
+#------------------------------------------------------------------------
+
 class CGIFileFilter(fileutil.FileFilter):
-    """ Used to wrap the output file for the CGI program.
-        Looking for server directive and send corresponding HTTP status
-        for the CGI program.
-        Only check for server directive in the first line.
-        The rest of output is pass thru.
     """
+    Used to wrap the output file for the CGI program.
+    Looking for server directive and send corresponding HTTP status
+    for the CGI program.
+    Only check for server directive in the first line.
+    The rest of output is pass thru.
+    """
+
+    # define CGI output states
+    (
+    INIT,           # waiting for the first line of output
+    BUFFER,         # first line parsed, continue buffering
+    SENT,           # buffered has filled, some output has sent to recipient
+    ) = range(3)
+    MAX_BUFFER = 1000000
 
     def __init__(self,fp):
         super(CGIFileFilter, self).__init__(fp)
-        self.buf = []
-        self.parsed = False
+        self.init_buf = StringIO()  # buffer to use in INIT state
+        self.buf = StringIO()       # buffer to use in BUFFER state
+        self.state = self.INIT
 
 
     def write(self,str):
-        if self.parsed:
+        if self.state >= self.SENT:
             self.fp.write(str)
+
+        elif self.state >= self.BUFFER:
+            self.buf.write(str)
+            if self.buf.len > self.MAX_BUFFER:
+                self.flush()
+
+        elif '\n' in str:
+            before, after = str.split('\n',1)
+            self._parseLine(self.init_buf.getvalue()+before)
+            self.state = self.BUFFER
+            self.buf.write(after)
+            if self.buf.len > self.MAX_BUFFER:
+                self.flush()
+
         else:
-            self.buf.append(str)
-            if '\n' in str:
-                self._parseLines()
+            self.init_buf.write(str)
 
 
     def writelines(self,sequence):
@@ -345,38 +342,43 @@ class CGIFileFilter(fileutil.FileFilter):
         #        self.write(line)
 
 
-    def _parseLines(self):
-        lines = ''.join(self.buf).split('\n',1)
-        self._parseLine(lines[0])
-        self.parsed = True
-        self.fp.write('\n'.join(lines[1:]))
+    def flush(self):
+        if self.buf:
+            self.fp.write(self.buf.getvalue())
+            self.buf = None
+        self.state = self.SENT
 
 
     def _parseLine(self, line):
+        # Reference CGI Script Output http://hoohoo.ncsa.uiuc.edu/cgi/out.html
 
+        assert not self.buf.getvalue()
         if len(line) >= 3:
+            # is format: nnn xxxxx?
             if line[:3].isdigit():
-                self.fp.write('HTTP/1.0 ')
-                self.fp.write(line)
-                self.fp.write('\n')
+                self.buf.write('HTTP/1.0 ')
+                self.buf.write(line)
+                self.buf.write('\n')
                 return
 
         nv = line.split(':')
+        # is format: Location url?
         if nv[0].strip().lower() == 'location':
-            self.fp.write('HTTP/1.0 302 Found\r\n')
-            self.fp.write(line)
-            self.fp.write('\n')
+            self.buf.write('HTTP/1.0 302 Found\r\n')
+            self.buf.write(line)
+            self.buf.write('\n')
             return
 
-        self.fp.write('HTTP/1.0 200 OK\r\n')
-        self.fp.write(line)
-        self.fp.write('\n')
+        # no match of parsed header
+        self.buf.write('HTTP/1.0 200 OK\r\n')
+        self.buf.write(line)
+        self.buf.write('\n')
 
 
 
 
-
-### Testing ############################################################
+#------------------------------------------------------------------------
+# Command line invoker
 
 __test_doc__ = """Usage: app_httpserver.py path
 
@@ -428,20 +430,13 @@ def handlePath(path, wfile):
 
 
 def main():
-    ''' Invoke AppHTTPRequestHandler from command line '''
-
+    """ Invoke AppHTTPRequestHandler from command line """
     if len(sys.argv) <= 1:
         print __test_doc__
         sys.exit(-1)
-
     path = sys.argv[1]
     handlePath(path, sys.stdout)
-
-# todo: sys.stdout has mode 'w' should be 'wb'
-
-#def test_forwardTmpl():
-#    env = { 'SCRIPT_NAME' : '/admin/snoop.py' }
-#    forwardTmpl(sys.stdout, env, 'tmpl/home.html', 'now')
+    # note: sys.stdout has mode 'w'. Ideally it should be 'wb'.
 
 
 if __name__ == '__main__':

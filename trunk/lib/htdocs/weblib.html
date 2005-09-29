@@ -15,9 +15,9 @@
     margin-left: 0;
   }
 
-  .go_hint          { 
-    margin-top: 1ex; 
-    font-size: smaller;  
+  .go_hint          {
+    margin-top: 1ex;
+    font-size: smaller;
     color: #999;
     float: right;
   }
@@ -36,62 +36,62 @@
     margin-left: 0;
     margin-top: 1ex;
   }
-  #categorytPane a      { 
-    text-decoration: none; 
-    color: black; 
+  #categorytPane a      {
+    text-decoration: none;
+    color: black;
   }
-  #categorytPane a:hover{ 
-    background-color: #ddd; 
+  #categorytPane a:hover{
+    background-color: #ddd;
   }
-  
+
   .CategoryItem         {
     font-size: larger;
     font-weight: bold;
-  }  
+  }
   .CategorySubItem      {
     display: inline;
     margin-right: 0.5em;
     font-size: 85%;
-  }  
+  }
   .CategoryCurrentItem  {
     padding: 0.5ex;
     font-size: larger;
     font-weight: bold;
     color: #c00;
-    background-color1: #fff; 
-  }  
+    background-color1: #fff;
+  }
 
-  #itemPane             {   
+  #itemPane             {
     margin-left: 17em;
-  }  
-  
+  }
+
   #no_match_msg {
     padding: 1em;
   }
-  
-  #crumb            { 
+
+  #crumb            {
     margin-bottom: 1ex;
     padding: 0.5ex;
     background-color: #ddd;
   }
 
   #crumb a          { color: #000}
-                    
+
   .libTable     a       { text-decoration: none; }
   .libTable     a:hover { text-decoration: underline; }
-  
-  .libTableHeader       { 
+
+  .libTableHeader       {
     background-color: #ccc;
   }
-  .libTableFooter       { 
+  .libTableFooter       {
     background-color: #ccc;
   }
-  
+
   .libTable td          {
     padding-left: 2px;
     padding-right: 2px;
   }
-   /* item table */ 
+   /* item table */
   .col1 { width: 2em; }
   .col2 { width: *;}
   .col3 { width: 1.5em;}
@@ -108,13 +108,13 @@
   }
   .itemSmallLink        {
     font-size:75%;
-  }  
+  }
   .itemSmallLink img    {
     position:relative;
     top:1px;
     border:0;
   }
-  
+
 </style>
 <script>
 function selectAll(cb) {
@@ -162,7 +162,7 @@ function countSelected() {
     form = document.getElementById('webpages');
     for (i=0; i < form.elements.length; i++) {
         elem = form.elements[i];
-        if (elem.type != 'checkbox') 
+        if (elem.type != 'checkbox')
             continue;
         name = elem.name;
         if (name.length <= 0)
@@ -190,7 +190,8 @@ function countSelected() {
 <div id='categorytPane'>
 <ul>
   <ul>
-    <a href='/weblib?tag=' class='CategoryItem'>-</a><br />
+    <a href='/weblib?tag=' class='CategoryItem'>-</a>  <a href="/weblib.categorize">Organize tags</a>
+<br />
   </ul>
   <ul node='rep:catList'>
     <a node='con:link' href='#' class='CategoryItem'>MainCat</a><br />
@@ -204,7 +205,6 @@ function countSelected() {
     <li node='rep:catItem' class='CategorySubItem'><a node='con:link' href='#'>Sub cat</a></li>
     <li node='rep:catItem' class='CategorySubItem'><a node='con:link' href='#' class='CategoryCurrentItem'>Sub cat</a></li>
   </ul>
-  <p><a href="/weblib.organize">Organize the categories</a></p>
 </ul>
 </div> <!-- categoryPane -->
 
@@ -222,20 +222,20 @@ function countSelected() {
     </p>
 
   <p node='con:tags_matched'>
-      Found tags: 
+      Found tags:
       <a node='rep:tag' href='#'>Tag1</a>
       <a node='rep:tag' href='#'>Tag2</a>
   </p>
 
-  <form id='webpages' action='/weblib' method='GET'>  
+  <form id='webpages' action='/weblib' method='GET'>
   <input id='webpages_method' type='hidden' name='method' value='' />
   <table width='100%' cellspacing='0' cellpadding='0' class='libTable'>
 
-  <col class='col1' />  
-  <col class='col2' />  
-  <col class='col3' />  
-  <col class='col4' />  
-  <col class='col5' />  
+  <col class='col1' />
+  <col class='col2' />
+  <col class='col3' />
+  <col class='col4' />
+  <col class='col5' />
 
   <tr class='libTableHeader'>
     <td><input id='checkAll_top' type='checkbox' onclick='selectAll("checkAll_top");'></td>
@@ -253,7 +253,7 @@ function countSelected() {
         </span>
         <span node='con:itemTag' class='itemTag'>
             <a node='rep:tag' href='#' class='itemSmallLink'>tag1</a>
-            <span node="-sep:tag">, </span> 
+            <span node="-sep:tag">, </span>
             <a node='rep:tag' href='#' class='itemSmallLink'>tag2</a>
         </span>
     </td>
@@ -269,7 +269,7 @@ function countSelected() {
             <a href='#'>this is a long link </a>
         </span>
         <span node='itemTag' class='itemTag'>
-            <a href='#'>tag1</a>, 
+            <a href='#'>tag1</a>,
             <a href='#'>tag2</a>
         </span>
     </td>
@@ -285,7 +285,7 @@ function countSelected() {
             <a href='#'>this is a long link </a>
         </span>
         <span node='itemTag' class='itemTag'>
-            <a href='#'>tag1</a>, 
+            <a href='#'>tag1</a>,
             <a href='#'>tag2</a>
         </span>
     </td>
@@ -301,7 +301,7 @@ function countSelected() {
             <a href='#'>this is a long link </a>
         </span>
         <span node='itemTag' class='itemTag'>
-            <a href='#'>tag1</a>, 
+            <a href='#'>tag1</a>,
             <a href='#'>tag2</a>
         </span>
     </td>
@@ -318,7 +318,7 @@ function countSelected() {
     </td>
   </tr>
 
-  </table>  
+  </table>
   </form>
 
 </div> <!-- itemPane -->

@@ -58,11 +58,11 @@ class WebPage(object):
             cached      = self.cached       ,
             archived    = self.archived     ,
             flags       = self.flags        ,
-        )    
+        )
         item.tags  = self.tags[:]
-        item.related = self.related[:]   
+        item.related = self.related[:]
         return item
-        
+
     def __str__(self):
         return self.name
 
@@ -73,10 +73,10 @@ class WebPage(object):
 class Tag(object):
 
     def __init__(self, id=-1, name=''):
-        
+
         if not name:
             raise RuntimeError('Tag name required')
-            
+
         self.id         = id
         self.name       = name
 
@@ -97,9 +97,11 @@ class WebLibrary(object):
     def __init__(self):
         self.webpages = util.IdList()
         self.tags = util.IdNameList()
+        self.category_description = ''
+
         # todo: should implement a rfc822.Message style case-insensitive dictionary
         self.headers_list = []
-        
+
         self.index_writer = None
         self.index_reader = None
         self.index_searcher = None
@@ -130,7 +132,7 @@ class WebLibrary(object):
 
 
     def newWebPage(self, name='', url='', description=''):
-        """ Create a minimal WebPage for user to fill in. 
+        """ Create a minimal WebPage for user to fill in.
             @return: a WebPage
         """
         modified = datetime.date.today().isoformat()
@@ -143,7 +145,7 @@ class WebLibrary(object):
             lastused    =lastused,
         )
 
-        
+
     def updateWebPage(self, item):
         print >>sys.stderr, '## index %s' % item.name
         return
@@ -155,16 +157,16 @@ class WebLibrary(object):
             item.description,
             scontent,
         ])
-            
+
         self.index_writer.addDocument(
-            item.id, 
+            item.id,
             dict(
-                uri=item.url, 
+                uri=item.url,
                 date='',
-                ), 
+                ),
             content,
         )    # todo date
-        
+
 
     def _get_snapshot_content(self, item):
         # TODO: refactor
@@ -178,10 +180,10 @@ class WebLibrary(object):
         resp = lwa.fetch_uri(lwa.root_uri)
         if not resp:
             return ''
-            
-        # TODO: lucene_logic: use to docid is confusing with lucene's internal docid?    
-        # TODO: mind content-type, encoding, framed objects??    
-        data = resp.read()            
+
+        # TODO: lucene_logic: use to docid is confusing with lucene's internal docid?
+        # TODO: mind content-type, encoding, framed objects??
+        data = resp.read()
         meta = {}
         contentBuf = StringIO.StringIO()
         result = distillML.distill(resp, contentBuf, meta=meta)
@@ -189,8 +191,8 @@ class WebLibrary(object):
         # TODO: what's the deal with writeHeader?
         meta, content = distillparse.parseDistillML(contentBuf, writeHeader=None)
         return content
-        
-                
+
+
     def _delete_index(self, item):
         print >>sys.stderr, '##index_reader.numDocs(): %s' % self.index_reader.numDocs()
         if self.index_reader.numDocs() > 0:
@@ -213,8 +215,8 @@ class WebLibrary(object):
         item.lastused = datetime.date.today().isoformat()
         ## TODO: optimize!!!
         store.save(self)
-        
-                
+
+
     def getDefaultTag(self):
         d = cfg.get('weblib.tag.default', TAG_DEFAULT)
         if not d:
@@ -227,23 +229,23 @@ class WebLibrary(object):
         self.tags.append(tag)
         self.categorize()
         return tag
-        
- 
+
+
     def categorize(self):
 ##        """ call this when finished loading """
-##        
+##
 ##        # set item.tags from tagIds
 ##        for item in self.webpages:
 ##            tags = [self.tags.getById(id) for id in item.tagIds]
 ##            item.tags = filter(None, tags)
-##            # remove tagIds to avoid duplicated data?            
+##            # remove tagIds to avoid duplicated data?
         #TODO: clean this
         import category
         self.categories = category.buildCategory(self)
-        
+
 
 # ----------------------------------------------------------------------
-        
+
 def parseTags(wlib, tag_names):
     """ Parse comma separated tag names.
         @return: list of tags and list of unknown tag names.
@@ -259,7 +261,7 @@ def parseTags(wlib, tag_names):
             tags.append(tag)
         else:
             unknown.append(name)
-    tags.sort()        
+    tags.sort()
     return tags, unknown
 
 
@@ -273,26 +275,26 @@ def create_tags(wlib, names):
             wlib.addTag(tag)
         lst.append(tag)
     return lst
-            
+
 
 def sortTags(tags):
     """ sort tags by name in alphabetical order """
     lst = [(tag.name.lower(), tag) for tag in tags]
     return [pair[1] for pair in sorted(lst)]
-    
+
 
 # ----------------------------------------------------------------------
 
 def organizeEntries(entries, set_tags, add_tags, remove_tags):
-    """ 
+    """
     Organize tags of for the entries
     @param entries - list of entries
     @param set_tags - set each entry to tags
     @param add_tags - add tags to each entry
     @param remove_tags - remove tags from each entry
-    
+
     Caller should ensure ensure the parameters are logical.
-    E.g. 
+    E.g.
         set_tags should be exclusive to add_tags and remove_tags,
         add_tags and remove_tags should have no common elements.
     """
@@ -305,8 +307,8 @@ def organizeEntries(entries, set_tags, add_tags, remove_tags):
             item.tags = list(tags)
         if remove_tags:
             item.tags = [t for t in item.tags if t not in remove_tags]
-    
-    
+
+
 #----------------------------------------------------------------------
 # Query
 
@@ -316,8 +318,8 @@ def find_url(wlib, url):
     @return list of matched WebPages
     """
     return [item for item in wlib.webpages if item.url == url]
-        
-    
+
+
 def _parse_terms(s):
     """ break down input into search terms """
     s = s.lower()
@@ -336,7 +338,7 @@ def query_tags(wlib, querytxt, select_tags):
         select_tags = wlib.tags
     result = []
     for tag in select_tags:
-        tagname = tag.name.lower() 
+        tagname = tag.name.lower()
         for w in terms:
             if w in tagname:
                 result.append(tag)
@@ -345,9 +347,9 @@ def query_tags(wlib, querytxt, select_tags):
 
 
 def query(wlib, querytxt, select_tags):
-    """ @return: 
-            cat_list, - tuple of tags -> list of items, 
-            related, 
+    """ @return:
+            cat_list, - tuple of tags -> list of items,
+            related,
             most_visited
     """
     terms = _parse_terms(querytxt)
@@ -355,8 +357,8 @@ def query(wlib, querytxt, select_tags):
     select_tags_set = sets.Set(select_tags)
     if not terms and not select_tags:
         return queryMain(wlib)
-        
-    log.debug('Search terms %s tags %s', terms, select_tags)    
+
+    log.debug('Search terms %s tags %s', terms, select_tags)
     cat_list = {}
     related = sets.Set()
     most_visited = None
@@ -375,23 +377,23 @@ def query(wlib, querytxt, select_tags):
             if not q_matched:
                 continue
 
-            # most visited only activates with a querytxt        
+            # most visited only activates with a querytxt
             if not most_visited or item.lastused > most_visited.lastused:
                 most_visited = item
-            
+
         cat = util.diff(item.tags, select_tags)
         cat2bookmark = cat_list.setdefault(tuple(cat),[])
         cat2bookmark.append(item)
         related.union_update(item.tags)
-    
+
     if select_tags: ##hack
         related = analyzeRelated(select_tags[0],related)
         print >>sys.stderr, related
     else:
         related = [(t.rel.num_item, t.rel) for t in related]
         related = [related,[],[]]
-        
-    return cat_list, tuple(related), most_visited 
+
+    return cat_list, tuple(related), most_visited
 
 ##refactor
 def analyzeRelated(tag,related):
@@ -408,7 +410,7 @@ def analyzeRelated(tag,related):
             others.append((x, rel))
     parents.sort()
     children.sort()
-    others.sort(reverse=True)        
+    others.sort(reverse=True)
 
     return (parents, children, others)
 
@@ -422,8 +424,8 @@ def queryMain(wlib):
     ## TODO: need clean up, also should not use private _lst
     random_page = wlib.webpages._lst and random.choice(wlib.webpages._lst) or None
     return {tuple(): items}, (), random_page
-        
-    
+
+
 
 # ----------------------------------------------------------------------
 # Command line
@@ -468,14 +470,14 @@ def main(argv):
     if len(argv) <= 1:
         show(wlib)
         sys.exit(0)
-        
-    querytxt = ''    
+
+    querytxt = ''
     if argv[1] == '-q':
         querytxt = argv[2]
         del argv[:2]
-        
+
     tags = len(argv) > 1 and argv[1] or ''
-        
+
     doQuery(wlib, querytxt, tags)
 
 

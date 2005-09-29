@@ -29,13 +29,13 @@ import StringIO
 import sys
 from xml.sax import saxutils
 
-from toollib import sgmllib         # custom version of sgmllib
 from minds.config import cfg
 from minds import domain_filter
 from minds import encode_tools
 from minds import messagelog
 from minds.util import html_pull_parser
 from minds.util import magic
+from toollib import sgmllib         # custom version of sgmllib
 
 # todo: common tag
 # todo: formatter intelligent

@@ -11,6 +11,8 @@ import search
 import snoop
 import weblib
 import weblibEntryOrg
+import weblibCategorize
+import weblibTagName
 
 cgi_registry = {
   ''                : home,
@@ -26,8 +28,9 @@ cgi_registry = {
   'search'          : search,
   'snoop'           : snoop,
   'weblib'          : weblib,
-  'weblib.organize' : snoop,
   'weblib.entryOrg' : weblibEntryOrg,
+  'weblib.categorize' : weblibCategorize,
+  'weblib.tagName'  : weblibTagName,
 }
 
 

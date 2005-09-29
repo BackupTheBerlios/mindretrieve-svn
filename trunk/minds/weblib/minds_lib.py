@@ -78,11 +78,16 @@ def parseLine(wlib, row):
     """ raise ValueError or KeyError for parsing problem """
     # TODO: field validation
     if row.id[0:1] == '@':
-        tag = weblib.Tag(
-            id   = int(row.id[1:]),
-            name = row.name,
-        )
-        wlib.addTag(tag)
+        tag_id = row.id[1:]
+        if tag_id == '0':
+            # @0 is special notation for category_description
+            wlib.category_description = row.description
+        else:
+            tag = weblib.Tag(
+                id   = int(tag_id),
+                name = row.name,
+            )
+            wlib.addTag(tag)
 
     else:
         if row.tagids:
@@ -119,7 +124,6 @@ def parseFields(line):
 
 
 def save(wstream, wlib):
-
     writer = codecs.getwriter('utf8')(wstream,'replace')
 
     for n,v in wlib.headers_list:
@@ -129,16 +133,19 @@ def save(wstream, wlib):
     writer.write(header)
     writer.write('\n')
 
+    # output category_description
+    data = dsv.encode_fields(['@0', '', wlib.category_description] + [''] * (NUM_COLUMN-3))
+    writer.write(data)
+    writer.write('\n')
+
+    # output tags
     for item in wlib.tags:
-
         id = '@%d' % item.id
-
         data = dsv.encode_fields([id, item.name] + [''] * (NUM_COLUMN-2))
-
         writer.write(data)
         writer.write('\n')
 
-
+    # output webpages
     for item in wlib.webpages:
         id = str(item.id)
         tagIds = ','.join(['@%s' % t.id for t in item.tags])
@@ -158,6 +165,9 @@ def save(wstream, wlib):
         writer.write('\n')
 
 
+# ------------------------------------------------------------------------
+# command line testing
+
 def main(argv):
     if len(argv) < 2:
         print __doc__
@@ -167,6 +177,9 @@ def main(argv):
     fp = file(argv[1],'rb')
     wlib = load(fp)
     fp.close()
+
+    print 'Loaded %s\ncategory_description:\n%s\n#tags %s\n#webpages %s' % (
+        argv[1], wlib.category_description, len(wlib.tags), len(wlib.webpages))
 
     # save
     if len(argv) > 2:

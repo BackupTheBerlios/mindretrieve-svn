@@ -20,6 +20,8 @@ DATA = [
 (r'1\n2|3\n\n4',    ['1\n2','3\n\n4']),     # escaped \n
 (r'm\\n',           ['m\\n']),              # escape \, not \n
 (r'\n1|2\n',        ['\n1','2\n']),         # start \n, end \n
+
+(r'1\r2|3\r\n4',    ['1\r2','3\r\n4']),     # escaped \r
 ]
 
 DATA1 = [
@@ -61,13 +63,13 @@ class TestDsv(unittest.TestCase):
     def test_parse_file(self):
         fp = dsv.parse(StringIO(SAMPLE_FILE))
 
-        # record1    
+        # record1
         lineno, fields = fp.next()
         self.assertEqual(fields[0], '')
         self.assertEqual(fields[1], '')
         self.assertEqual(fields[2], '')
 
-        # record2    
+        # record2
         lineno, fields = fp.next()
         self.assertEqual(fields[0], 'a')
         self.assertEqual(fields[1], 'B')
@@ -85,6 +87,6 @@ class TestDsv(unittest.TestCase):
 
         self.assertRaises(StopIteration, fp.next)
 
-        
+
 if __name__ == '__main__':
     unittest.main()

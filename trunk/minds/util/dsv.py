@@ -7,7 +7,7 @@ import codecs, string, sys
 
 class RowObject(object):
     """ Access a row as a sequence or using attributes name defined in the headers. """
-    
+
     def __init__(self, headers, fields):
         """ headers is a dict mapping field name to an index. It can be empty.
             fields is the sequence of fields.
@@ -17,27 +17,27 @@ class RowObject(object):
         if len(fields) < len(headers):
             # note fields is not altered
             self.fields = self.fields + [''] * (len(headers) - len(self.fields))
-        
+
     def __len__(self):
         return len(self.fields)
-            
-    def __getitem__(self, key):      
+
+    def __getitem__(self, key):
         return self.fields[key]
-        
+
     def __getattr__(self, name):
         if not self.headers.has_key(name):
             raise AttributeError, name
         return self.fields[self.headers[name]]
-        
+
     def __repr__(self):
         return str(self.fields)
-        
-        
+
+
 def parse(reader, start_line=1, HEADER_ROW=True, STRIP=True):
-    """ This is the main function to open a DSV file. 
+    """ This is the main function to open a DSV file.
         It generates lineno and a RowObject for each record.
     """
-    
+
     # map header name to 0 based column index
     headers = {}
     for lineno, line in enumerate(reader):
@@ -50,7 +50,7 @@ def parse(reader, start_line=1, HEADER_ROW=True, STRIP=True):
         else:
             fields = decode_fields(line)
             if STRIP:
-                fields = map(string.strip, fields)    
+                fields = map(string.strip, fields)
             yield lineno+start_line, RowObject(headers,fields)
 
 
@@ -60,7 +60,7 @@ def parse_header(lineno, s):
         raise ValueError, 'Header row must contain non-empty field names [line %s]: %s' % (lineno, s)
     fields = map(string.lower, fields)
     return fields
-    
+
 
 def decode_fields(s):
     """ Decode a DSV line. Returns a sequence of fields. """
@@ -76,6 +76,9 @@ def decode_fields(s):
             i = i+1 # will increment again
             if s[i:i+1] == 'n':
                 current.append('\n')
+                last = i+1
+            elif s[i:i+1] == 'r':
+                current.append('\r')
                 last = i+1
             else:
                 last = i        # will add the char after \ as is
@@ -106,6 +109,7 @@ def encode_fields(seq):
         s = s.replace('\\', '\\\\')
         s = s.replace('|' , '\\|')
         s = s.replace('\n', '\\n')
+        s = s.replace('\r', '\\r')
         lst.append(s)
     return '|'.join(lst)
 

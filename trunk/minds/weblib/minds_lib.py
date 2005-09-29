@@ -33,7 +33,7 @@ NUM_COLUMN = len(COLUMNS)
 def load(rstream):
     wlib = weblib.WebLibrary()
     encoding = 'UTF8'
-    
+
     reader = codecs.getreader(encoding)(rstream,'replace')
     lineno = 0
     for lineno, line in enumerate(reader):
@@ -43,15 +43,17 @@ def load(rstream):
         pair = line.split(':',1)
         if len(pair) != 2:
             raise SyntaxError('Header line should contain name and value separate by a colon (line %s)' % lineno)
-        pair = map(string.strip, pair)    
+        pair = map(string.strip, pair)
         wlib.headers_list.append(pair)
     else:
         # normal the loop should break when first blank line seen.
         # this file is either empty or has no body part.
         # treat this as empty wlib.
         return wlib
-        
-    for lineno, row in dsv.parse(reader, lineno+1):
+
+    lineno += 1     # adjust lineno to next line the reader is going to return
+    lineno += 1     # make it one based
+    for lineno, row in dsv.parse(reader, lineno):
         try:
             parseLine(wlib, row)
         except KeyError, e:
@@ -88,7 +90,7 @@ def parseLine(wlib, row):
             tagIds = [int(id) for id in s.split(',')]
         else:
             tagIds = []
-            
+
         entry = weblib.WebPage(
             id          = int(row.id),
             name        = row.name,

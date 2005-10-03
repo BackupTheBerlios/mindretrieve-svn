@@ -1,0 +1,124 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3c.org/TR/html4/loose.dtd">
+<html>
+<head>
+<title>MindRetrieve - Configuration</title>
+<link rel="stylesheet" href="main.css" type="text/css">
+<style>
+  .error_message {
+    color:red;
+  }
+  #tags {
+    width: 80%;
+    margin-bottom: 1ex;
+  }
+</style>
+
+
+<script>
+// init the tag info database
+var tag_base= new Array;
+
+function close_form() {
+    rurl = document.getElementById('return_url');
+    window.location = rurl.value;
+}
+
+function setHeight() {
+    // set category proportion to the window size.
+    height = Math.max((window.innerHeight-50)*0.5, 100);
+    cd_stylex = document.getElementById('tags').style;
+    cd_stylex.height = height;
+}
+
+function tags_changed(e) {
+    var tags = document.getElementById('tags');
+    if (tags.selectedIndex < 0)
+        return;
+    var opt = tags.options[tags.selectedIndex];
+    var id = opt.value;
+    var name = opt.text;
+    var info = tag_base[id];
+    document.getElementById('hint_tag').href = '/weblib?tag=' + id;
+    document.getElementById('hint_tag').innerHTML = name;
+    document.getElementById('hint_count').innerHTML = info[0];
+    document.getElementById('hint_webpages').innerHTML = info[1];
+    document.getElementById('original_id').value = id;
+    var newNameElem = document.getElementById('newName');
+    newNameElem.value = name
+}
+
+function onsubmit() {
+    oid = document.getElementById('original_id').value;
+    if (!oid) {
+        alert('Please select a tag.');
+        return false;
+    }
+    return true;
+}
+
+function validate() {
+    document.getElementById('original_id').value
+}
+
+function onload(e) {
+    setHeight();
+    var tagForm = document.getElementById('tagForm');
+//    TODO: don't how to stop a submit with w3c event model.
+//    tagForm.addEventListener('submit', onsubmit, false);
+    tagForm.onsubmit = function() { return onsubmit(); }
+    var tags = document.getElementById('tags');
+    tags.addEventListener('change', tags_changed, false);
+    tags.focus();
+}
+
+//window.onload = onload;
+window.addEventListener('load', onload, false);
+</script>
+
+<script node='con:tag_base_init'>
+tag_base['@1'] = [0,''];
+tag_base['@2'] = [10,'webpage1'];
+tag_base['@3'] = [10,'webpage2'];
+</script>
+</head>
+
+
+<body>
+<div node='-con:header' style='width:100%;background-color:#ddd;text-align:center'>--HEADER--</div>
+
+<!-- TAB HEADER -->
+<div class='tabHeader'>
+&nbsp;
+<span class='activeTab'><a href='/weblib.tagName'>Tag Name</a></span>
+<span class='inactiveTab'><a href='/weblib.categorize'>Categorize</a></span>
+</div>
+
+<!-- main content -->
+
+<p><select id='tags' size='20'>
+<option node='rep:tag' value='@1'>tag1</option>
+<option node='rep:tag' value='@2'>tag2</option>
+<option node='rep:tag' value='@3'>tag3</option>
+<option node='rep:tag' value='@4'>tag4</option>
+</select>
+</p>
+</td>
+
+<p>
+<span style='font-weight: bold;'><a id='hint_tag' href='#'>some tag</a></span>
+(<span id='hint_count'>2</span>) -
+<span id='hint_webpages' style='color: #777'>some web page title,...</span>
+</p>
+<form id='tagForm' method='POST' action='/weblib.tagName'>
+<input node='con:return_url' type='hidden' name='return_url' />
+<input type='hidden' name='original_id' />
+Tag name <input id='newName' type='text' name='newName' />
+<input class='btn' type='submit' value='Update' />
+<input class='btn' type='submit' value='Delete' />
+</form>
+<br />
+
+<div node='-con:footer' style='width:100%;background-color:#ddd;text-align:center'>--footer--</div>
+
+</body>
+</html>

@@ -32,29 +32,29 @@ def main(rfile, wfile, env):
             url = request.tag_url([dt])
             response.redirect(wfile, url)
             return
-    
-    if form.getfirst('action ') == 'cancel':
+
+    if form.getfirst('action') == 'cancel':
         response.redirect(wfile, request.WEBLIB_URL)
-        
+
     elif rid_path and rid_path.startswith('go;'):
         doGoResource(wfile, rid, rid_path)
-        
+
     elif rid and rid_path and rid_path.startswith('snapshot'):
         weblibSnapshot.main(rfile, wfile, env, method, form, rid, rid_path)
-        
+
     elif querytxt:
         queryWebLib(wfile, env, form, tag, querytxt)
-        
+
     elif rid is not None:
         weblibForm.main(rfile, wfile, env, method, form, rid)
-        
+
     else:
         queryWebLib(wfile, env, form, tag, '')
 
 
 
 def doGoResource(wfile, rid, rid_path):
-    # the rid_path are really for user's information only. 
+    # the rid_path are really for user's information only.
     # rid alone determines where to go.
     wlib = store.getMainBm()
     item = wlib.webpages.getById(rid)
@@ -63,7 +63,7 @@ def doGoResource(wfile, rid, rid_path):
         return
 
     wlib.visit(item)
-    response.redirect(wfile, item.url)        
+    response.redirect(wfile, item.url)
 
 
 def queryWebLib(wfile, env, form, tag, querytxt):
@@ -71,9 +71,14 @@ def queryWebLib(wfile, env, form, tag, querytxt):
     if querytxt.endswith('>'):
         querytxt = querytxt[:-1]
         go_direct = True
-    
+
     wlib = store.getMainBm()
-    tags, unknown = weblib.parseTags(wlib, tag)
+    if tag.startswith('@') and tag[1:].isdigit():
+        id = int(tag[1:])
+        tag = wlib.tags.getById(id)
+        tags = tag and [tag] or []
+    else:
+        tags, _ = weblib.parseTags(wlib, tag)
     items, related, most_visited = weblib.query(wlib, querytxt, tags)
     if querytxt:
         tags_matched = weblib.query_tags(wlib, querytxt, tags)
@@ -95,7 +100,7 @@ def queryWebLib(wfile, env, form, tag, querytxt):
         wlib.visit(most_visited)
         response.redirect(wfile, most_visited.url)
         return
-        
+
     folderNames = map(unicode, related)
     currentCategory = tags and unicode(tags[-1]) or ''
     categoryList = []
@@ -106,7 +111,7 @@ def queryWebLib(wfile, env, form, tag, querytxt):
         for v, path in graph.dfsp(node):
             if len(path) < 3:
                 subcat.append(unicode(v))
-                
+
     all_items = []
     for tags, lst in sorted(items.items()):
         tags = sets.Set(tags).difference(parents)
@@ -154,10 +159,10 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
 
         if not most_visited:
             node.web_items.go_hint.omit()
-        else:    
+        else:
             node.web_items.go_hint.address.atts['href'] = request.go_url(most_visited)
             node.web_items.go_hint.address.content = most_visited.name
-                    
+
         if not tags_matched:
             node.web_items.tags_matched.omit()
         else:
@@ -191,7 +196,7 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
     def renderWebItem(self, node, (i, item)):
         item, tags = item   ##todo
         if i % 2 == 1:
-            node.atts['class'] = 'altrow'            
+            node.atts['class'] = 'altrow'
         node.checkbox.atts['name'] = str(item.id)
         node.itemDescription.content = unicode(item)
         node.itemDescription.atts['href'] = request.go_url(item)
@@ -201,7 +206,7 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
         if item.cached:
             node.cache.atts['href'] = '%s/%s/snapshotFrame' % (request.WEBLIB_URL, item.id)
             node.cache.content = item.cached
-        else:    
+        else:
             node.cache.atts['href'] = '%s/%s/snapshot/get' % (request.WEBLIB_URL, item.id)
             node.cache.content = 'download'
 

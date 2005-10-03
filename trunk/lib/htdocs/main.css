@@ -6,11 +6,11 @@ h1      { color: #ffff33; background-color: #0033ff; padding: 0.5ex; margin-top:
 
 
 
-#header               { 
-    color: #ffff33; 
-    background-color: #0033ff; 
+#header               {
+    color: #ffff33;
+    background-color: #0033ff;
     margin-top:0;
-    padding-left: 1em; 
+    padding-left: 1em;
     padding-top: 0.5ex;
     padding-right: 1em;
     padding-bottom: 0.5ex;
@@ -18,7 +18,7 @@ h1      { color: #ffff33; background-color: #0033ff; padding: 0.5ex; margin-top:
   }
 
 #homeLink {
-    font-size:200%; 
+    font-size:200%;
     font-weight:bold;
     width=100%;
     color: #ff3;
@@ -42,11 +42,45 @@ h1      { color: #ffff33; background-color: #0033ff; padding: 0.5ex; margin-top:
     padding-right: 0.5em;
     background-color:#fed;
     border: 2px outset #fed;
-//    border-top-color:#696;
-//    border-left-color:#696;
-//    border-right-color:#363;
-//    border-bottom-color:#363;
 }
+
+
+.tabHeader {
+    width: 100%;
+    border-bottom: thick solid #963;
+    margin-top: 4ex;
+    padding-bottom: 0.5ex;
+}
+.tabHeader a {
+    text-decoration: none;
+    color: #fff;
+}
+.tabHeader a:hover{
+    text-decoration: underline;
+}
+.tabHeader .activeTab {
+    padding: 1ex 1em 0.5ex 1em;
+    background-color: #963;
+    color: #fff;
+    font-weight: bold;
+}
+.tabHeader .inactiveTab {
+    padding: 1ex 1em 0.5ex 1em;
+    background-color: #630;
+    color: #fff;
+    font-weight: bold;
+}
+
+
+.btn {
+    color:#fff;
+    border: 2px outset #3c3;
+    background-color:#3c3;
+    font-weight:bold;
+    padding-left: 1em;
+    padding-right: 1em;
+}
+
 
 #footer {
 }

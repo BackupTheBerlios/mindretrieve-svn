@@ -5,20 +5,20 @@
 <link rel="stylesheet" href="/main.css" type="text/css">
 <style>
   .error_message { color:red }
-  .date_field   { 
-    padding-left: 0.5em; 
-    padding-right: 0.5em; 
-    background-color: #eee; 
+  .date_field   {
+    padding-left: 0.5em;
+    padding-right: 0.5em;
+    background-color: #eee;
   }
-  .date_padding { 
-    padding-left: 8em; 
-    background-color: #eee; 
+  .date_padding {
+    padding-left: 8em;
+    background-color: #eee;
   }
   #form_table   {
-    margin-top: 4ex; 
-    margin-left: 15%; 
+    margin-top: 4ex;
+    margin-left: 15%;
     margin-right: 15%;
-    margin-bottom: 4ex; 
+    margin-bottom: 4ex;
     width: 70%;
     border: medium solid #963;
   }
@@ -26,24 +26,16 @@
     text-align: center;
     color: #fff;
     font-weight: bold;
-    background-color: #963; 
+    background-color: #963;
   }
   #form_content {
     padding-top: 1ex;
     padding-left: 1em;
     padding-bottom: 1ex;
   }
-  .btn {
-    color:#fff;
-    border: 2px outset #3c3;
-    background-color:#3c3;
-    font-weight:bold;
-    padding-left: 1em;
-    padding-right: 1em;
-  }
   .filler       {
     line-height: 0.5ex;
-  }  
+  }
 </style>
 <script>
 function close_form() {
@@ -62,7 +54,7 @@ function close_form() {
 
 <!-- form table -->
 <table id='form_table' cellspacing='0' cellpadding='0'>
-<tr><td id='form_title'>  
+<tr><td id='form_title'>
     <span style='float: right'><input id='close_form' type='checkbox' onclick='close_form()' /></span>
     <span node='-con:form_title'></span>
 </td></tr>
@@ -76,15 +68,15 @@ function close_form() {
     <table cellspacing='5'>
     <tr node='con:error'>
         <td colspan='2'><span node='con:message' class='error_message'>Please correct the error.</span></td>
-    </tr>    
+    </tr>
     <tr>
         <td>*Title</td>
         <td><input type='text' node='con:name' name='title' size='100' /></td>
-    </tr>    
+    </tr>
     <tr>
         <td>*Address</td>
         <td><input type='text' node='con:url' name='url' size='100' /></td>
-    </tr>    
+    </tr>
     <tr>
         <td>Description</td>
         <td><textarea node='con:description' name='description' cols='80' rows='6'></textarea></td>
@@ -94,7 +86,7 @@ function close_form() {
         <td><input type='text' node='con:tags' name='tags' size='50' />
             <span style="margin-left:1em">Related Tags&nbsp;<input type='text' node='con:related' name='related' size='30' />
         </td>
-    </tr>    
+    </tr>
     <tr>
         <td>Modified</td>
         <td>
@@ -107,14 +99,14 @@ function close_form() {
             <input type='hidden' node='con:lastused' name='lastused' size='15' />
             <input type='hidden' node='con:cached' name='cached' size='15' />
         </td>
-    </tr>    
+    </tr>
     <tr>
         <td></td>
         <td>
             <input class='btn' type='submit' name='action' value='OK' />
             <input class='btn' type='button' name='action' value='Cancel' onclick='close_form()' />
         </td>
-    </tr>    
+    </tr>
     </table>
 
     <!-- Script to handle posting with new tags -->

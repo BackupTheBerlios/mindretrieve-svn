@@ -241,7 +241,8 @@ class WebLibrary(object):
 ##            # remove tagIds to avoid duplicated data?
         #TODO: clean this
         import category
-        self.categories = category.buildCategory(self)
+        # TODO: doc this. What's the structure of categories anyway??
+        self.categories, self.uncategorized = category.buildCategory(self)
 
 
 # ----------------------------------------------------------------------

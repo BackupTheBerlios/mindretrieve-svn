@@ -7,62 +7,97 @@
   .error_message {
     color:red;
   }
-  #tabHeader {
-    width: 100%;
-    border-bottom: thick solid #963;
-    margin-top: 4ex;
-  }
-  #tabHeader a {
-    text-decoration: none;
-    color: #fff;
-  }
-  #tabHeader a:hover{
-    text-decoration: underline;
-  }
-  #tabHeader .activeTab {
-    padding: 1ex 1em 0 1em;
-    background-color: #963;
-    color: #fff;
-    font-weight: bold;
-  }
-  #tabHeader .inactiveTab {
-    padding: 1ex 1em 0 1em;
-    background-color: #630;
-    color: #fff;
-    font-weight: bold;
-  }
   #instruction_example {
     margin-top: 0.5ex;
     width: 80%;
     padding: 3px;
-    border: thin solid black;
+    border: thin solid #ccc;
   }
 
   #category_description {
-    width: 90%;
+    width: 95%;
     height: 500px;
+    margin-bottom: 1ex;
   }
+
+  #uncategorized {
+    width: 95%;
+    margin-bottom: 1ex;
+  }
+
 </style>
 <script>
 function close_form() {
     rurl = document.getElementById('return_url');
     window.location = rurl.value;
 }
+
 function setHeight() {
     // set category proportion to the window size.
-    cd_height = Math.max((window.innerHeight-50)*0.75, 100);
+    height = Math.max((window.innerHeight-50)*0.7, 100);
     cd_stylex = document.getElementById('category_description').style;
-    cd_stylex.height = cd_height;
+    cd_stylex.height = height;
+    uc_stylex = document.getElementById('uncategorized').style;
+    uc_stylex.height = height;
 }
+
+function dblclick_uncategorized(e) {
+    addTag();
+}
+
+function addTag() {
+    var selbox = document.getElementById('uncategorized');
+    if (selbox.selectedIndex < 0)
+        return;
+    tag = selbox.value;
+    insert_tag(tag);
+    selbox.options[selbox.selectedIndex] = null;
+}
+
+function insert_tag(tag) {
+    txtbox = document.getElementById('category_description');
+    v = txtbox.value;
+    start = Math.max(txtbox.selectionStart,0);
+
+    // find last indent
+    last = v.substring(0,start).lastIndexOf('\n')+1;
+    indent = v.substring(last).match(/ */);
+    if (!indent) indent = ''
+
+    insert_txt = indent + tag + '\n';
+
+    // insert after next \n
+    next = v.indexOf('\n', start);
+    if (next < 0) {
+        txt = v + insert_txt;
+        next = txt.length-1;
+    }
+    else {
+        next += 1;
+        txt = v.substring(0,next) + insert_txt + v.substring(next);
+        next += insert_txt.length-1;
+    }
+    txtbox.value = txt;
+    txtbox.setSelectionRange(next,next);
+    txtbox.focus();
+}
+
+function addListeners(e) {
+    setHeight();
+    var elem = document.getElementById('uncategorized');
+    elem.addEventListener('dblclick', dblclick_uncategorized, false);
+}
+
+window.addEventListener('load', addListeners, false);
 </script>
 </head>
 
 
-<body onload='setHeight();'>
+<body>
 <div node='-con:header' style='width:100%;background-color:#ddd;text-align:center'>--HEADER--</div>
 
 <!-- TAB HEADER -->
-<div id='tabHeader'>
+<div class='tabHeader'>
 &nbsp;
 <span class='inactiveTab'><a href='/weblib.tagName'>Tag Name</a></span>
 <span class='activeTab'><a href='/weblib.categorize'>Categorize</a></span>
@@ -75,12 +110,16 @@ function setHeight() {
 <table cellspacing='0' cellpadding='2'>
 <tr>
 
+
 <!-- instruction column -->
 <td style='width:20%' valign='top'>
 <p>Categorize the tags by editing them in the space in the right.</p>
+
 <p>Put each tag on a line. Insert 2 spaces in front of a tag to mean it
-is a subcategory. A tag may appears more than one time (however some
-logical restriction, like no loops, still applies.)</p>
+is a subcategory. Add more spaces to mean it is a subcategory of
+subcategories. A tag may appears multiple times in a category. Blank lines maybe added for
+clarity.</p>
+
 <p>For example:</p>
 <pre id='instruction_example'>food
   fish
@@ -88,17 +127,24 @@ logical restriction, like no loops, still applies.)</p>
     apple
     orange
   meat
+
 travel
   bus
   train
   airplane</pre>
+
+<p>Tags that are not yet categorized are listed on the right. Add them to the category as you see fit.
+</p>
 </td>
+
 
 <!-- filler column -->
 <td style='width:3%' ></td>
 
+
 <!-- editing column -->
 <td valign='top'>
+<h3>Tag Categories</h3>
 <textarea node='con:category_description' id='category_description' name='category_description'>
 top
   second
@@ -107,10 +153,23 @@ top
   second2
 </textarea>
 <br />
-<input class='btn' type='submit' name='action' value='OK' />
-<input class='btn' type='reset' name='action' />
+<input class='btn' type='submit' name='action' value='Update' />
+<!--<input class='btn' type='reset' name='action' />-->
 <input class='btn' type='button' name='action' value='Cancel' onclick='close_form()' />
 </td>
+
+
+<!-- uncategorized column -->
+<td style='width:20%' valign='top'>
+<h3>Tags to be categorized</h3>
+<select id='uncategorized' size='20'>
+<option node='rep:uncategorized_tag'>tag1</option>
+<option node='rep:uncategorized_tag'>tag2</option>
+<option node='rep:uncategorized_tag'>tag3</option>
+</select>
+<input class='btn' type='button' onclick='addTag();' value='Add' />
+</td>
+
 </tr>
 </table>
 </form>

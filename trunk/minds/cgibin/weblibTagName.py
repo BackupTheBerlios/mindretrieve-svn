@@ -9,18 +9,18 @@ from minds.cgibin.util import response
 from minds import weblib
 from minds.weblib import store
 
-log = logging.getLogger('cgi.tagname')
+log = logging.getLogger('cgi.tagnam')
 
 
 def main(rfile, wfile, env):
-    method, form, _, _ = request.parseURL(rfile, env)
-    tag_id = form.getfirst('tag_id','')
     wlib = store.getMainBm()
-    tag = weblib.parseTag(wlib, tag_id)
+    method, form, _, _ = request.parseURL(rfile, env)
+    tags = [weblib.parseTag(wlib, tag_id) for tag_id in form.getlist('tags')]
+    tags = filter(None, tags)
     if method == 'POST':
-        doPost(wfile, env, form, tag)
+        doPost(wfile, env, form, tags)
     elif method == 'DELETE':
-        doDelete(wfile, env, form, tag)
+        doDelete(wfile, env, form, tags)
     else:
         doShowForm(wfile, env, form)
 
@@ -54,33 +54,35 @@ def doShowForm(wfile, env, form):
     TagNameRenderer(wfile, env, '').output(return_url, [], tag_base)
 
 
-def doPost(wfile, env, form, tag):
+def doPost(wfile, env, form, tags):
     wlib = store.getMainBm()
     newName = form.getfirst('newName','').decode('utf8')
     newTag = weblib.parseTag(wlib, newName)
-    log.debug('doPost tag %s newName %s newTag %s', tag, newName, newTag)
+    log.info('doPost tags %s newName %s newTag %s', ','.join(map(unicode,tags)), newName, newTag)
 
-    if tag: # expect to be true
-        if not newTag:
+    for tag in tags:
+        if not newTag or (newTag is tag):
+            # 1. rename to a non-existant tag, or
+            # 2. same name or user has changed character case
             wlib.tag_rename(tag, newName)
-        elif newTag is tag:
-            # either same name or user has changed character case
-            wlib.tag_rename(tag, newName)
+            # reinitialize newTag for next round in the loop
+            newTag = weblib.parseTag(wlib, newName)
         else:
             wlib.tag_merge_del(tag, newTag)
-        store.save(wlib)
+    store.save(wlib)
 
     return_url = request.get_return_url(env, form)
     response.redirect(wfile, '/weblib.tagName?return_url=' + return_url)
 
 
-def doDelete(wfile, env, form, tag):
+def doDelete(wfile, env, form, tags):
     wlib = store.getMainBm()
-    log.debug('doDelete tag %s', tag)
+    log.info('doDelete tags %s', ','.join(map(unicode,tags)))
 
-    if tag: # expect to be true
+    for tag in tags:
         wlib.tag_merge_del(tag)
-        store.save(wlib)
+
+    store.save(wlib)
 
     return_url = request.get_return_url(env, form)
     response.redirect(wfile, '/weblib.tagName?return_url=' + return_url)

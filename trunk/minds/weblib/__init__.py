@@ -232,6 +232,7 @@ class WebLibrary(object):
 
 
     def tag_rename(self, tag, newName):
+        log.debug('tag_rename count=%s tag %s newName %s', len(self.tags), tag, newName)
         self.tags.rename(tag, newName)
 
 
@@ -239,8 +240,10 @@ class WebLibrary(object):
         """
         Delete or merge tag
         @param tag - tag to be altered
-        @param new_tag - tag to merge to, or None to delete tag.
+        @param new_tag - tag to merge with, or None to delete tag.
         """
+        log.debug('tag_merge_del count=%s tag %s new_tag %s', len(self.tags), tag, new_tag)
+        # remove the use of tag from webpages
         for item in self.webpages:
             if tag not in item.tags:
                 continue
@@ -255,7 +258,10 @@ class WebLibrary(object):
                 item.tags.remove(tag)
                 item.tags.append(new_tag)
 
+        # merge or delete, old tag would be removed from tags
         self.tags.remove(tag)
+        log.debug('tag_merge_del completed count=%s', len(self.tags))
+
         self.categorize()
         # TODO: need to delete it from the category
 

@@ -49,7 +49,6 @@ function tags_changed(e) {
     document.getElementById('hint_tag').innerHTML = tag_name;
     document.getElementById('hint_count').innerHTML = info[0];
     document.getElementById('hint_webpages').innerHTML = info[1];
-    document.getElementById('tag_id').value = id;
 
     // set newName
     var newNameElem = document.getElementById('newName');
@@ -57,8 +56,8 @@ function tags_changed(e) {
 }
 
 function onsubmit() {
-    oid = document.getElementById('tag_id').value;
-    if (!oid) {
+    var tags = document.getElementById('tags');
+    if (tags.selectedIndex < 0) {
         alert('Please select a tag.');
         return false;
     }
@@ -101,7 +100,10 @@ tag_base['@3'] = [5,'webpage2'];
 
 <!-- main content -->
 
-<p><select id='tags' size='20'>
+<form id='tagForm' method='POST' action='/weblib.tagName'>
+<input node='con:return_url' type='hidden' name='return_url' />
+
+<p><select id='tags' name='tags' size='20' multiple='true'>
 <option node='rep:tag' value='@1'>tag1 (0)</option>
 <option node='rep:tag' value='@2'>tag2 (10)</option>
 <option node='rep:tag' value='@3'>tag3 (5)</option>
@@ -116,12 +118,10 @@ tag_base['@3'] = [5,'webpage2'];
 <span id='hint_webpages' style='color: #777'>some web page title,...</span>
 </p>
 
-<form id='tagForm' method='POST' action='/weblib.tagName'>
-    <input node='con:return_url' type='hidden' name='return_url' />
-    <input type='hidden' name='tag_id' />
-    Tag name <input id='newName' type='text' name='newName' />
-    <input class='btn' type='submit' value='Update' />
-    <input class='btn' type='submit' name='method' value='Delete' />
+Tag name <input id='newName' type='text' name='newName' />
+<input class='btn' type='submit' value='Update' />
+<input class='btn' type='submit' name='method' value='Delete' />
+
 </form>
 
 <br />

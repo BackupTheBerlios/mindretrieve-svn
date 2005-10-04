@@ -73,12 +73,7 @@ def queryWebLib(wfile, env, form, tag, querytxt):
         go_direct = True
 
     wlib = store.getMainBm()
-    if tag.startswith('@') and tag[1:].isdigit():
-        id = int(tag[1:])
-        tag = wlib.tags.getById(id)
-        tags = tag and [tag] or []
-    else:
-        tags, _ = weblib.parseTags(wlib, tag)
+    tags, _ = weblib.parseTags(wlib, tag)
     items, related, most_visited = weblib.query(wlib, querytxt, tags)
     if querytxt:
         tags_matched = weblib.query_tags(wlib, querytxt, tags)

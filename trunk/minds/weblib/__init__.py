@@ -231,6 +231,35 @@ class WebLibrary(object):
         return tag
 
 
+    def tag_rename(self, tag, newName):
+        self.tags.rename(tag, newName)
+
+
+    def tag_merge_del(self, tag, new_tag=None):
+        """
+        Delete or merge tag
+        @param tag - tag to be altered
+        @param new_tag - tag to merge to, or None to delete tag.
+        """
+        for item in self.webpages:
+            if tag not in item.tags:
+                continue
+            if not new_tag:
+                # delete tag
+                item.tags.remove(tag)
+            elif newTag in item.tags:
+                # have both tag and new_tag, merge
+                item.tags.remove(tag)
+            else:
+                # have only tag, merge tag into newTag
+                item.tags.remove(tag)
+                item.tags.append(new_tag)
+
+        self.tags.remove(tag)
+        self.categorize()
+        # TODO: need to delete it from the category
+
+
     def categorize(self):
 ##        """ call this when finished loading """
 ##
@@ -247,9 +276,20 @@ class WebLibrary(object):
 
 # ----------------------------------------------------------------------
 
+def parseTag(wlib, name):
+    """ Parse tag names or tag id. Return tag or None. """
+    # tag id in the format of @ddd?
+    if name.startswith('@') and name[1:].isdigit():
+        id = int(name[1:])
+        return wlib.tags.getById(id)
+    else:
+        return wlib.getTag(name)
+
+
 def parseTags(wlib, tag_names):
-    """ Parse comma separated tag names.
-        @return: list of tags and list of unknown tag names.
+    """
+    Parse comma separated tag names.
+    @return: list of tags and list of unknown tag names.
     """
     tags = []
     unknown = []
@@ -257,7 +297,7 @@ def parseTags(wlib, tag_names):
         name = name.strip()
         if not name:
             continue
-        tag = wlib.getTag(name)
+        tag = parseTag(wlib, name)
         if tag:
             tags.append(tag)
         else:

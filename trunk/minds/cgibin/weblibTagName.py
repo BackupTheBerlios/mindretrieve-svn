@@ -11,10 +11,16 @@ from minds.weblib import store
 
 log = logging.getLogger('cgi.tagname')
 
+
 def main(rfile, wfile, env):
     method, form, _, _ = request.parseURL(rfile, env)
+    tag_id = form.getfirst('tag_id','')
+    wlib = store.getMainBm()
+    tag = weblib.parseTag(wlib, tag_id)
     if method == 'POST':
-        doPost(wfile, env, form)
+        doPost(wfile, env, form, tag)
+    elif method == 'DELETE':
+        doDelete(wfile, env, form, tag)
     else:
         doShowForm(wfile, env, form)
 
@@ -48,21 +54,36 @@ def doShowForm(wfile, env, form):
     TagNameRenderer(wfile, env, '').output(return_url, [], tag_base)
 
 
-def doPost(wfile, env, form):
+def doPost(wfile, env, form, tag):
     wlib = store.getMainBm()
+    newName = form.getfirst('newName','').decode('utf8')
+    newTag = weblib.parseTag(wlib, newName)
+    log.debug('doPost tag %s newName %s newTag %s', tag, newName, newTag)
 
-    # TODO: parse and analyze
-    wlib.category_description = form.getfirst('category_description').decode('utf-8')
-
-    from minds.util import dsv
-    data = dsv.encode_fields(['@0', '', wlib.category_description] + [''] * (10-3))
-    print >>sys.stderr, data
-
-    wlib.categorize()
+    if tag: # expect to be true
+        if not newTag:
+            wlib.tag_rename(tag, newName)
+        elif newTag is tag:
+            # either same name or user has changed character case
+            wlib.tag_rename(tag, newName)
+        else:
+            wlib.tag_merge_del(tag, newTag)
+        store.save(wlib)
 
     return_url = request.get_return_url(env, form)
-    store.save(wlib)
-    response.redirect(wfile, return_url)
+    response.redirect(wfile, '/weblib.tagName?return_url=' + return_url)
+
+
+def doDelete(wfile, env, form, tag):
+    wlib = store.getMainBm()
+    log.debug('doDelete tag %s', tag)
+
+    if tag: # expect to be true
+        wlib.tag_merge_del(tag)
+        store.save(wlib)
+
+    return_url = request.get_return_url(env, form)
+    response.redirect(wfile, '/weblib.tagName?return_url=' + return_url)
 
 
 # ----------------------------------------------------------------------
@@ -107,7 +128,7 @@ class TagNameRenderer(response.CGIRendererHeadnFoot):
 
 
     def render_tag(self, node, tag_item):
-        node.content = tag_item[1]
+        node.content = '%s (%s)' % (tag_item[1], tag_item[2])
         node.atts['value'] = tag_item[0]
 
 

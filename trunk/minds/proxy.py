@@ -72,7 +72,6 @@ def setup():
     """ module startup """
     cfg.setupPaths()
     setupLogging()
-    #urifs.init()
 
 
 def setupLogging():
@@ -84,7 +83,11 @@ def setupLogging():
     hdlr = logging.handlers.RotatingFileHandler(syslogpath, 'a', 1100000, 4)
     formatter = logging.Formatter('%(asctime)s %(name)-10s - %(message)s')
     hdlr.setFormatter(formatter)
-        
+
+    # work around [python-Bugs-1314519] logging run into deadlock in some error handling situation
+    # https://sourceforge.net/tracker/?func=detail&atid=105470&aid=1314519&group_id=5470
+    hdlr.lock = threading.RLock()
+
     rootlog.addHandler(hdlr)
     rootlog.setLevel(logging.DEBUG)
 

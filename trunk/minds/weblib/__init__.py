@@ -25,6 +25,7 @@ from minds import distillparse
 log = logging.getLogger('weblib')
 TAG_DEFAULT = 'inbox'
 
+
 class WebPage(object):
 
     def __init__(self, id=-1,
@@ -232,7 +233,7 @@ class WebLibrary(object):
 
 
     def tag_rename(self, tag, newName):
-        log.debug('tag_rename count=%s tag %s newName %s', len(self.tags), tag, newName)
+        log.debug(u'tag_rename count=%s tag %s newName %s', len(self.tags), unicode(tag), newName)
         self.tags.rename(tag, newName)
 
 
@@ -242,7 +243,8 @@ class WebLibrary(object):
         @param tag - tag to be altered
         @param new_tag - tag to merge with, or None to delete tag.
         """
-        log.debug('tag_merge_del count=%s tag %s new_tag %s', len(self.tags), tag, new_tag)
+        log.debug(u'tag_merge_del count=%s tag %s new_tag %s', len(self.tags), unicode(tag), new_tag)
+
         # remove the use of tag from webpages
         for item in self.webpages:
             if tag not in item.tags:
@@ -250,7 +252,7 @@ class WebLibrary(object):
             if not new_tag:
                 # delete tag
                 item.tags.remove(tag)
-            elif newTag in item.tags:
+            elif new_tag in item.tags:
                 # have both tag and new_tag, merge
                 item.tags.remove(tag)
             else:
@@ -400,7 +402,6 @@ def query(wlib, querytxt, select_tags):
             most_visited
     """
     terms = _parse_terms(querytxt)
-    print >>sys.stderr, querytxt, terms,'###'
     select_tags_set = sets.Set(select_tags)
     if not terms and not select_tags:
         return queryMain(wlib)

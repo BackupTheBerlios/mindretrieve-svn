@@ -1,7 +1,7 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3c.org/TR/html4/loose.dtd">
 <html>
 <head>
-<title>MindRetrieve - Configuration</title>
+<title>MindRetrieve - Categorize tags</title>
 <link rel="stylesheet" href="main.css" type="text/css">
 <style>
   .error_message {
@@ -26,7 +26,11 @@
   }
 
 </style>
+
 <script>
+// init the tag info database
+var tag_base= new Array;
+
 function close_form() {
     rurl = document.getElementById('return_url');
     window.location = rurl.value;
@@ -34,15 +38,31 @@ function close_form() {
 
 function setHeight() {
     // set category proportion to the window size.
-    height = Math.max((window.innerHeight-50)*0.7, 100);
+    height = Math.max((window.innerHeight-50)*0.6, 100);
     cd_stylex = document.getElementById('category_description').style;
     cd_stylex.height = height;
     uc_stylex = document.getElementById('uncategorized').style;
     uc_stylex.height = height;
 }
 
-function dblclick_uncategorized(e) {
+function uncategorized_dblclick(e) {
     addTag();
+}
+
+function uncategorized_changed(e) {
+    var selbox = document.getElementById('uncategorized');
+    if (selbox.selectedIndex < 0) {
+        tags_changed('');
+    }
+    tag = selbox.value;
+    tag = remove_parenthesis(tag);
+    tags_changed(tag);
+}
+
+
+function category_keyup(e) {
+    r = find_current()
+    tags_changed(r[3]);
 }
 
 function addTag() {
@@ -50,8 +70,10 @@ function addTag() {
     if (selbox.selectedIndex < 0)
         return;
     tag = selbox.value;
+    tag = remove_parenthesis(tag);
     insert_tag(tag);
     selbox.options[selbox.selectedIndex] = null;
+    document.getElementById('category_description').focus();
 }
 
 function insert_tag(tag) {
@@ -79,17 +101,77 @@ function insert_tag(tag) {
     }
     txtbox.value = txt;
     txtbox.setSelectionRange(next,next);
-    txtbox.focus();
+//    txtbox.focus();
+}
+
+// find current line and return [this_line, next_line, indent, tag]
+function find_current() {
+    txtbox = document.getElementById('category_description');
+    start = Math.max(txtbox.selectionStart,0);
+    v = txtbox.value;
+
+    this_line = v.substring(0,start).lastIndexOf('\n')+1;
+    next_line = v.indexOf('\n', start);
+    if (next_line < 0) {
+        next_line = v.length;
+    }
+
+    line = v.substring(this_line,next_line);
+    indent = line.match(/^ */);
+    tag = line.replace(/\s*$/,'').replace(/^\s*/,'');
+
+    return [this_line, next_line, indent, tag];
+}
+
+// remove the count parenthesis to get tag name
+function remove_parenthesis(name) {
+    var last_parenthesis = name.lastIndexOf(' (');
+    if (last_parenthesis >= 0) {
+        name = name.substring(0, last_parenthesis);
+    }
+    return name;
+}
+
+function tags_changed(tag_name) {
+    tag_name = tag_name.replace('^ *','');
+    var info = tag_base[tag_name];
+    // TODOTODO: need to escape tag_name
+    document.getElementById('hint_tag').innerHTML = tag_name;
+    if (info == null) {
+        document.getElementById('hint_tag').href = '';
+        document.getElementById('hint_count').innerHTML = '';
+        document.getElementById('hint_webpages').innerHTML = '&nbsp;'; // help maintain a blank line
+    }
+    else {
+        document.getElementById('hint_tag').href = '/weblib?tag=' + encodeURIComponent(tag_name);
+        document.getElementById('hint_count').innerHTML = '(' + info[0] + ') ';
+        document.getElementById('hint_webpages').innerHTML = '- ' + info[1];
+    }
 }
 
 function addListeners(e) {
     setHeight();
-    var elem = document.getElementById('uncategorized');
-    elem.addEventListener('dblclick', dblclick_uncategorized, false);
+    var elem;
+    elem = document.getElementById('category_description');
+    elem.addEventListener('keyup', category_keyup, false);
+    elem.addEventListener('mouseup', category_keyup, false);
+    elem.addEventListener('focus', category_keyup, false);
+    elem = document.getElementById('uncategorized');
+    elem.addEventListener('dblclick', uncategorized_dblclick, false);
+    elem.addEventListener('change', uncategorized_changed, false);
+    elem.addEventListener('focus', uncategorized_changed, false);
 }
 
 window.addEventListener('load', addListeners, false);
 </script>
+
+<script node='con:tag_base_init'>
+// sample
+tag_base['tag1'] = [0 ,''];
+tag_base['tag2'] = [10,'webpage2'];
+tag_base['tag3'] = [5 ,'webpage3'];
+</script>
+
 </head>
 
 
@@ -146,13 +228,14 @@ travel
 <td valign='top'>
 <h3>Tag Categories</h3>
 <textarea node='con:category_description' id='category_description' name='category_description'>
-top
-  second
-    third
-    third2
-  second2
+tag1
+  tag2
+    tag21
+    tag22
+  tag3
 </textarea>
 <br />
+<!-- action buttons -->
 <input class='btn' type='submit' name='action' value='Update' />
 <!--<input class='btn' type='reset' name='action' />-->
 <input class='btn' type='button' name='action' value='Cancel' onclick='close_form()' />
@@ -163,13 +246,27 @@ top
 <td style='width:20%' valign='top'>
 <h3>Tags to be categorized</h3>
 <select id='uncategorized' size='20'>
-<option node='rep:uncategorized_tag'>tag1</option>
-<option node='rep:uncategorized_tag'>tag2</option>
-<option node='rep:uncategorized_tag'>tag3</option>
+<option node='rep:uncategorized_tag'>tag1 (0)</option>
+<option node='rep:uncategorized_tag'>tag2 (10)</option>
+<option node='rep:uncategorized_tag'>tag3 (5)</option>
 </select>
 <input class='btn' type='button' onclick='addTag();' value='Add' />
 </td>
 
+</tr>
+
+
+<tr>
+<td colspan='2'>
+</td>
+<td colspan='2'>
+<!-- hint area -->
+<p>
+<span style='font-weight: bold;'><a id='hint_tag' href='#'>some tag</a></span>
+<span id='hint_count'>(2)</span>
+<span id='hint_webpages' style='color: #777'> - some web page title,...</span>
+</p>
+</td>
 </tr>
 </table>
 </form>

@@ -1,7 +1,7 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3c.org/TR/html4/loose.dtd">
 <html>
 <head>
-<title>MindRetrieve - Configuration</title>
+<title>MindRetrieve - Edit Tag Names</title>
 <link rel="stylesheet" href="main.css" type="text/css">
 <style>
   .error_message {
@@ -66,6 +66,7 @@ function onsubmit() {
 
 function onload(e) {
     setHeight();
+
     var tagForm = document.getElementById('tagForm');
 //    TODO: don't how to stop a submit with w3c event model.
 //    tagForm.addEventListener('submit', onsubmit, false);
@@ -81,9 +82,9 @@ window.addEventListener('load', onload, false);
 
 <script node='con:tag_base_init'>
 // sample
-tag_base['@1'] = [0,''];
-tag_base['@2'] = [10,'webpage1'];
-tag_base['@3'] = [5,'webpage2'];
+tag_base['@1'] = [0 ,''];
+tag_base['@2'] = [10,'webpage2'];
+tag_base['@3'] = [5 ,'webpage3'];
 </script>
 </head>
 
@@ -112,15 +113,15 @@ tag_base['@3'] = [5,'webpage2'];
 </p>
 </td>
 
+Tag name <input id='newName' type='text' name='newName' />
+<input class='btn' type='submit' value='Update' />
+<input class='btn' type='submit' name='method' value='Delete' />
+
 <p>
 <span style='font-weight: bold;'><a id='hint_tag' href='#'>some tag</a></span>
 (<span id='hint_count'>2</span>) -
 <span id='hint_webpages' style='color: #777'>some web page title,...</span>
 </p>
-
-Tag name <input id='newName' type='text' name='newName' />
-<input class='btn' type='submit' value='Update' />
-<input class='btn' type='submit' name='method' value='Delete' />
 
 </form>
 

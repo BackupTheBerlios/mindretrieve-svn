@@ -28,9 +28,7 @@ def main(rfile, wfile, env):
 def doShowForm(wfile, env, form):
     wlib = store.getMainBm()
     return_url = request.get_return_url(env, form)
-    uncategorized = [(unicode(tag).lower(), unicode(tag)) for tag in wlib.uncategorized]
-    uncategorized.sort()
-    uncategorized = [t for l,t in uncategorized]
+
     tag_dict = dict([
                     (tag, ['@%s' % tag.id,
                            tag.name,

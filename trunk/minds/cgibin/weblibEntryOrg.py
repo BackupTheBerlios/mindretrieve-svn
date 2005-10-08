@@ -34,8 +34,8 @@ def main(rfile, wfile, env):
         doPost(wfile, env, form)
     elif method == 'DELETE':
         doDelete(wfile, env, form)
-        
-        
+
+
 def _buildEntries(form):
     # scan for ddd=On from 'checkbox' fields or id_list='ddd,ddd' from 'hidden' field
     # build the id list ids.
@@ -51,13 +51,13 @@ def _buildEntries(form):
         if item:
             entries.append(item)
     return entries
-    
-    
+
+
 def doPost(wfile, env, form):
     wlib = store.getMainBm()
     entries = _buildEntries(form)
     errors = []
-    
+
     # parse set/add/remove tags
     set_tags = ''
     add_tags = ''
@@ -65,16 +65,16 @@ def doPost(wfile, env, form):
     option = form.getfirst('option','')
     option = OPTION_MAP.get(option,None)
     if option == SET:
-        set_tags = form.getfirst('set_tags','')
+        set_tags = form.getfirst('set_tags','').decode('utf8')
     elif option == ADD_REMOVE:
-        add_tags = form.getfirst('add_tags','')
-        remove_tags = form.getfirst('remove_tags','')
+        add_tags = form.getfirst('add_tags','').decode('utf8')
+        remove_tags = form.getfirst('remove_tags','').decode('utf8')
     else:
         errors.append('Please select set tags or add or remove tags.')
     set_tags, unknown1 = weblib.parseTags(wlib, set_tags)
     add_tags, unknown2 = weblib.parseTags(wlib, add_tags)
     remove_tags, unknown3 = weblib.parseTags(wlib, remove_tags)
-        
+
     # deal with new tags
     create_tags = form.getfirst('create_tags','')
     unknown = []
@@ -86,7 +86,7 @@ def doPost(wfile, env, form):
     if errors:
         doShowForm(wfile, env, form, errors, new_tags=unknown)
         return
-        
+
     if unknown1:
         set_tags.extend(weblib.create_tags(wlib,unknown1))
     if unknown2:
@@ -95,11 +95,11 @@ def doPost(wfile, env, form):
     log.debug('organizeEntries %s entries set %s add %s remove %s.', len(entries), set_tags, add_tags, remove_tags)
     weblib.organizeEntries(entries, set_tags, add_tags, remove_tags)
     store.save(wlib)
-    
+
     return_url = request.get_return_url(env, form)
     response.redirect(wfile, return_url)
-            
-    
+
+
 def doDelete(wfile, env, form):
     wlib = store.getMainBm()
     entries = _buildEntries(form)
@@ -149,7 +149,7 @@ def doShowForm(wfile, env, form, errors=None, new_tags=None):
 
 class EntryOrgRenderer(response.CGIRendererHeadnFoot):
     TEMPLATE_FILE = 'weblibEntryOrg.html'
-    """ 2005-08-22 
+    """ 2005-08-22
     con:header
     con:edit_form
             con:id_list
@@ -169,7 +169,7 @@ class EntryOrgRenderer(response.CGIRendererHeadnFoot):
     def render(self, node, return_url, errors, new_tags, ids, names, all_tags, some_tags, option, set_tags, add_tags, remove_tags):
         node.edit_form.return_url .atts['value'] = return_url
         node.edit_form.id_list.atts['value'] = ','.join(map(str,ids))
-        
+
         if errors:
             node.edit_form.error.message.raw = '<br />'.join(errors)
         else:
@@ -177,10 +177,10 @@ class EntryOrgRenderer(response.CGIRendererHeadnFoot):
 
         t = string.Template(node.edit_form.form_title.content)
         node.edit_form.form_title.content = t.substitute(total=len(ids), names=names, )
-        
+
         t = string.Template(node.edit_form.all_tags.content)
         node.edit_form.all_tags.content = t.safe_substitute(all_tags=u', '.join(all_tags))
-        
+
         t = string.Template(node.edit_form.some_tags.content)
         node.edit_form.some_tags.content = t.safe_substitute(some_tags=u', '.join(some_tags))
 
@@ -189,11 +189,11 @@ class EntryOrgRenderer(response.CGIRendererHeadnFoot):
         elif option == ADD_REMOVE:
             node.edit_form.add_remove_option.atts['checked'] = '1'
         if set_tags:
-            node.edit_form.set_tags.atts['value'] = set_tags   
+            node.edit_form.set_tags.atts['value'] = set_tags
         if add_tags:
-            node.edit_form.add_tags.atts['value'] = add_tags   
+            node.edit_form.add_tags.atts['value'] = add_tags
         if remove_tags:
-            node.edit_form.remove_tags.atts['value'] = remove_tags   
+            node.edit_form.remove_tags.atts['value'] = remove_tags
 
         tags = new_tags and u', '.join(new_tags) or ''
         # TODO: need to escape tags for javascript;

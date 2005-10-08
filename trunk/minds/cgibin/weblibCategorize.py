@@ -65,7 +65,7 @@ def doPost(wfile, env, form):
 
     return_url = request.get_return_url(env, form)
     store.save(wlib)
-    response.redirect(wfile, return_url)
+    response.redirect(wfile, '/weblib.categorize')
 
 
 # ----------------------------------------------------------------------

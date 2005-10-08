@@ -76,34 +76,6 @@ function addTag() {
     document.getElementById('category_description').focus();
 }
 
-function insert_tag(tag) {
-    txtbox = document.getElementById('category_description');
-    v = txtbox.value;
-    start = Math.max(txtbox.selectionStart,0);
-
-    // find last indent
-    last = v.substring(0,start).lastIndexOf('\n')+1;
-    indent = v.substring(last).match(/ */);
-    if (!indent) indent = ''
-
-    insert_txt = indent + tag + '\n';
-
-    // insert after next \n
-    next = v.indexOf('\n', start);
-    if (next < 0) {
-        txt = v + insert_txt;
-        next = txt.length-1;
-    }
-    else {
-        next += 1;
-        txt = v.substring(0,next) + insert_txt + v.substring(next);
-        next += insert_txt.length-1;
-    }
-    txtbox.value = txt;
-    txtbox.setSelectionRange(next,next);
-//    txtbox.focus();
-}
-
 // find current line and return [this_line, next_line, indent, tag]
 function find_current() {
     txtbox = document.getElementById('category_description');
@@ -111,16 +83,41 @@ function find_current() {
     v = txtbox.value;
 
     this_line = v.substring(0,start).lastIndexOf('\n')+1;
-    next_line = v.indexOf('\n', start);
-    if (next_line < 0) {
+    next_line = v.indexOf('\n', start)+1;
+    if (next_line == 0) {
         next_line = v.length;
     }
 
     line = v.substring(this_line,next_line);
-    indent = line.match(/^ */);
+    indent = String(line.match(/ */));
     tag = line.replace(/\s*$/,'').replace(/^\s*/,'');
 
     return [this_line, next_line, indent, tag];
+}
+
+function insert_tag(tag) {
+    txtbox = document.getElementById('category_description');
+    v = txtbox.value;
+
+    // Find check for a special case
+    // if cursor on a blank line, follow last line's indent
+    // (however, if last line also blank, it will starts from column 1)
+    if ((start > 0) && (v.substr(start-1,2) == '\n\n')) {
+        txtbox.setSelectionRange(start-1,start-1);
+    }
+    else if ((start > 1) && (v.substr(start-2,4) == '\r\n\r\n')) {
+        // alternative line break?
+        txtbox.setSelectionRange(start-2,start-2);
+    }
+
+    r = find_current();
+    next_line = r[1];
+    indent = r[2];
+    insert_txt = indent + tag + '\n';
+
+    txtbox.value = v.substring(0,next_line) + insert_txt + v.substring(next_line);
+    next_pos = next_line + indent.length;
+    txtbox.setSelectionRange(next_pos,next_pos);
 }
 
 // remove the count parenthesis to get tag name

@@ -130,7 +130,7 @@ def buildCategory(wlib):
 #        if not nodes.has_key(node[0]):
 #            nodes[node[0]] = node
 
-    g0 = graph.build_indented_text_DAG(wlib.category_description)
+    g0 = graph.build_indented_text_DAG(wlib.headers['category_description'])
     g1 = __convert_name_2_trel(wlib, g0)
 
     #graph.merge_DAG(g1,nodes)

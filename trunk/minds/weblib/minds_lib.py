@@ -43,8 +43,13 @@ def load(rstream):
         pair = line.split(':',1)
         if len(pair) != 2:
             raise SyntaxError('Header line should contain name and value separate by a colon (line %s)' % lineno)
-        pair = map(string.strip, pair)
-        wlib.headers_list.append(pair)
+        name, value = map(string.strip, pair)
+        # force header name to be lower for now
+        name = name.lower()
+        # borrow dsv.decode_fields() to decode \ and line breaks.
+        value = dsv.decode_fields(value)[0]
+        wlib.header_names.append(name)
+        wlib.headers[name] = value
     else:
         # normal the loop should break when first blank line seen.
         # this file is either empty or has no body part.
@@ -79,15 +84,11 @@ def parseLine(wlib, row):
     # TODO: field validation
     if row.id[0:1] == '@':
         tag_id = row.id[1:]
-        if tag_id == '0':
-            # @0 is special notation for category_description
-            wlib.category_description = row.description
-        else:
-            tag = weblib.Tag(
-                id   = int(tag_id),
-                name = row.name,
-            )
-            wlib.addTag(tag)
+        tag = weblib.Tag(
+            id   = int(tag_id),
+            name = row.name,
+        )
+        wlib.addTag(tag)
 
     else:
         if row.tagids:
@@ -126,16 +127,25 @@ def parseFields(line):
 def save(wstream, wlib):
     writer = codecs.getwriter('utf8')(wstream,'replace')
 
-    for n,v in wlib.headers_list:
+    # write headers
+    headers = wlib.headers.copy()
+    for name in wlib.header_names:
+        if name not in headers:
+            continue
+        # borrow dsv.encode_fields() to encode \ and line breaks.
+        v = dsv.encode_fields([headers[name]])
+        writer.write('%s: %s\r\n' % (name,v))
+        del headers[name]
+
+    # write remaining headers not listed in wlib.header_names
+    for n,v in headers.items():
+        v = dsv.encode_fields([v])
         writer.write('%s: %s\r\n' % (n,v))
+
     writer.write('\r\n')
+
     header = dsv.encode_fields(COLUMNS)
     writer.write(header)
-    writer.write('\n')
-
-    # output category_description
-    data = dsv.encode_fields(['@0', '', wlib.category_description] + [''] * (NUM_COLUMN-3))
-    writer.write(data)
     writer.write('\n')
 
     # output tags
@@ -179,7 +189,7 @@ def main(argv):
     fp.close()
 
     print 'Loaded %s\ncategory_description:\n%s\n#tags %s\n#webpages %s' % (
-        argv[1], wlib.category_description, len(wlib.tags), len(wlib.webpages))
+        argv[1], wlib.headers['category_description'].encode('raw_unicode_escape'), len(wlib.tags), len(wlib.webpages))
 
     # save
     if len(argv) > 2:

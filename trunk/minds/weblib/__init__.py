@@ -97,12 +97,16 @@ class Tag(object):
 class WebLibrary(object):
 
     def __init__(self):
+        self.headers = {
+            'category_description':'',
+            'category_expand':'',
+        }
+        # Should contain the keys of self.headers.
+        # Use to maintain header order when persist to disk.
+        self.header_names = []
+
         self.webpages = util.IdList()
         self.tags = util.IdNameList()
-        self.category_description = ''
-
-        # todo: should implement a rfc822.Message style case-insensitive dictionary
-        self.headers_list = []
 
         self.index_writer = None
         self.index_reader = None

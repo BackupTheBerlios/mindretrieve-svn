@@ -1,5 +1,6 @@
 """ __init__.py [options] [args]
-    -q:     query
+    -h:     show this help
+    -q:     query querytxt
 """
 
 # TODO: how do I make sure WebPage fields is the right type? e.g. id is int.
@@ -480,20 +481,29 @@ def queryMain(wlib):
 
 from pprint import pprint
 
-def doQuery(wlib, querytxt, tags):
+def testShowAll():
+    wlib = store.getMainBm()
+    for item in wlib.webpages:
+        tags = [tag.name for tag in item.tags]
+        related = [tag.name for tag in item.related]
+        print '%s (%s) (%s)' % (item.name, ','.join(tags), ','.join(related))
+
+
+def testQuery(wlib, querytxt, tags):
     tags,unknown = parseTags(wlib, tags)
     if unknown:
         print 'Ignore unknown tags', unknown
 
+    tags_matched = query_tags(wlib, querytxt, tags)
+    print 'Tags matched',
+    pprint(tags_matched)
+
     cat_list, related, most_visited = query(wlib, querytxt, tags)
 
     pprint(tags)
-    listCatList(wlib,cat_list)
-    pprint(sortTags(related))
-    print 'Most visited:', most_visited
 
+    pprint(sortTags(related[0]+related[1]+related[2]))
 
-def listCatList(wlib,lst):
     for key, value in sorted(lst.items()):
         sys.stdout.write('\n' + u','.join(map(unicode, key)) + '\n')
         for item in value:
@@ -501,32 +511,25 @@ def listCatList(wlib,lst):
             related = [tag.name for tag in item.related]
             print '  %s (%s) (%s)' % (unicode(item), ','.join(tags), ','.join(related))
 
-
-def show(wlib):
-    for item in wlib.webpages:
-        tags = [tag.name for tag in item.tags]
-        related = [tag.name for tag in item.related]
-        print '%s (%s) (%s)' % (item.name, ','.join(tags), ','.join(related))
+    print 'Most visited:', most_visited
 
 
 def main(argv):
-
-    import store
-
-    wlib = store.load()
-
-    if len(argv) <= 1:
-        show(wlib)
-        sys.exit(0)
-
     querytxt = ''
-    if argv[1] == '-q':
+    if len(argv) <= 1:
+        testShowAll()
+        sys.exit(0)
+    elif argv[1] == '-h':
+        print __doc__
+        sys.exit(-1)
+    elif argv[1] == '-q':
         querytxt = argv[2]
         del argv[:2]
 
     tags = len(argv) > 1 and argv[1] or ''
 
-    doQuery(wlib, querytxt, tags)
+    wlib = store.getMainBm()
+    testQuery(wlib, querytxt, tags)
 
 
 if __name__ == '__main__':

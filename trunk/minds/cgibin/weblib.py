@@ -104,8 +104,7 @@ def queryWebLib(wfile, env, form, tag, querytxt):
         subcat = []
         categoryList.append((unicode(node[0]), subcat))
         for v, path in graph.dfsp(node):
-            if len(path) < 3:
-                subcat.append(unicode(v))
+            subcat.append((len(path),unicode(v)))
 
     all_items = []
     for tags, lst in sorted(items.items()):
@@ -113,7 +112,10 @@ def queryWebLib(wfile, env, form, tag, querytxt):
         for l in lst:
             all_items.append((l,tags))
             tags = ()
-    WeblibRenderer(wfile, env, querytxt).output(most_visited, folderNames, categoryList, tags_matched, currentCategory, all_items)
+
+    defaultTag = unicode(wlib.getDefaultTag())
+
+    WeblibRenderer(wfile, env, querytxt).output(most_visited, folderNames, defaultTag, categoryList, tags_matched, currentCategory, all_items)
 
 
 
@@ -141,9 +143,28 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
             con:cache
     con:footer
     """
-    def render(self, node, most_visited, folderNames, categoryList, tags_matched, currentCategory, webItems):
+    def render(self, node,
+        most_visited,
+        folderNames,
+        defaultTag,
+        categoryList,
+        tags_matched,
+        currentCategory,
+        webItems,
+        ):
+
+        # root and default Tag
+        if not currentCategory:
+            node.rootTag.atts['class'] = 'CurrentCat'
+        node.defaultTag.atts['href'] = request.tag_url([defaultTag])
+        node.defaultTag.content = defaultTag
+        if currentCategory == defaultTag:
+            node.defaultTag.atts['class'] = 'CurrentCat'
+
+        # category
         node.catList.repeat(self.renderCatItem, categoryList, currentCategory)
 
+        # no match message
         if not webItems:
             node.web_items.omit()
             t = string.Template(node.no_match_msg.content)
@@ -152,19 +173,21 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
 
         node.no_match_msg.omit()
 
+        # most visited
         if not most_visited:
             node.web_items.go_hint.omit()
         else:
             node.web_items.go_hint.address.atts['href'] = request.go_url(most_visited)
             node.web_items.go_hint.address.content = most_visited.name
 
+        # matched webItems
         if not tags_matched:
             node.web_items.tags_matched.omit()
         else:
             node.web_items.tags_matched.tag.repeat(self.renderTagsmatched, tags_matched)
-
         node.web_items.crumb.repeat(self.renderCrumb, folderNames)
         node.web_items.webItem.repeat(self.renderWebItem, enumerate(webItems))
+
 
     def renderCrumb(self, node, item):
         node.link.content = item
@@ -179,14 +202,18 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
         node.link.content = cat
         node.link.atts['href'] = request.tag_url(cat)
         if cat == currentCategory:
-            node.link.atts['class'] = 'CategoryCurrentItem'
+            node.link.atts['class'] = 'CurrentCat'
         node.catItem.repeat(self.renderSubCat, subcat, currentCategory)
 
     def renderSubCat(self, node, item, currentCategory):
-        node.link.content = item
-        node.link.atts['href'] = request.tag_url(item)
-        if item == currentCategory:
-            node.link.atts['class'] = 'CategoryCurrentItem'
+        level, name = item
+        if level > 1:
+            node.atts['class'] = 'SubCat2'
+        node.link.content = name
+        node.link.atts['href'] = request.tag_url(name)
+        if name == currentCategory:
+            node.link.atts['class'] = 'CurrentCat'
+
 
     def renderWebItem(self, node, (i, item)):
         item, tags = item   ##todo

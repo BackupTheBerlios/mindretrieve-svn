@@ -27,7 +27,7 @@ def doShowForm(wfile, env, form):
     tag_dict = dict([
                     (tag, ['@%s' % tag.id,
                            tag.name,
-                           tag.rel.num_item,
+                           tag.num_item,
                            None,
                           ]
                     ) for tag in wlib.tags]
@@ -46,12 +46,12 @@ def doShowForm(wfile, env, form):
     tag_base = [b for name,b in tag_base]
 
     # find uncategorized
-    uncategorized = [(
-                        unicode(tag).lower(),
-                        u'%s (%s)' % (unicode(tag), tag.rel.num_item),
-                     ) for tag in wlib.uncategorized]
-    uncategorized.sort()
-    uncategorized = [t for l,t in uncategorized]
+    un_list = [(
+                unicode(tag).lower(),
+                u'%s (%s)' % (unicode(tag), tag.num_item),
+               ) for tag in wlib.category.uncategorized]
+    un_list.sort()
+    uncategorized = [t for l,t in un_list]
 
     CategorizeRenderer(wfile, env, '').output(return_url, [], tag_base, wlib.headers['category_description'], uncategorized)
 
@@ -61,10 +61,10 @@ def doPost(wfile, env, form):
 
     # TODO: parse and analyze
     wlib.headers['category_description'] = form.getfirst('category_description','').decode('utf-8')
-    wlib.categorize()
+    wlib.category.compile()
+    store.save(wlib)
 
     return_url = request.get_return_url(env, form)
-    store.save(wlib)
     response.redirect(wfile, '/weblib.categorize')
 
 

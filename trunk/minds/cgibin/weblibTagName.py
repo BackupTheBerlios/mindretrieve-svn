@@ -32,7 +32,7 @@ def doShowForm(wfile, env, form):
     tag_dict = dict([
                     (tag, ['@%s' % tag.id,
                            tag.name,
-                           tag.rel.num_item,
+                           tag.num_item,
                            None,
                           ]
                     ) for tag in wlib.tags]

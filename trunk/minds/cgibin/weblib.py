@@ -110,12 +110,14 @@ def queryWebLib(wfile, env, form, tag, querytxt):
 
     ##related hack
     parents = []
-    print >>sys.stderr, related
-    if related and hasattr(related, '__len__'):
-        parents = [t.tag for score,t in related[0]]
-        related  = [t for score,t in related[0]] + ['c'] + \
-            [t for score, t in related[1]] + ['r'] + \
-            [t for score, t in related[2]]
+##    print >>sys.stderr, related
+##    if related and hasattr(related, '__len__'):
+##        parents = [t.tag for score,t in related[0]]
+##        related  = [t for score,t in related[0]] + ['c'] + \
+##            [t for score, t in related[1]] + ['r'] + \
+##            [t for score, t in related[2]]
+    # TODO: clean up what is related???
+    related = []
 
     # quick jump?
     if go_direct and most_visited:
@@ -126,10 +128,12 @@ def queryWebLib(wfile, env, form, tag, querytxt):
     folderNames = map(unicode, related)
     currentCategory = tags and unicode(tags[-1]) or ''
     categoryList = []
-    top_nodes = wlib.categories[1]
+    top_nodes = wlib.category.root[1]
     for node in top_nodes:
         subcat = []
-        categoryList.append((node[0].tag.id, unicode(node[0]), subcat))
+        tag = node[0]
+        tag = wlib.tags.getByName(tag) # TODO: clean up, do this in compile()
+        categoryList.append((tag.id, unicode(tag), subcat))
         for v, path in graph.dfsp(node):
             subcat.append((len(path),unicode(v)))
 
@@ -140,10 +144,21 @@ def queryWebLib(wfile, env, form, tag, querytxt):
             all_items.append((l,tags))
             tags = ()
 
-    defaultTag = unicode(wlib.getDefaultTag())
-
     cc_lst = wlib.getCategoryCollapseList()
-    WeblibRenderer(wfile, env, querytxt).output(cc_lst, defaultTag, categoryList, most_visited, folderNames, tags_matched, currentCategory, all_items)
+    defaultTag = unicode(wlib.getDefaultTag())
+    if wlib.category.uncategorized:
+        subcats = [(2, unicode(t)) for t in wlib.category.uncategorized]
+        categoryList.append((-1, 'TAG', subcats))
+
+    WeblibRenderer(wfile, env, querytxt).output(
+        cc_lst,
+        defaultTag,
+        categoryList,
+        most_visited,
+        folderNames,
+        tags_matched,
+        currentCategory,
+        all_items)
 
 
 
@@ -237,9 +252,13 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
         id, cat, subcat = item
         node.toggleSwitch.atts['id'] = '@%s' % id
         node.link.content = cat
-        node.link.atts['href'] = request.tag_url(cat)
-        if cat == currentCategory:
-            node.link.atts['class'] = 'CurrentCat'
+        if id > 0:
+            node.link.atts['href'] = request.tag_url(cat)
+            if cat == currentCategory:
+                node.link.atts['class'] = 'CurrentCat'
+        else:
+            # otherwise it is a pseudo tag
+            del node.link.atts['href']
         node.catItem.repeat(self.renderSubCat, subcat, currentCategory)
 
     def renderSubCat(self, node, item, currentCategory):

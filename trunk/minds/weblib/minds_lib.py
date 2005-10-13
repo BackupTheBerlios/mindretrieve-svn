@@ -75,7 +75,7 @@ def load(rstream):
         item.tags = filter(None, tags)
         # remove tagIds to avoid duplicated data?
 
-    wlib.categorize()
+    wlib.category.compile()
     return wlib
 
 

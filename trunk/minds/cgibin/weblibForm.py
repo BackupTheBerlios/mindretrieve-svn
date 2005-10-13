@@ -180,7 +180,7 @@ def doPutResource(wfile, env, bean):
         wlib.updateWebPage(item)
         log.info('Updating WebPage: %s' % unicode(item))
 
-    wlib.categorize()
+    wlib.category.compile()
     store.save(wlib)
     response.redirect(wfile, return_url)
 
@@ -192,7 +192,7 @@ def doDeleteResource(wfile, env, bean):
         log.info('Deleting WebPage %s' % unicode(item))
         # todo: may need to delete tags too.
         wlib.deleteWebPage(item)
-        wlib.categorize()
+        wlib.category.compile()
         store.save(wlib)
     return_url = request.get_return_url(env, bean.form)
     response.redirect(wfile, return_url)

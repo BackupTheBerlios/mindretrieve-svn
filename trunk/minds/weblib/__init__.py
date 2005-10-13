@@ -108,6 +108,9 @@ class WebLibrary(object):
         self.webpages = util.IdList()
         self.tags = util.IdNameList()
 
+        import category
+        self.category = category.Category(self)
+
         self.index_writer = None
         self.index_reader = None
         self.index_searcher = None
@@ -233,7 +236,7 @@ class WebLibrary(object):
         # default tag is not previous used; or user has chosen a new default?
         tag = Tag(name=d)
         self.tags.append(tag)
-        self.categorize()
+        self.category.compile()
         return tag
 
 
@@ -269,7 +272,7 @@ class WebLibrary(object):
         self.tags.remove(tag)
         log.debug('tag_merge_del completed count=%s', len(self.tags))
 
-        self.categorize()
+        self.category.compile()
         # TODO: need to delete it from the category
 
 
@@ -309,18 +312,18 @@ class WebLibrary(object):
         return lst
 
 
-    def categorize(self):
-##        """ call this when finished loading """
-##
-##        # set item.tags from tagIds
-##        for item in self.webpages:
-##            tags = [self.tags.getById(id) for id in item.tagIds]
-##            item.tags = filter(None, tags)
-##            # remove tagIds to avoid duplicated data?
-        #TODO: clean this
-        import category
-        # TODO: doc this. What's the structure of categories anyway??
-        self.categories, self.uncategorized = category.buildCategory(self)
+#    def categorize(self):
+###        """ call this when finished loading """
+###
+###        # set item.tags from tagIds
+###        for item in self.webpages:
+###            tags = [self.tags.getById(id) for id in item.tagIds]
+###            item.tags = filter(None, tags)
+###            # remove tagIds to avoid duplicated data?
+#        #TODO: clean this
+#        import category
+#        # TODO: doc this. What's the structure of categories anyway??
+#        self.categories, self.uncategorized = category.buildCategory(self)
 
 
 # ----------------------------------------------------------------------
@@ -423,6 +426,7 @@ def _parse_terms(s):
 
 
 def query_tags(wlib, querytxt, select_tags):
+    """ find list of tag that match querytxt """
     terms = _parse_terms(querytxt)
     if not select_tags:
         select_tags = wlib.tags
@@ -475,33 +479,36 @@ def query(wlib, querytxt, select_tags):
         cat2bookmark.append(item)
         related.union_update(item.tags)
 
-    if select_tags: ##hack
-        related = analyzeRelated(select_tags[0],related)
-        print >>sys.stderr, related
-    else:
-        related = [(t.rel.num_item, t.rel) for t in related]
-        related = [related,[],[]]
+##    if select_tags: ##hack
+##        related = analyzeRelated(select_tags[0],related)
+##        print >>sys.stderr, related
+##    else:
+##        related = [(t.rel.num_item, t.rel) for t in related]
+##        related = [related,[],[]]
+
+    related = [(t.num_item, None) for t in related]
+    related = [related,[],[]]
 
     return cat_list, tuple(related), most_visited
 
 ##refactor
-def analyzeRelated(tag,related):
-    parents, children, others = [],[],[]
-    for count, rel in tag.rel.related:
-        if count == tag.rel.num_item:
-            parents.append((rel.torder, rel))
-        elif count == rel.num_item:
-            children.append((rel.torder, rel))
-        else:
-            pe = 100 * count / tag.rel.num_item
-            ce = 100 * count / rel.num_item
-            x =  (pe+ce,pe,ce)
-            others.append((x, rel))
-    parents.sort()
-    children.sort()
-    others.sort(reverse=True)
-
-    return (parents, children, others)
+##def analyzeRelated(tag,related):
+##    parents, children, others = [],[],[]
+##    for count, rel in tag.rel.related:
+##        if count == tag.rel.num_item:
+##            parents.append((rel.torder, rel))
+##        elif count == rel.num_item:
+##            children.append((rel.torder, rel))
+##        else:
+##            pe = 100 * count / tag.rel.num_item
+##            ce = 100 * count / rel.num_item
+##            x =  (pe+ce,pe,ce)
+##            others.append((x, rel))
+##    parents.sort()
+##    children.sort()
+##    others.sort(reverse=True)
+##
+##    return (parents, children, others)
 
 
 def queryMain(wlib):

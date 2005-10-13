@@ -4,40 +4,48 @@ import urllib
 WEBLIB_URL = '/weblib'
 
 """
-URL                         description             method (default GET)
+URL                         method (default GET)      description
 ------------------------------------------------------------------------------
-weblib                      show home page
+weblib                                                query or weblib home page
 
-weblib?tag=xx,yy            show tag
+weblib?tag=xx,yy                                      show tag
 
-weblib?query=xx&tag=yy      search xx
+weblib?query=xx&tag=yy                                search xx
 
-weblib/_                    new entry               GET 
-                                                    PUT
+[Resources/webpage]
+weblib/_                    GET                       new entry
+                            PUT
 
-weblib/%id                  entry %id               GET, same as form?
-                                                    PUT 
-                                                    DELETE
+weblib/%id                  GET, same as form?        entry %id
+                            PUT
+                            DELETE
 
-weblib/%id/form             form for entry %id
+weblib/%id/form                                       form for entry %id
 
 weblib/%id/snapshot
 
 weblib/%id/snapshot?cid=
 
-weblib/%id/go;http://xyz    Redirect to page
+weblib/%id/go;http://xyz                              Redirect to page
+
+[tag]
+weblib/@%tid                GET (not supported)       tag %id
+
+weblib/@%tid?               POST                      change tag setting
+    category_collapse=on/off
+
 """
 
-# TODO: parseURL is specific to weblib? should rename?
-def parseURL(rfile, env, keep_blank_values=1):
+def parse_weblib_url(rfile, env, keep_blank_values=1):
     """
-    Parse the input request base on the URL scheme.
-    @return 
+    Parse the input request base on the weblib URL scheme.
+    @return
         method - HTTP method (auxilliary way by the method parameter)
         form - cgi.FieldStorage
         rid - resource id, -1 for new, None for n/a
-        rid_path - if rid is define, the path follows rid
-    """  
+        tid - tag id or None
+        path - rest of path follows rid or tid (without initial '/')
+    """
     form = cgi.FieldStorage(fp=rfile, environ=env, keep_blank_values=keep_blank_values)
 
     # the HTTP method
@@ -46,22 +54,30 @@ def parseURL(rfile, env, keep_blank_values=1):
     method = form.getfirst('method') or method
     method = method.upper()
 
-    # parse resource id and rid_path
+    # parse rid, tid and path
     rid = None
-    rid_path = None
+    tid = None
+    path = ''
+    # /a/b/c -> [a,b/c]
     resources = env.get('PATH_INFO', '').lstrip('/').split('/',1)
     resource = resources[0]
     if resource == '_':
         rid = -1
+    elif resource.startswith('@'):
+        try:
+            tid = int(resource[1:])
+        except ValueError:
+            pass
     else:
         try:
             rid = int(resource)
-        except ValueError: 
+        except ValueError:
             pass
-    if len(resources) > 1:
-        rid_path = resources[1]
 
-    return method, form, rid, rid_path
+    if len(resources) > 1:
+        path = resources[1]
+
+    return method, form, rid, tid, path
 
 
 def get_return_url(env, form):
@@ -71,23 +87,23 @@ def get_return_url(env, form):
     r = env.get('HTTP_REFERER','')
     if r: return r
     return WEBLIB_URL
-    
-    
+
+
 def weblib_url():
     return '%s' % WEBLIB_URL
 
 
 def rid_url(id):
     return '%s/%s' % (WEBLIB_URL, id)
-    
-    
+
+
 def go_url(item):
     return '%s/%s/go;%s' % (WEBLIB_URL, item.id, item.url)
 
 
 def tag_url(tags):
     if hasattr(tags,'encode'):##??
-        qs = unicode(tags)    
+        qs = unicode(tags)
     else:
         qs = u','.join(map(unicode, tags))
     qs = urllib.quote_plus(qs.encode('utf8'))

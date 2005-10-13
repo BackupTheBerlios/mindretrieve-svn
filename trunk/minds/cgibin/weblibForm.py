@@ -15,27 +15,27 @@ log = logging.getLogger('cgi.weblib')
 
 class Bean(object):
     """ The bean that represents one web entry """
-    
+
     def __init__(self, rid, form):
         self.rid = rid
-        self.form = form     
+        self.form = form
         self.item = None
 
         self.tags = ''
         self.related = ''
-        
+
         # tags not known
         self.newTags = sets.Set()
         self.create_tags = self.form.getfirst('create_tags','').decode('utf-8')
-        
+
         self.errors = []
-        
+
         self._readForm(rid, form)
 
 
     def _readForm(self, rid, form):
         wlib = store.getMainBm()
-        
+
         if form.has_key('filled'):
             # User is submitting form, use the parameters in the query
             item = weblib.WebPage(
@@ -61,9 +61,9 @@ class Bean(object):
             #       no rid (or not exist), URL found in weblib
             item = wlib.webpages.getById(rid)
             if item:
-                # make a copy of existing item    
+                # make a copy of existing item
                 item = item.__copy__()
-            else:    
+            else:
                 url = form.getfirst('url','').decode('utf-8')
                 matches = weblib.find_url(wlib, url)
                 if not matches:
@@ -81,11 +81,11 @@ class Bean(object):
                     # however override with possibly new title and description
                     item.name        = form.getfirst('title','').decode('utf-8')
                     item.description = form.getfirst('description','').decode('utf-8')
-                
+
             self.item = item
             self.tags  = ', '.join([l.name for l in item.tags])
             self.related = ', '.join([l.name for l in item.related])
-        
+
 
     def _parseTags(self):
         wlib = store.getMainBm()
@@ -97,19 +97,19 @@ class Bean(object):
         _related = self.form.getfirst('related','').decode('utf-8')
         self.item.related, unknown_related = weblib.parseTags(wlib, _related)
         self.item.relatedIds = [l.id for l in self.item.related]
-        
+
         self.tags = _tags
         self.related = _related
         self.newTags = sets.Set()
         self.newTags.union_update(unknown_tags)
         self.newTags.union_update(unknown_related)
-        
-        
+
+
     def validate(self):
         if not self.item.name:
-            self.errors.append('Please enter a name.')    
+            self.errors.append('Please enter a name.')
         if not self.item.url:
-            self.errors.append('Please enter an address.')    
+            self.errors.append('Please enter an address.')
         if self.newTags and not self.create_tags:
             tags = u', '.join(self.newTags)
             self.errors.append('These tags are not previous used: ' + tags)
@@ -117,13 +117,13 @@ class Bean(object):
 
 
     def __str__(self):
-        if not self.item: 
+        if not self.item:
             return 'None'
-        else:        
+        else:
             return u'%s(%s)' % (self.item.name, self.item.rid)
 
-    
-def main(rfile, wfile, env, method, form, rid):
+
+def main(wfile, env, method, form, rid):
     # this is called from the controller weblib
     bean = Bean(rid, form)
     if method == 'GET':
@@ -142,33 +142,33 @@ def doGetResource(wfile, env, bean):
 def doPutResource(wfile, env, bean):
     wlib = store.getMainBm()
     return_url = request.get_return_url(env, bean.form)
-    
+
     if not bean.validate():
         EditRenderer(wfile,env,'').output( return_url, bean)
         return
-        
+
     if bean.newTags:
         assert bean.create_tags
         for t in bean.newTags:
             l = weblib.Tag(name=unicode(t))
             wlib.addTag(l)
-        # reparse after created tags    
+        # reparse after created tags
         bean._parseTags()
         assert not bean.newTags
-        
+
     item = bean.item
     # is it an existing item?
     if bean.rid >= 0 and wlib.webpages.getById(bean.rid):
         # update existing item from bean
         item0             = wlib.webpages.getById(bean.rid)
-        item0.name        = item.name       
-        item0.url         = item.url        
+        item0.name        = item.name
+        item0.url         = item.url
         item0.description = item.description
         item0.tags        = item.tags[:]
-        item0.relatedIds  = item.relatedIds 
-        item0.modified    = item.modified   
-        item0.lastused    = item.lastused   
-#        item0.cached      = item.cached     
+        item0.relatedIds  = item.relatedIds
+        item0.modified    = item.modified
+        item0.lastused    = item.lastused
+#        item0.cached      = item.cached
         item = item0
 
     print >>sys.stderr, '## PUT Res item.id %s' % item.id
@@ -176,10 +176,10 @@ def doPutResource(wfile, env, bean):
         log.info('Adding WebPage: %s' % unicode(item))
         wlib.addWebPage(item)
         wlib.updateWebPage(item)
-    else:    
+    else:
         wlib.updateWebPage(item)
         log.info('Updating WebPage: %s' % unicode(item))
-    
+
     wlib.categorize()
     store.save(wlib)
     response.redirect(wfile, return_url)
@@ -190,10 +190,10 @@ def doDeleteResource(wfile, env, bean):
     item = wlib.webpages.getById(bean.rid)
     if item:
         log.info('Deleting WebPage %s' % unicode(item))
-        # todo: may need to delete tags too.    
+        # todo: may need to delete tags too.
         wlib.deleteWebPage(item)
         wlib.categorize()
-        store.save(wlib)  
+        store.save(wlib)
     return_url = request.get_return_url(env, bean.form)
     response.redirect(wfile, return_url)
 
@@ -220,7 +220,7 @@ class EditRenderer(response.CGIRendererHeadnFoot):
             con:lastused
             con:cached
             con:new_tags
-    con:footer    
+    con:footer
     """
     def render(self, node, return_url, bean):
 
@@ -228,7 +228,7 @@ class EditRenderer(response.CGIRendererHeadnFoot):
         wlib = store.getMainBm()
 
         node.form_title.content = item.id == -1 and 'Add entry' or 'Edit entry'
-        
+
         form = node.form
         id = item.id == -1 and '_' or str(item.id)
         form.atts['action'] = request.rid_url(id)
@@ -247,18 +247,20 @@ class EditRenderer(response.CGIRendererHeadnFoot):
             form.related    .atts['value'] = bean.related
             form.modified   .atts['value'] = item.modified
             form.lastused   .atts['value'] = item.lastused
-            form.cached     .atts['value'] = item.cached  
-            
-            if item.modified: 
+            form.cached     .atts['value'] = item.cached
+
+            if item.modified:
                 form.modified_txt.content = item.modified
-            if item.lastused: 
+            if item.lastused:
                 form.lastused_txt.content = item.lastused
-            if item.cached:   
-                form.cached_txt.content = item.cached  
+            if item.cached:
+                form.cached_txt.content = item.cached
 
         tags = bean.newTags and u', '.join(bean.newTags) or ''
         ##TODO: encode tags for javascript in HTML
-        node.form.new_tags.content = node.form.new_tags.content % tags 
+        node.form.new_tags.content = node.form.new_tags.content % tags
 
-if __name__ == "__main__":
-    main(sys.stdin, sys.stdout, os.environ)
+# weblibForm get invoked from CGI weblib.py
+
+#if __name__ == "__main__":
+#    main(sys.stdin, sys.stdout, os.environ)

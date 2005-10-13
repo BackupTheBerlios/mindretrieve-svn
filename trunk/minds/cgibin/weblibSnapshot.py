@@ -21,10 +21,10 @@ log = logging.getLogger('cgi.snapsh')
 #   /weblib/$rid/snapshot
 #   /weblib/$rid/snapshot/get       <---- TODO make this more REST?
 
-def main(rfile, wfile, env, method, form, rid, rid_path):
+def main(wfile, env, method, form, rid, rid_path):
     wlib = store.getMainBm()
     item = wlib.webpages.getById(rid)
-    
+
     str_rid = rid == -1 and '_' or str(rid)
 
     if rid_path == 'snapshotFrame':
@@ -32,7 +32,7 @@ def main(rfile, wfile, env, method, form, rid, rid_path):
     elif rid_path == 'snapshotHeader':
         if item:
             HeaderRenderer(wfile).output(item.name, item.cached, item.url)
-        else:    
+        else:
             HeaderRenderer(wfile).output('?', '?', '?')
     elif rid_path == 'snapshot':
         doShowSnapshot(wfile, rid, rid_path)
@@ -44,22 +44,22 @@ def main(rfile, wfile, env, method, form, rid, rid_path):
 
 
 def doShowSnapshot(wfile, rid, rid_path):
-    # the rid_path are really for user's information only. 
+    # the rid_path are really for user's information only.
     # rid alone determines where to go.
     wlib = store.getMainBm()
     item = wlib.webpages.getById(rid)
     if not item:
         wfile.write('404 not found\r\n\r\n%s not found' % rid)
         return
-        
+
     filename = rid == -1 and '_.mhtml' or '%s.mhtml' % rid
     # TODO: check file exist, move to weblib? getSnapshotFile()?
     fp = (cfg.getpath('weblibsnapshot')/filename).open('rb')
-    
+
     obj = mhtml.LoadedWebArchive.load_fp(fp)
     # do visit?
     # wlib.visit(item)
-    response.redirect(wfile, obj.root_uri)        
+    response.redirect(wfile, obj.root_uri)
 
 
 def doSnapshot(wfile, form, str_rid, item):
@@ -77,8 +77,8 @@ def doSnapshot(wfile, form, str_rid, item):
 
     response.redirect(wfile, '../snapshotFrame')
 
-    
-    
+
+
 # ----------------------------------------------------------------------
 
 class FrameRenderer(response.CGIRenderer):
@@ -103,10 +103,12 @@ class HeaderRenderer(response.CGIRenderer):
     """
     def render(self, node, name, date, url):
         node.heading.content = '[%s] %s - %s' % (
-            str(date)[:10], 
-            name, 
+            str(date)[:10],
+            name,
             len(url) > 50 and url[:50]+'...' or url,
             )
 
-if __name__ == "__main__":
-    main(sys.stdin, sys.stdout, os.environ)
+# weblibForm get invoked from CGI weblib.py
+
+#if __name__ == "__main__":
+#    main(sys.stdin, sys.stdout, os.environ)

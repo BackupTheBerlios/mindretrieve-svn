@@ -14,7 +14,7 @@ log = logging.getLogger('cgi.tagnam')
 
 def main(rfile, wfile, env):
     wlib = store.getMainBm()
-    method, form, _, _ = request.parseURL(rfile, env)
+    method, form, _, _, _ = request.parse_weblib_url(rfile, env)
     tags = [weblib.parseTag(wlib, tag_id) for tag_id in form.getlist('tags')]
     tags = filter(None, tags)
     if method == 'POST':

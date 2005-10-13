@@ -26,7 +26,7 @@ OPTION_MAP = {
 
 def main(rfile, wfile, env):
 
-    method, form, _, _ = request.parseURL(rfile, env)
+    method, form, _, _, _ = request.parse_weblib_url(rfile, env)
 
     if method == 'GET':
         doShowForm(wfile, env, form)

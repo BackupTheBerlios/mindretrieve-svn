@@ -12,7 +12,7 @@ from minds.weblib import store
 log = logging.getLogger('cgi.categry')
 
 def main(rfile, wfile, env):
-    method, form, _, _ = request.parseURL(rfile, env)
+    method, form, _, _, _ = request.parse_weblib_url(rfile, env)
     if method == 'POST':
         doPost(wfile, env, form)
     else:

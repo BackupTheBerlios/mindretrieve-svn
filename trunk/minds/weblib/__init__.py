@@ -99,7 +99,7 @@ class WebLibrary(object):
     def __init__(self):
         self.headers = {
             'category_description':'',
-            'category_expand':'',
+            'category_collapse':'',
         }
         # Should contain the keys of self.headers.
         # Use to maintain header order when persist to disk.
@@ -271,6 +271,42 @@ class WebLibrary(object):
 
         self.categorize()
         # TODO: need to delete it from the category
+
+
+    def setCategoryCollapse(self, tid, value):
+        ids = self.getCategoryCollapseList()
+        if value:
+            if tid not in ids:
+                ids.append(tid)
+        else:
+            if tid in ids:
+                ids.remove(tid)
+
+        # filter out invalid ids
+        ids = filter(self.tags.getById, ids)
+        ids.sort()
+
+        # TODO: note that CategoryCollapse applies to top level tag only
+        # As user edit the category some tag may no longer at top level.
+        # Thus it becomes dead value as the user can not udpate it.
+        self.headers['category_collapse'] = ','.join(('@%s'%id for id in ids))
+
+
+    def getCategoryCollapseList(self):
+        """ Return list of tag ids configured in category_collapse """
+        category_collapse = self.headers['category_collapse']
+        category_collapse = category_collapse.replace(' ','')
+        if not category_collapse:
+            return [] # otherwise split() would give ['']
+        lst = []
+        for s in category_collapse.split(','):
+            if s.startswith('@'):
+                try:
+                    lst.append(int(s[1:]))
+                except ValueError:
+                    pass
+        lst.sort()
+        return lst
 
 
     def categorize(self):

@@ -8,21 +8,7 @@
     margin-top: 2ex;
     width: 100%;
   }
-/*
-  #content         {
-    margin-top: 0cm;
-    padding-left: 0.2cm;
-  }
-  #content ul     {
-    list-style-type: none;
-    padding: 0;
-    margin-left: 0;
-  }
 
-  #content table        {
-    margin-top: 2ex;
-  }
-  */
   .go_hint          {
     margin-top: 1ex;
     font-size: smaller;
@@ -30,7 +16,6 @@
     float: right;
   }
   .go_hint a        { color: #999}
-
 
 
   /* ------------------------------------------------------------------------
@@ -43,7 +28,6 @@
     border: thin solid #777;
   }
   #categorytPane p     {
-    margin-top1: 1ex;
     padding: 0.2cm;
     border: thin solid #777;
   }
@@ -62,6 +46,13 @@
   }
   #categorytPane .toggleSwitch {
     padding-right: 0.3em;
+    width: 50px;
+    /* invisible border to make the toggle not move when hover */
+    border: thin solid #fff;
+  }
+  #categorytPane .toggleSwitch:hover{
+    text-decoration: none;
+    border: thin outset #777;
   }
   #categorytPane .MainCat {
     font-size: larger;
@@ -164,38 +155,57 @@
     top:1px;
     border:0;
   }
-
+  #asyncForm {
+    width: 50%;
+    height: 20%;
+    font-size: small;
+    display: none;
+  }
 </style>
+
 <script>
 
-function toggleSubCat(e) {
-    var t = this;
+var category_collapse = new Array;
 
+function toggleSubCatEvent(e) {
+    result = toggleSubCat(this);
+    // notify server of the new setting via the asyncForm
+    var asyncForm = document.getElementById('asyncForm');
+    asyncForm.action = '/weblib/' + result[0];
+    var input_cc = document.getElementById('asyncForm.category_collapse');
+    input_cc.value = result[1];
+    asyncForm.submit();
+}
+
+function toggleSubCat(switchElem) {
     // find subcategories element
-    for (var subcat=this.nextSibling; subcat != null; subcat=subcat.nextSibling) {
+    for (var subcat=switchElem.nextSibling; subcat != null; subcat=subcat.nextSibling) {
         if (subcat.className == 'subcategories') break;
     }
     if (!subcat) {
         throw new Error('toggleSubCat','subcategories not found');
     }
 
-    if (t.innerHTML == '+') {
-        t.innerHTML = '-';
+    var collapse = 'off';
+    if (switchElem.innerHTML == '+') {
+        switchElem.innerHTML = '-';
         subcat.style.display = 'inline';
+        collapse = 'off';
     }
     else {
-        t.innerHTML = '+';
+        switchElem.innerHTML = '+';
         subcat.style.display = 'none';
+        collapse = 'on';
     }
+    return [switchElem.id, collapse];
 }
 
 
-
 function selectAll(cb) {
-    checked = document.getElementById(cb).checked;
-    form = document.getElementById('webpages');
+    var checked = document.getElementById(cb).checked;
+    var form = document.getElementById('webpages');
     for (i=0; i < form.elements.length; i++) {
-        elem = form.elements[i];
+        var elem = form.elements[i];
         if (elem.type == 'checkbox') {
             elem.checked = checked
         }
@@ -203,20 +213,20 @@ function selectAll(cb) {
 }
 
 function organizeSelected() {
-    count = countSelected();
+    var count = countSelected();
     if (count == 0) {
         alert('Please select items to be organized.')
         return;
     }
-    form = document.getElementById('webpages');
+    var form = document.getElementById('webpages');
     form.action = '/weblib.entryOrg';
-    m = document.getElementById('webpages_method');
+    var m = document.getElementById('webpages_method');
     m.value = 'GET';
     form.submit();
 }
 
 function deleteSelected() {
-    count = countSelected();
+    var count = countSelected();
     if (count == 0) {
         alert('Please select items to be deleted.')
         return;
@@ -224,16 +234,16 @@ function deleteSelected() {
         if (!confirm('Delete ' + count + ' items selected?'))
             return;
     }
-    form = document.getElementById('webpages');
+    var form = document.getElementById('webpages');
     form.action = '/weblib.entryOrg';
-    m = document.getElementById('webpages_method');
+    var m = document.getElementById('webpages_method');
     m.value = 'DELETE';
     form.submit();
 }
 
 function countSelected() {
-    count = 0;
-    form = document.getElementById('webpages');
+    var count = 0;
+    var form = document.getElementById('webpages');
     for (i=0; i < form.elements.length; i++) {
         elem = form.elements[i];
         if (elem.type != 'checkbox')
@@ -249,12 +259,22 @@ function countSelected() {
 }
 
 function onload(e) {
+    // attach toggleSubCat event handler
     var catPane = document.getElementById('categorytPane');
     var aElems = catPane.getElementsByTagName('a');
     for (i=0; i < aElems.length; i++) {
         var elem = aElems[i];
         if (elem.className == 'toggleSwitch') {
-            elem.addEventListener('click', toggleSubCat, false);
+            elem.addEventListener('click', toggleSubCatEvent, false);
+        }
+    }
+    // collapse categories
+    for (var i=0; i < category_collapse.length; i++) {
+        var elem = document.getElementById(category_collapse[i]);
+        //alert('xx'+category_collapse[i]+'->'+elem)
+        if (elem != null) {
+            // default is open, so this collapse it
+            toggleSubCat(elem);
         }
     }
 }
@@ -263,6 +283,11 @@ window.addEventListener('load', onload, false);
 
 </script>
 
+<script node='con:category_collapse_init'>
+// sample
+category_collapse.push('@1');
+category_collapse.push('@2');
+</script>
 </head>
 
 
@@ -270,10 +295,12 @@ window.addEventListener('load', onload, false);
 
 <div node='-con:header' style='width:100%;background-color:#ddd;text-align:center'>--HEADER--</div>
 
-<!-- content -->
 <table id='content' border='0' cellspacing='0' cellpadding='0'>
 <tr valign='top'>
 
+
+
+<!--categoryPane---------------------------------------------------------->
 <td id='categorytPane'>
 <ul>
   <ul>
@@ -281,7 +308,7 @@ window.addEventListener('load', onload, false);
     <span style='float: right'><input id='organizeButton' type='button' value='Organize' onclick='window.location="/weblib.tagName";' /></span>
   </ul>
   <ul node='rep:catList'>
-    <a class='toggleSwitch' href='#'>-</a><span class='MainCat'><a node='con:link' href='#'>MainCat</a></span><br />
+    <a node='con:toggleSwitch' id='@1' class='toggleSwitch' href='#'>-</a><span class='MainCat'><a node='con:link' href='#'>MainCat</a></span><br />
     <span class='subcategories'>
     <li node='rep:catItem' class='SubCat1'><a node='con:link' href='#'>Sub 1</a></li>
     <li node='rep:catItem' class='SubCat1'><a node='con:link' href='#'>Sub 2</a></li>
@@ -291,7 +318,17 @@ window.addEventListener('load', onload, false);
     </span>
   </ul>
   <ul node='rep:catList'>
-    <a class='toggleSwitch' href='#'>-</a><span class='MainCat'><a node='con:link' href='#'>MainCat</a></span><br />
+    <a node='con:toggleSwitch' id='@2' class='toggleSwitch' href='#'>-</a><span class='MainCat'><a node='con:link' href='#'>MainCat</a></span><br />
+    <span class='subcategories'>
+    <li node='rep:catItem' class='SubCat1'><a node='con:link' href='#'>Sub 1</a></li>
+    <li node='rep:catItem' class='SubCat1'><a node='con:link' href='#'>Sub 2</a></li>
+    <li node='rep:catItem' class='SubCat2'><a node='con:link' href='#'>Sub 21</a></li>
+    <li node='rep:catItem' class='SubCat2'><a node='con:link' href='#' class='CurrentCat'>sub 22</a></li>
+    <li node='rep:catItem' class='SubCat1'><a node='con:link' href='#'>Sub 3</a></li>
+    </span>
+  </ul>
+  <ul node='rep:catList'>
+    <a node='con:toggleSwitch' id='@3' class='toggleSwitch' href='#'>-</a><span class='MainCat'><a node='con:link' href='#'>MainCat</a></span><br />
     <span class='subcategories'>
     <li node='rep:catItem' class='SubCat1'><a node='con:link' href='#'>Sub 1</a></li>
     <li node='rep:catItem' class='SubCat1'><a node='con:link' href='#'>Sub 2</a></li>
@@ -303,18 +340,23 @@ window.addEventListener('load', onload, false);
 </ul>
 </td> <!-- categoryPane -->
 
-<td node='con:no_match_msg' id='no_match_msg'>
+
+
+
+<!--itemPane-------------------------------------------------------------->
+<td id='itemPane'>
+
+<div node='con:no_match_msg' id='no_match_msg'>
     No item match "$querytxt".
-</td>
+</div>
 
-<td node='con:web_items' id='itemPane'>
-
-    <div id='crumb'>
-        <a href="/weblib">weblib</a>
-        <span node='rep:crumb'>&gt; <a href="#" node='con:link'>A</a></span>
-        <span node='rep:crumb'>&gt; <a href="#" node='con:link'>B</a></span>
-        <span node='con:go_hint' class='go_hint'>Go to <a node='con:address' href='#'>website</a>.</span>
-    </div>
+<div node='con:web_items'>
+  <div id='crumb'>
+      <a href="/weblib">weblib</a>
+      <span node='rep:crumb'>&gt; <a href="#" node='con:link'>A</a></span>
+      <span node='rep:crumb'>&gt; <a href="#" node='con:link'>B</a></span>
+      <span node='con:go_hint' class='go_hint'>Go to <a node='con:address' href='#'>website</a>.</span>
+  </div>
 
   <p node='con:tags_matched'>
       Found tags:
@@ -416,10 +458,18 @@ window.addEventListener('load', onload, false);
   </table>
   </form>
 
+</div>
 </td> <!-- itemPane -->
 
 </tr>
 </table> <!-- content -->
+
+
+<!-- hidden asyncForm -->
+<form id='asyncForm' action='#' target='asyncFrame' >
+<input id='asyncForm.category_collapse' type='textbox' name='category_collapse' />
+<iframe id='asyncFrame' src='' scrolling='no' ></iframe>
+</form>
 
 
 <div node='-con:footer' style='width:100%;background-color:#ddd;text-align:center'>--footer--</div>

@@ -18,43 +18,47 @@ log = logging.getLogger('cgi.weblib')
 
 
 def main(rfile, wfile, env):
-    method, form, rid, rid_path = request.parseURL(rfile, env)
+    method, form, rid, tid, path = request.parse_weblib_url(rfile, env)
     log.debug('method %s rid %s', method, rid)
 
-    querytxt = form.getfirst('query','').decode('utf-8')
-    tag = form.getfirst('tag','').decode('utf-8')
-
     wlib = store.getMainBm()
-    if rid is None and (not form.has_key('tag')) and (not querytxt):
-        # redirect to default tag (if it is defined)
-        dt = wlib.getDefaultTag()
-        if dt:
-            url = request.tag_url([dt])
-            response.redirect(wfile, url)
-            return
 
-    if form.getfirst('action') == 'cancel':
-        response.redirect(wfile, request.WEBLIB_URL)
+    if rid:
+        # rid based (note rid maybe -1)
+        if path and path.startswith('go;'):
+            doGoResource(wfile, rid, path)
+        elif path and path.startswith('snapshot'):
+            weblibSnapshot.main(wfile, env, method, form, rid, path)
+        elif path == 'form':
+            weblibForm.main(wfile, env, method, form, rid)
+        else:
+            # show form by default
+            weblibForm.main(wfile, env, method, form, rid)
 
-    elif rid_path and rid_path.startswith('go;'):
-        doGoResource(wfile, rid, rid_path)
-
-    elif rid and rid_path and rid_path.startswith('snapshot'):
-        weblibSnapshot.main(rfile, wfile, env, method, form, rid, rid_path)
-
-    elif querytxt:
-        queryWebLib(wfile, env, form, tag, querytxt)
-
-    elif rid is not None:
-        weblibForm.main(rfile, wfile, env, method, form, rid)
+    elif tid:
+        doTag(wfile, env, method, form, tid)
 
     else:
-        queryWebLib(wfile, env, form, tag, '')
+        # query
+        querytxt = form.getfirst('query','').decode('utf-8')
+        tag = form.getfirst('tag','').decode('utf-8')
+
+        # redirect to default tag (if it is defined)
+        if (not 'tag' in form) and (not querytxt):
+            dt = wlib.getDefaultTag()
+            if dt:
+                url = request.tag_url([dt])
+                response.redirect(wfile, url)
+                return
+
+        if form.getfirst('action') == 'cancel':
+            response.redirect(wfile, request.WEBLIB_URL)
+
+        queryWebLib(wfile, env, form, tag, querytxt)
 
 
-
-def doGoResource(wfile, rid, rid_path):
-    # the rid_path are really for user's information only.
+def doGoResource(wfile, rid, path):
+    # the path are really for user's information only.
     # rid alone determines where to go.
     wlib = store.getMainBm()
     item = wlib.webpages.getById(rid)
@@ -64,6 +68,29 @@ def doGoResource(wfile, rid, rid_path):
 
     wlib.visit(item)
     response.redirect(wfile, item.url)
+
+
+def doTag(wfile, env, method, form, tid):
+    wlib = store.getMainBm()
+    # we only do category_collapse setting so far
+    if form.has_key('category_collapse'):
+        # suppose to do this only for POST
+        value = form.getfirst('category_collapse').lower()
+        flag = value=='on'
+        log.debug('doTag setCategoryCollapse @%s %s' % (tid, flag))
+
+        wlib.setCategoryCollapse(tid, flag)
+        store.save(wlib)
+
+        # response for debug only
+        wfile.write('content-type: text/plain\r\n')
+        wfile.write('cache-control: no-cache\r\n')
+        wfile.write('\r\n')
+        wfile.write('setCategoryCollapse @%s %s' % (tid, flag))
+
+    else:
+        # not supported
+        response.redirect(wfile, request.WEBLIB_URL)
 
 
 def queryWebLib(wfile, env, form, tag, querytxt):
@@ -102,7 +129,7 @@ def queryWebLib(wfile, env, form, tag, querytxt):
     top_nodes = wlib.categories[1]
     for node in top_nodes:
         subcat = []
-        categoryList.append((unicode(node[0]), subcat))
+        categoryList.append((node[0].tag.id, unicode(node[0]), subcat))
         for v, path in graph.dfsp(node):
             subcat.append((len(path),unicode(v)))
 
@@ -115,7 +142,8 @@ def queryWebLib(wfile, env, form, tag, querytxt):
 
     defaultTag = unicode(wlib.getDefaultTag())
 
-    WeblibRenderer(wfile, env, querytxt).output(most_visited, folderNames, defaultTag, categoryList, tags_matched, currentCategory, all_items)
+    cc_lst = wlib.getCategoryCollapseList()
+    WeblibRenderer(wfile, env, querytxt).output(cc_lst, defaultTag, categoryList, most_visited, folderNames, tags_matched, currentCategory, all_items)
 
 
 
@@ -144,14 +172,22 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
     con:footer
     """
     def render(self, node,
-        most_visited,
-        folderNames,
+        category_collapse,
         defaultTag,
         categoryList,
+        most_visited,
+        folderNames,
         tags_matched,
         currentCategory,
         webItems,
         ):
+        """
+        @param category_collapse - list of id of tags to collapse in '@id' format
+        @param categoryList - list of (id, nodename, subcat) where
+            subcat is list of (level, nodename)
+        """
+        # category_collapse
+        node.category_collapse_init.content = '\n'.join(['category_collapse.push(\'@%s\');' % id for id in category_collapse])
 
         # root and default Tag
         if not currentCategory:
@@ -198,7 +234,8 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
         node.atts['href'] = request.tag_url(tag)
 
     def renderCatItem(self, node, item, currentCategory):
-        cat, subcat = item
+        id, cat, subcat = item
+        node.toggleSwitch.atts['id'] = '@%s' % id
         node.link.content = cat
         node.link.atts['href'] = request.tag_url(cat)
         if cat == currentCategory:

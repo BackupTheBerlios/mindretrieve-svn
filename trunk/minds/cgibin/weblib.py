@@ -166,24 +166,33 @@ def queryWebLib(wfile, env, form, tag, querytxt):
 
 class WeblibRenderer(response.CGIRendererHeadnFoot):
     TEMPLATE_FILE = 'weblib.html'
-    """ weblib.html
+    """ weblib.html 2005-10-14
+    con:category_collapse_init
     con:header
+    con:rootTag
+    con:defaultTag
     rep:catList
+            con:toggleSwitch
             con:link
-            rep:catItem
+            con:subcat
+                    rep:catItem
+                            con:link
+    con:no_match_msg
+    con:web_items
+            rep:crumb
                     con:link
-    rep:crumb
-            con:link
-    con:go_hint
-            con:address
-    rep:webItem
-            con:checkbox
-            con:itemDescription
-            con:itemTag
+            con:go_hint
+                    con:address
+            con:tags_matched
                     rep:tag
-            con:edit
-            con:delete
-            con:cache
+            rep:webItem
+                    con:checkbox
+                    con:itemDescription
+                    con:itemTag
+                            rep:tag
+                    con:edit
+                    con:delete
+                    con:cache
     con:footer
     """
     def render(self, node,
@@ -197,12 +206,10 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
         webItems,
         ):
         """
-        @param category_collapse - list of id of tags to collapse in '@id' format
+        @param category_collapse - list of tag ids to collapse
         @param categoryList - list of (id, nodename, subcat) where
             subcat is list of (level, nodename)
         """
-        # category_collapse
-        node.category_collapse_init.content = '\n'.join(['category_collapse.push(\'@%s\');' % id for id in category_collapse])
 
         # default Tag
         node.defaultTag.atts['href'] = request.tag_url([defaultTag])
@@ -211,7 +218,7 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
             node.defaultTag.atts['class'] = 'CurrentCat'
 
         # category
-        node.catList.repeat(self.renderCatItem, categoryList, currentCategory)
+        node.catList.repeat(self.renderCatItem, categoryList, currentCategory, category_collapse)
 
         # no match message
         if not webItems:
@@ -246,9 +253,11 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
         node.content = tag
         node.atts['href'] = request.tag_url(tag)
 
-    def renderCatItem(self, node, item, currentCategory):
+    def renderCatItem(self, node, item, currentCategory, category_collapse):
         id, cat, subcat = item
+        collapse = id in category_collapse
         node.toggleSwitch.atts['id'] = '@%s' % id
+        node.toggleSwitch.content = collapse and '+' or '-'
         node.link.content = cat
         if id > 0:
             node.link.atts['href'] = request.tag_url(cat)
@@ -257,7 +266,8 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
         else:
             # otherwise it is a pseudo tag
             del node.link.atts['href']
-        node.catItem.repeat(self.renderSubCat, subcat, currentCategory)
+        node.subcat.atts['class'] =  collapse and 'subcategoriesCollapsed'  or 'subcategories'
+        node.subcat.catItem.repeat(self.renderSubCat, subcat, currentCategory)
 
     def renderSubCat(self, node, item, currentCategory):
         level, name = item

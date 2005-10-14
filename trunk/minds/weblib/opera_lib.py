@@ -6,9 +6,8 @@ import codecs
 import logging
 import sys
 
-from minds import weblib
 from minds.config import cfg
-
+from minds import weblib
 
 log = logging.getLogger('wlib.opera')
 
@@ -113,8 +112,6 @@ def load(rstream):
                 log.warn('Invalid name line %s', lineno+1)
                 continue
 
-            tagIds = [tag.id for tag in folder_stack]
-
             try:
                 _modified = int(attrs.get('created',''))
                 _modified = datetime.date.fromtimestamp(_modified)
@@ -133,7 +130,7 @@ def load(rstream):
                 name        = name,
                 url         = attrs.get('url',''),
                 description = attrs.get('description',''),
-                tagIds      = tagIds,
+                tags        = folder_stack,
                 modified    = modified,
                 lastused    = lastused,
             )

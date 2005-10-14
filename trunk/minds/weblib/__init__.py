@@ -33,8 +33,7 @@ class WebPage(object):
         name        ='',
         url         ='',
         description ='',
-        tagIds      =[],
-        relatedIds  =[],
+        tags        =[],
         modified    ='',
         lastused    ='',
         cached      ='',
@@ -44,8 +43,6 @@ class WebPage(object):
         # put all parameter values as instance variable
         self.__dict__.update(locals())
         del self.self
-        self.tags = []
-        self.related = []
 
     def __copy__(self):
         item = WebPage(
@@ -53,16 +50,13 @@ class WebPage(object):
             name        = self.name         ,
             url         = self.url          ,
             description = self.description  ,
-            tagIds      = self.tagIds[:]  ,
-            relatedIds  = self.relatedIds[:],
+            tags        = self.tags[:]      ,
             modified    = self.modified     ,
             lastused    = self.lastused     ,
             cached      = self.cached       ,
             archived    = self.archived     ,
             flags       = self.flags        ,
         )
-        item.tags  = self.tags[:]
-        item.related = self.related[:]
         return item
 
     def __str__(self):
@@ -532,8 +526,7 @@ def testShowAll():
     wlib = store.getMainBm()
     for item in wlib.webpages:
         tags = [tag.name for tag in item.tags]
-        related = [tag.name for tag in item.related]
-        print '%s (%s) (%s)' % (item.name, ','.join(tags), ','.join(related))
+        print '%s (%s)' % (item.name, ','.join(tags))
 
 
 def testQuery(wlib, querytxt, tags):
@@ -555,8 +548,7 @@ def testQuery(wlib, querytxt, tags):
         sys.stdout.write('\n' + u','.join(map(unicode, key)) + '\n')
         for item in value:
             tags = [tag.name for tag in item.tags]
-            related = [tag.name for tag in item.related]
-            print '  %s (%s) (%s)' % (unicode(item), ','.join(tags), ','.join(related))
+            print '  %s (%s)' % (unicode(item), ','.join(tags))
 
     print 'Most visited:', most_visited
 

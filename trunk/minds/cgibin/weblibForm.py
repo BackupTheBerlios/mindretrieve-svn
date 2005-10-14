@@ -22,7 +22,6 @@ class Bean(object):
         self.item = None
 
         self.tags = ''
-        self.related = ''
 
         # tags not known
         self.newTags = sets.Set()
@@ -84,25 +83,12 @@ class Bean(object):
 
             self.item = item
             self.tags  = ', '.join([l.name for l in item.tags])
-            self.related = ', '.join([l.name for l in item.related])
 
 
     def _parseTags(self):
         wlib = store.getMainBm()
-
-        _tags = self.form.getfirst('tags','').decode('utf-8')
-        self.item.tags, unknown_tags = weblib.parseTags(wlib, _tags)
-        self.item.tagIds = [l.id for l in self.item.tags]
-
-        _related = self.form.getfirst('related','').decode('utf-8')
-        self.item.related, unknown_related = weblib.parseTags(wlib, _related)
-        self.item.relatedIds = [l.id for l in self.item.related]
-
-        self.tags = _tags
-        self.related = _related
-        self.newTags = sets.Set()
-        self.newTags.union_update(unknown_tags)
-        self.newTags.union_update(unknown_related)
+        self.tags = self.form.getfirst('tags','').decode('utf-8')
+        self.item.tags, self.newTags = weblib.parseTags(wlib, self.tags)
 
 
     def validate(self):
@@ -165,7 +151,6 @@ def doPutResource(wfile, env, bean):
         item0.url         = item.url
         item0.description = item.description
         item0.tags        = item.tags[:]
-        item0.relatedIds  = item.relatedIds
         item0.modified    = item.modified
         item0.lastused    = item.lastused
 #        item0.cached      = item.cached
@@ -212,7 +197,6 @@ class EditRenderer(response.CGIRendererHeadnFoot):
             con:url
             con:description
             con:tags
-            con:related
             con:modified_txt
             con:lastused_txt
             con:cached_txt
@@ -244,7 +228,6 @@ class EditRenderer(response.CGIRendererHeadnFoot):
             form.url        .atts['value'] = item.url
             form.description.content       = item.description
             form.tags       .atts['value'] = bean.tags
-            form.related    .atts['value'] = bean.related
             form.modified   .atts['value'] = item.modified
             form.lastused   .atts['value'] = item.lastused
             form.cached     .atts['value'] = item.cached

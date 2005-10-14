@@ -28,6 +28,10 @@ COLUMNS = [
 ]
 NUM_COLUMN = len(COLUMNS)
 
+# TODO: header name definition
+# The specification of header name observe the definition of token in RFC 2616 2.2 except the character '|' is not allowed.
+#!#$%&'*+-.0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ\^_`abcdefghijklmnopqrstuvwxyz|~
+#'\s*[\!\#\$\%\&\'\*\+\-\.0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ\\\^\_\`abcdefghijklmnopqrstuvwxyz\~]+\s*:'
 
 
 def load(rstream):
@@ -73,7 +77,8 @@ def load(rstream):
     for item in wlib.webpages:
         tags = [wlib.tags.getById(id) for id in item.tagIds]
         item.tags = filter(None, tags)
-        # remove tagIds to avoid duplicated data?
+        # attribute no longer neeed. remove to avoid duplication
+        del item.tagIds
 
     wlib.category.compile()
     return wlib
@@ -101,7 +106,7 @@ def parseLine(wlib, row):
             id          = int(row.id),
             name        = row.name,
             description = row.description,
-            tagIds      = tagIds,
+            tags        = [],
             flags       = row.flags,
             modified    = row.modified,
             lastused    = row.lastused,
@@ -109,6 +114,8 @@ def parseLine(wlib, row):
             archived    = row.archived,
             url         = row.url,
         )
+        # convert tagIds to tags after reading the whole file
+        entry.tagIds = tagIds
         wlib.addWebPage(entry)
 
 

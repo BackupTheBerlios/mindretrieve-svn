@@ -69,8 +69,11 @@ def doSnapshot(wfile, form, str_rid, item):
     shot = snapshot.Snapshot()
     shot.fetch(url)
     spath = cfg.getpath('weblibsnapshot')/('%s.mhtml' % str_rid)
-    shot.generate(spath.open('wb'))
-    fp.close()
+    fp = spath.open('wb')
+    try:
+        shot.generate(fp)
+    finally:
+        fp.close()
     if item:
         t = datetime.datetime.now()
         item.cached = str(t)[:10]

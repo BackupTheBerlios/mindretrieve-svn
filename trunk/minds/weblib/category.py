@@ -8,31 +8,32 @@ from minds.weblib import store
 
 #-----------------------------------------------------------------------
 
-class TagRel(object):
-    def __init__(self, tag):
-        self.tag = tag
-        self.node = (self, [])
-        self.node = [self, []]
-        self.num_item = 0
-        self.isTopLevel = True
-        self._related_map = {}  # tag.id -> count, rel
-
-        self.torder = tag.id    # total order of tags, right now just abitrary use tag.id
-
-        tag.rel = self          # HACK~~##
-
-    def __str__(self):
-        return self.tag.__str__()
-
-    def __repr__(self):
-        return self.tag.__repr__()
+#class TagRel(object):
+#    def __init__(self, tag):
+#        self.tag = tag
+#        self.node = (self, [])
+#        self.node = [self, []]
+#        self.num_item = 0
+#        self.isTopLevel = True
+#        self._related_map = {}  # tag.id -> count, rel
+#
+#        self.torder = tag.id    # total order of tags, right now just abitrary use tag.id
+#
+#        tag.rel = self          # HACK~~##
+#
+#    def __str__(self):
+#        return self.tag.__str__()
+#
+#    def __repr__(self):
+#        return self.tag.__repr__()
 
 class Category(object):
 
     def __init__(self, wlib):
         self.wlib = wlib
         # root is the root node of a DAG
-        # where a node is in the format of [name, list of children].
+        # where a node is in the format of [string or Tag, list of children].
+        # string that corresponds to Tag would be represent by tag.
         self.root = ['',[]]
         # list of uncategorized Tags
         self.uncategorized = []
@@ -138,16 +139,34 @@ class Category(object):
         Build root and uncategorized from category_description
         and current set of Tags
         """
-    ###    root = inferCategory(wlib)
+
+        # TODO: should countTag in category? clean up.
+        self.countTag()
 
         category_description = self.wlib.headers['category_description']
         self.root = graph.parse_text_tree(category_description)
-        categorized = sets.ImmutableSet(v.lower() for v,level in graph.dfs(self.root))
-        self.uncategorized = [tag for tag in self.wlib.tags if tag.name.lower() not in categorized]
-        # todo: should replace the tree of name with tree of tag (to preserve character case?)
 
-    ###   g1 = __convert_name_2_trel(wlib, g0)
+        # convert string to node
+        categorized = sets.Set()
+        for node in graph.dfs_node(self.root):
+            tag = self.wlib.tags.getByName(node[0])
+            if tag:
+                node[0] = tag
+                categorized.add(tag)
 
+        # build uncategorized
+        self.uncategorized = [tag for tag in self.wlib.tags if tag not in categorized]
+        self.uncategorized = weblib.sortTags(self.uncategorized)
+
+
+    def countTag(self):
+        # construct tag statistics
+        for tag in self.wlib.tags:
+            tag.num_item = 0
+
+        for item in self.wlib.webpages:
+            for tag in item.tags:
+                tag.num_item += 1
 
 
 def __convert_name_2_trel(wlib,g):

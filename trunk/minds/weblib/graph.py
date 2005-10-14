@@ -39,63 +39,6 @@ def _parse_lines(data):
         yield line
 
 
-#def build_indented_text_DAG(data):
-#    """
-#    Parse input of indented text into a graph of nodes.
-#xx    Return the root node.
-#
-#xx    A node is tuple of (name, list of children).
-#    """
-#    # create the root node
-#    root_node = ['',[]]
-#    nodes = {'': root_node}
-#
-#    cur_node = root_node
-#    cur_indent = -1
-#
-#    # stack of (indent, node) starts with the root node
-#    stack = [(cur_indent,cur_node)]
-#
-#    # Note these conditions should always hold
-#    # - indent in the stack would be strictly increasing
-#    # - the root node will never be popped
-#    # - cur_indent, cur_node == stack[-1]
-#
-#    for line in _parse_lines(data):
-#        indent, name = _split_indent(line)
-#        name = name.lower()
-#        node = nodes.setdefault(name,[name,[]])
-#        if indent == cur_indent:
-#            # 2nd last in the stack would be the parent
-#            # note: -1 < 0 <= indent == cur_indent
-#            # i.e. there is at least 2 items in the stack
-#            stack.pop()
-#            cur_indent, cur_node = stack[-1]
-#        elif indent > cur_indent:
-#            # cur_node would be the parent
-#            pass
-#        else:
-#            # find parent with smaller indent
-#            while indent <= cur_indent:
-#                # note: -1 < 0 <= indent <= cur_indent
-#                # i.e. there is at least 2 items in the stack
-#                stack.pop()
-#                cur_indent, cur_node = stack[-1]
-#            # note: should check that indent == cur_indent here.
-#            # otherwise the text's indentation is invalid.
-#
-#        # append to parent
-#        cur_node[1].append(node)
-#
-#        # the new cur_node
-#        cur_indent,cur_node = indent,node
-#        stack.append((cur_indent,cur_node))
-#
-#    detect_cycle(root_node)
-#
-#    return nodes
-
-
 def parse_text_tree(data):
     """
     Parse input of indented text into a graph of nodes.
@@ -122,6 +65,7 @@ def parse_text_tree(data):
         indent, name = _split_indent(line)
         name = name.lower()
         node = [name,[]]
+#        node = nodes.setdefault(name,[name,[]])
         if indent == cur_indent:
             # 2nd last in the stack would be the parent
             # note: -1 < 0 <= indent == cur_indent

@@ -132,8 +132,8 @@ def queryWebLib(wfile, env, form, tag, querytxt):
     for node in top_nodes:
         subcat = []
         tag = node[0]
-        tag = wlib.tags.getByName(tag) # TODO: clean up, do this in compile()
-        categoryList.append((tag.id, unicode(tag), subcat))
+        id = hasattr(tag,'id') and tag.id or -1
+        categoryList.append((id, unicode(tag), subcat))
         for v, path in graph.dfsp(node):
             subcat.append((len(path),unicode(v)))
 
@@ -204,9 +204,7 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
         # category_collapse
         node.category_collapse_init.content = '\n'.join(['category_collapse.push(\'@%s\');' % id for id in category_collapse])
 
-        # root and default Tag
-        if not currentCategory:
-            node.rootTag.atts['class'] = 'CurrentCat'
+        # default Tag
         node.defaultTag.atts['href'] = request.tag_url([defaultTag])
         node.defaultTag.content = defaultTag
         if currentCategory == defaultTag:
@@ -218,8 +216,8 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
         # no match message
         if not webItems:
             node.web_items.omit()
-            t = string.Template(node.no_match_msg.content)
-            node.no_match_msg.content = t.safe_substitute(querytxt=self.querytxt)
+#            t = string.Template(node.no_match_msg.content)
+#            node.no_match_msg.content = t.safe_substitute(querytxt=self.querytxt)
             return
 
         node.no_match_msg.omit()

@@ -100,62 +100,77 @@ def parse_text_tree(data):
 def edit_text_tree_rename(data, tag0, tag1):
     """
     tag0 has renamed to tag1.
-    Apply the same changed to text tree
+    Apply the same changed to text tree, preserve
+    white space and capitalization if possible.
+
+    @return new text, number of tag0 changed
     """
     tag0 = tag0.lower()
     output = []
+    count = 0
     for line in data.splitlines(True):
         if line.strip().lower() == tag0:
             line = line.lower().replace(tag0,tag1)
+            count += 1
         output.append(line)
-    return ''.join(output)
+    return ''.join(output), count
 
 
 def edit_text_tree_delete(data, tag0):
     """
     tag0 has been deleted.
-    Apply the same changed to text tree.
+    Apply the same changed to text tree, preserve
+    white space and capitalization if possible.
     Realign children lines if necessary.
+
+    @return new text, number of tag0 changed
     """
     tag0 = tag0.lower()
     output = []
+    count = 0
 
-    trim_row = None     # if in trimming state, indent of trim_row
+    # indent of the row to be trimmed. Also a flag for the trimming
+    # state. None mean we are not in trimming state.
+    trim_indent = None
 
     for line in data.splitlines(True):
         if line.isspace():
-            output.append(line)
+            if trim_indent == None:
+                output.append(line)
+            else:
+                children.append((None,line))
             continue
 
         indent, name = _split_indent(line)
 
-        # trim_row determine if we are in trimming state
-        if trim_row != None:
-            if len(indent) <= len(trim_row):
+        # trim_indent determine if we are in trimming state
+        if trim_indent != None:
+            if indent <= trim_indent:
                 # leave trim mode
-                _trim_children_and_output(len(trim_row), children, output)
-                trim_row = None
+                _trim_children_and_output(trim_indent, children, output)
+                trim_indent = None
                 children = [] # tidy up
             else:
                 # TODO: What if this line also contain tag0!!!
                 # This is an obvious cycle, shouldn't be allowed in the first place.
                 # 2005-10-14: we'll not handle this case and it should not turn out too bad.
-                children.append((len(indent),line))
+                children.append((indent,line))
                 continue
 
-        if trim_row == None:
+        if trim_indent == None:
             if line.strip().lower() != tag0:
                 # unaffected
                 output.append(line)
             else:
                 # enter trimming state
-                trim_row = indent
+                trim_indent = indent
                 children = []
+                count += 1
 
-    if trim_row:
-        _trim_children(len(trim_row), children, output)
+    if trim_indent != None:
+        _trim_children_and_output(trim_indent, children, output)
 
-    return ''.join(output)
+    return ''.join(output), count
 
 
 def _trim_children_and_output(align_column, children, output):
@@ -166,6 +181,10 @@ def _trim_children_and_output(align_column, children, output):
     # if the tree is welformed, this would be minimal.
     child_col = children[0][0]
     for col, line in children:
+        # notation for blank lines?
+        if col == None:
+            output.append(line)
+            continue
         assert col > align_column
         if col < child_col:
             # This would happen in a deformed tree.
@@ -268,13 +287,28 @@ C1
  C12x
 """
 
-def main(argv):
+def test_parse():
     print 'DATA=' + DATA
     print
     root = parse_text_tree(DATA)
     for v, level in dfs(root):
         if v:
             print '..'*level + unicode(v)
+
+def test_del():
+    print edit_text_tree_delete("""
+C1
+
+C2
+    C21
+    C22
+
+C3""", 'C2')[0]
+
+
+def main(argv):
+    test_del()
+    #test_parse()
 
 if __name__ =='__main__':
     main(sys.argv)

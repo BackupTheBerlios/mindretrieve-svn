@@ -235,8 +235,10 @@ class WebLibrary(object):
 
 
     def tag_rename(self, tag, newName):
-        log.debug(u'tag_rename count=%s tag %s newName %s', len(self.tags), unicode(tag), newName)
+        log.debug(u'tag_rename tag count=%s tag=%s newName=%s', len(self.tags), unicode(tag), newName)
+        oldName = unicode(tag)
         self.tags.rename(tag, newName)
+        self.category.renameTag(oldName, newName)
 
 
     def tag_merge_del(self, tag, new_tag=None):
@@ -245,7 +247,7 @@ class WebLibrary(object):
         @param tag - tag to be altered
         @param new_tag - tag to merge with, or None to delete tag.
         """
-        log.debug(u'tag_merge_del count=%s tag %s new_tag %s', len(self.tags), unicode(tag), new_tag)
+        log.debug(u'tag_merge_del tag count=%s tag=%s new_tag=%s', len(self.tags), unicode(tag), new_tag)
 
         # remove the use of tag from webpages
         for item in self.webpages:
@@ -264,7 +266,8 @@ class WebLibrary(object):
 
         # merge or delete, old tag would be removed from tags
         self.tags.remove(tag)
-        log.debug('tag_merge_del completed count=%s', len(self.tags))
+        self.category.deleteTag(unicode(tag))
+        log.debug('tag_merge_del completed new tag count=%s', len(self.tags))
 
         self.category.compile()
         # TODO: need to delete it from the category
@@ -412,11 +415,6 @@ def _parse_terms(s):
     s = s.lower()
     # TODO: use pyparsing to parse quotes
     return map(string.strip, s.split())
-#    try:
-#        return shlex.split(s)
-#    except SyntaxError:
-#        # TODO: hack probably should find a way to report error
-#        return map(string.strip, s.split())
 
 
 def query_tags(wlib, querytxt, select_tags):

@@ -53,14 +53,15 @@ def doShowForm(wfile, env, form):
     un_list.sort()
     uncategorized = [t for l,t in un_list]
 
-    CategorizeRenderer(wfile, env, '').output(return_url, [], tag_base, wlib.headers['category_description'], uncategorized)
+    CategorizeRenderer(wfile, env, '').output(return_url, [], tag_base, wlib.category.getDescription(), uncategorized)
 
 
 def doPost(wfile, env, form):
     wlib = store.getMainBm()
 
-    # TODO: parse and analyze
-    wlib.headers['category_description'] = form.getfirst('category_description','').decode('utf-8')
+    # TODO: parse and check for error?
+    text = form.getfirst('category_description','').decode('utf-8')
+    wlib.category.setDescription(text)
     wlib.category.compile()
     store.save(wlib)
 

@@ -39,6 +39,28 @@ class Category(object):
         self.uncategorized = []
 
 
+    def getDescription(self):
+        return self.wlib.headers['category_description']
+
+
+    def setDescription(self, description):
+        self.wlib.headers['category_description'] = description
+
+
+    def renameTag(self, tag0, tag1):
+        text= self.getDescription()
+        edited, count = graph.edit_text_tree_rename(text, tag0, tag1)
+        if count > 0:
+            self.setDescription(edited)
+
+
+    def deleteTag(self, tag0):
+        text = self.getDescription()
+        edited, count = graph.edit_text_tree_delete(text, tag0)
+        if count > 0:
+            self.setDescription(edited)
+
+
 #    def inferCategory(wlib):
 #
 #        R = [TagRel(tag) for tag in wlib.tags]
@@ -112,6 +134,7 @@ class Category(object):
 #        return ['', tops]                             # return root
 
 
+    # TODO: move to util and add test? though it is not used now.
     def knock_off(S, D):
         """
         An efficient method to remove items from S that also appear in D.
@@ -141,10 +164,10 @@ class Category(object):
         """
 
         # TODO: should countTag in category? clean up.
-        self.countTag()
+        self._countTag()
 
-        category_description = self.wlib.headers['category_description']
-        self.root = graph.parse_text_tree(category_description)
+        text = self.getDescription()
+        self.root = graph.parse_text_tree(text)
 
         # convert string to node
         categorized = sets.Set()
@@ -159,7 +182,7 @@ class Category(object):
         self.uncategorized = weblib.sortTags(self.uncategorized)
 
 
-    def countTag(self):
+    def _countTag(self):
         # construct tag statistics
         for tag in self.wlib.tags:
             tag.num_item = 0
@@ -167,21 +190,6 @@ class Category(object):
         for item in self.wlib.webpages:
             for tag in item.tags:
                 tag.num_item += 1
-
-
-def __convert_name_2_trel(wlib,g):
-    g1 = {}
-    for v,n in g.items():
-        tag = wlib.tags.getByName(v)
-        if not tag and v:
-            tag = weblib.Tag(name=v)        ## TODO: clean up hack
-            wlib.addTag(tag)
-            TagRel(tag)
-        if tag:
-            tRel = tag.rel
-            n[0] = tRel
-        g1[n[0]] = n
-    return g1
 
 
 def topoSort(wlib, g):
@@ -200,18 +208,12 @@ def topoSort(wlib, g):
 
     top_nodes = [n for n in nlist if not n[0] or n[0].indegree == 0]
 
-#    for n in nlist:
-#        if n[0]:        ## '' trouble
-#            from pprint import pprint
-#            pprint(u'%s %s' % (n[0], n[0].indegree),sys.stdout)##
-
     order = 0
     while top_nodes:
         node = top_nodes.pop(0)
         order += 1
         if node[0]:
             node[0].torder = order
-##            print >>sys.stdout, u'## %s %s' % (node[0], node[0].torder)
         for cn in node[1]:
             if cn[0]:
                 cn[0].indegree -= 1
@@ -286,18 +288,7 @@ def test_DAG():
         print '..' * len(path) + unicode(v) + ' %s' % v.torder + ' %s' % path
 
 
-def test_flex_category():
-    wlib = store.getMainBm()
-    for v, level in graph.dfs(wlib.category.root):
-        if v:
-            print '..'*level + unicode(v) +' ' + str(v.torder)
-    from pprint import pprint
-    pprint(wlib.uncategorized)
-
-
-
 def main(argv):
-    #test_flex_category()
     test_tag_tree()
     #test_DAG()
 

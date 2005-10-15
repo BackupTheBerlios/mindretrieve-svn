@@ -30,48 +30,9 @@ C1
   C131
 """
 
-    def test_rename(self):
-        # blank tests
-        self._check_rename('', '', '',[])
-        self._check_rename('', 'C1', 'X1',[])
-        self._check_rename('\n', 'C1', 'X1',[])
-
-        self._check_rename(self.DATA, 'C1', 'X1',[1,12])    # 2 renamed
-        self._check_rename(self.DATA, 'c1', 'X1',[1,12])    # lower case also OK
-        self._check_rename(self.DATA, 'c12', 'abc',[3])     # 1 renamed
-        self._check_rename(self.DATA, 'C211', 'def',[9])    # 1 renamed
-
-        self._check_rename(self.DATA, 'XXX', 'YYY',[])      # non-exist tag
-
-
-    def _check_rename(self, DATA, tag0, tag1, expected_diff):
-        edited = graph.edit_text_tree_rename(DATA, tag0, tag1)
-
-        # this is simple test, assume not 2 word tags
-        edited_words = edited.lower().split()
-        data_words = DATA.lower().split()
-        ltag0 = tag0.lower()
-        ltag1 = tag1.lower()
-
-        self.assertTrue(ltag0 not in edited_words)
-        if ltag0 in data_words:
-            self.assertTrue(ltag1 in edited_words)
-        self.assertEqual(len(DATA.splitlines()), len(edited.splitlines()))
-
-        # check line diff
-        diff = []
-        for i,line1,line2 in zip(xrange(9999), DATA.splitlines(), edited.splitlines()):
-            if line1 != line2:
-                diff.append(i)
-        self.assertEqual(expected_diff, diff)
-
-
     def test0(self):
-        tree = graph.parse_text_tree('')
-        self.assertEqual(tree, ['',[]])
-
-        tree = graph.parse_text_tree('\n')
-        self.assertEqual(tree, ['',[]])
+        self.assertEqual(graph.parse_text_tree(''), ['',[]])
+        self.assertEqual(graph.parse_text_tree('\n'), ['',[]])
 
 
     def test_simple(self):
@@ -114,6 +75,11 @@ C1
         ]]
         self.assertEqual(tree, expected)
 
+        # it looks odd, but they are siblings
+        self.assertEqual(graph.parse_text_tree("""
+    C1
+C2""" ), ['', [['C1',[]], ['C2',[]]]])
+
 
     def test_dfs(self):
         tree = graph.parse_text_tree(self.DATA)
@@ -134,6 +100,109 @@ C1
             ('C1',2),
         ]
         self.assertEqual(result, expected)
+
+
+    def test_rename(self):
+        # blank tests
+        self._check_rename('', '', '',[])
+        self._check_rename('', 'C1', 'X1',[])
+        self._check_rename('\n', 'C1', 'X1',[])
+
+        self._check_rename(self.DATA, 'C1', 'X1',[1,12])    # 2 renamed
+        self._check_rename(self.DATA, 'c1', 'X1',[1,12])    # lower case also OK
+        self._check_rename(self.DATA, 'c12', 'abc',[3])     # 1 renamed
+        self._check_rename(self.DATA, 'C211', 'def',[9])    # 1 renamed
+
+        self._check_rename(self.DATA, 'XXX', 'YYY',[])      # non-exist tag
+
+
+    def _check_rename(self, DATA, tag0, tag1, expected_diff):
+        edited, count = graph.edit_text_tree_rename(DATA, tag0, tag1)
+
+        # this is simple test, assume not 2 word tags
+        data_words = DATA.lower().split()
+        edited_words = edited.lower().split()
+        ltag0 = tag0.lower()
+        ltag1 = tag1.lower()
+
+        self.assertEqual(count, len(expected_diff))
+        self.assertTrue(ltag0 not in edited_words)
+        if ltag0 in data_words:
+            self.assertTrue(ltag1 in edited_words)
+        self.assertEqual(len(DATA.splitlines()), len(edited.splitlines()))
+
+        # check line diff
+        diff = []
+        for i,line1,line2 in zip(xrange(9999), DATA.splitlines(), edited.splitlines()):
+            if line1 != line2:
+                diff.append(i)
+        self.assertEqual(expected_diff, diff)
+
+
+    def test_delete(self):
+        # blank tests
+        self.assertEqual(graph.edit_text_tree_delete('', ''), ('',0))
+        self.assertEqual(graph.edit_text_tree_delete('\n', ''), ('\n',0))
+        self.assertEqual(graph.edit_text_tree_delete('', 'xx'), ('',0))
+
+        # tag not found is OK
+        self.assertEqual(graph.edit_text_tree_delete(self.DEFORMED, 'XX'), (self.DEFORMED,0))
+
+        # this one cause realignment of deformed children
+        # also it invokes the final _trim_children_and_output()
+        self.assertEqual(graph.edit_text_tree_delete(self.DEFORMED, 'C1'), ("""
+C11
+C12
+   C121
+  C122x
+C13x
+ C131
+""",1))
+
+        # this is a leaf node and affects no child
+        self.assertEqual(graph.edit_text_tree_delete(self.DEFORMED, 'C11'), ("""
+C1
+  C12
+     C121
+    C122x
+ C13x
+  C131
+""",1))
+        self.assertEqual(graph.edit_text_tree_delete(self.DEFORMED, 'C12'), ("""
+C1
+  C11
+  C121
+  C122x
+ C13x
+  C131
+""",1))
+        self.assertEqual(graph.edit_text_tree_delete(self.DEFORMED, 'C131'), ("""
+C1
+  C11
+  C12
+     C121
+    C122x
+ C13x
+""",1))
+
+        # delete multiple occurance, alos match case insensitively
+        self.assertEqual(graph.edit_text_tree_delete("""
+c1
+    a
+c1
+    b
+C
+    c1
+        d
+e
+    C1
+""", 'C1'), ("""
+a
+b
+C
+    d
+e
+""",4))
 
 
 if __name__ =='__main__':

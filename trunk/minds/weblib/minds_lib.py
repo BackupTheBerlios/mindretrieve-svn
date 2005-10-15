@@ -196,7 +196,7 @@ def main(argv):
     fp.close()
 
     print 'Loaded %s\ncategory_description:\n%s\n#tags %s\n#webpages %s' % (
-        argv[1], wlib.headers['category_description'].encode('raw_unicode_escape'), len(wlib.tags), len(wlib.webpages))
+        argv[1], wlib.category.getDescription().encode('raw_unicode_escape'), len(wlib.tags), len(wlib.webpages))
 
     # save
     if len(argv) > 2:

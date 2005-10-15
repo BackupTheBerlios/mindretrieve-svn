@@ -85,8 +85,11 @@ class IdNameList(IdList):
     def rename(self, item, newName):
         # rename need to takes care of self._name2item
         lNewName = newName.lower()
-        if not lNewName or self._name2item.has_key(lNewName):
-            raise KeyError('Duplicated or invalid name "%s", fail to rename %s' % (lNewName, unicode(item)))
+        if not lNewName:
+            raise KeyError('Invalid name "%s"' % lNewName)
+        test_item = self.getByName(lNewName)
+        if test_item and test_item != item:
+            raise KeyError('Duplicated name "%s", fail to rename %s' % (lNewName, unicode(item)))
         try:
             lname = item.name.lower()
             del self._name2item[lname]

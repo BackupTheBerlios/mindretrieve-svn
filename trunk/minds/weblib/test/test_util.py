@@ -164,15 +164,34 @@ class TestIdNameList(TestIdList):
         self.lst.append(item1)
 
         # rename item1
-        gbn = self.lst.getByName
-        item = gbn('item1')
-        self.assertEqual(item, item1)
-        self.lst.rename(item, 'newName')
+        self.lst.rename(item1, 'newName')
 
-        self.assertEqual(gbn('item1'), None)            # old name is gone
-        self.assertEqual(gbn('newName'), item)          # new name refers to former item1
-        self.assertEqual(gbn('NEWNAME'), item)          # mix case should match
-        self.assertEqual(gbn('newName').name, 'newName')# name is changed
+        gbn = self.lst.getByName
+        self.assertEqual(gbn('item1'), None)                # old name is gone
+        self.assertEqual(gbn('newName'), item1)             # new name refers to former item1
+        self.assertEqual(gbn('NEWNAME'), item1)             # mix case should match
+        self.assertEqual(gbn('newName').name, 'newName')    # name has changed
+
+
+    def test_rename_capitalization(self):
+        # insert 'item1'
+        item1 = TestItem()
+        self.lst.append(item1)
+
+        # rename item1 to ITEM1
+        self.lst.rename(item1, 'ITEM1')
+
+        gbn = self.lst.getByName
+        self.assertEqual(gbn('item1'), item1)           # refer to item1
+        self.assertEqual(gbn('ITEM1'), item1)           # refer to item1
+        self.assertEqual(gbn('ITEM1').name, 'ITEM1')    # name has changed
+
+        # change it back to lower case (dictionary format)
+        self.lst.rename(item1, 'item1')
+
+        self.assertEqual(gbn('item1'), item1)           # refer to item1
+        self.assertEqual(gbn('ITEM1'), item1)           # refer to item1
+        self.assertEqual(gbn('item1').name, 'item1')    # name has changed
 
 
     def test_invalid_rename(self):

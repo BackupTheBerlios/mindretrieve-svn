@@ -133,6 +133,14 @@
     background-color: #ccc;
   }
 
+  .libTable             {
+    border-collapse: collapse;
+  }
+
+  .libTable tr          {
+    border-top: thin solid white;
+  }
+
   .libTable td          {
     padding-left: 2px;
     padding-right: 2px;
@@ -155,7 +163,12 @@
   .altselectedrow       {
     background-color: #fc9;
   }
-
+/*
+  .altselectedrow td      {
+    border-top: thin solid white;
+    xborder-bottom: thin solid white;
+  }
+*/
   .itemDescription      {
     float: left;
   }
@@ -184,7 +197,11 @@
 </style>
 
 <script>
-
+/*
+function webitemKeypressEvent(e) {
+    window.status = 'keyCode=' + e.keyCode;
+}
+*/
 function toggleSubCatEvent(e) {
     result = toggleSubCat(this);
     // notify server of the new setting via the asyncForm
@@ -213,17 +230,34 @@ function toggleSubCat(switchElem) {
     throw new Error('toggleSubCat subcategories class not found: switchElem.id=' + switchElem.id);
 }
 
-function toggleWebitem(e) {
-    for (var p=this.parentNode; p.nodeType == 1/*ELEMENT_NODE*/; p=p.parentNode) {
-        if (p.tagName.toLowerCase() == 'tr') {
-                 if (p.className == 'selectedrow') p.className = '';
-            else if (p.className == '') p.className = 'selectedrow';
-            else if (p.className == 'altrow') p.className = 'altselectedrow';
-            else if (p.className == 'altselectedrow') p.className = 'altrow';
-            break;
+function toggleWebitemEvent(e) {
+    setWebitemRow(this)
+}
+
+function setWebitemRow(checkbox) {
+    // set class of parent <tr>
+    for (var p=checkbox.parentNode; p.nodeType == 1/*ELEMENT_NODE*/; p=p.parentNode) {
+        if (p.tagName.toLowerCase() != 'tr') continue;
+        if (checkbox.checked) {
+            if (p.className == '') {
+                p.className = 'selectedrow';
+            }
+            else if (p.className == 'altrow') {
+                p.className = 'altselectedrow';
+            }
         }
+        else {
+            if (p.className == 'selectedrow') {
+                p.className = '';
+            }
+            else if (p.className == 'altselectedrow') {
+                p.className = 'altrow';
+            }
+        }
+        return;
     }
-    throw new Error('Cannot not find a parent <tr>: ' + this);
+    throw new Error('Cannot not find a parent <tr>: ' + checkbox);
+
 }
 
 function selectAll(cb) {
@@ -232,7 +266,8 @@ function selectAll(cb) {
     for (i=0; i < form.elements.length; i++) {
         var elem = form.elements[i];
         if (elem.type == 'checkbox') {
-            elem.checked = checked
+            elem.checked = checked;
+            setWebitemRow(elem);
         }
     }
 }
@@ -300,7 +335,8 @@ function onload(e) {
         var elem = checkboxes[i];
         // assume element with numeric name is the item checkbox
         if (!isNaN(parseInt(elem.name))) {
-            elem.addEventListener('click', toggleWebitem, false);
+            elem.addEventListener('click', toggleWebitemEvent, false);
+//            elem.addEventListener('keypress', webitemKeypressEvent, false);
         }
     }
 }

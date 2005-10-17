@@ -221,7 +221,7 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
         node.catList.repeat(self.renderCatItem, categoryList, currentCategory, category_collapse)
 
         # no match message
-        if not webItems:
+        if not webItems and not tags_matched:
             node.web_items.omit()
 #            t = string.Template(node.no_match_msg.content)
 #            node.no_match_msg.content = t.safe_substitute(querytxt=self.querytxt)

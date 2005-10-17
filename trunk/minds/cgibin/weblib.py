@@ -286,6 +286,7 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
         node.checkbox.atts['name'] = str(item.id)
         node.itemDescription.content = unicode(item)
         node.itemDescription.atts['href'] = request.go_url(item)
+        node.itemDescription.atts['title'] = '%s %s' % (item.modified, item.description)
         node.itemTag.tag.repeat(self.renderWebItemTag, tags)
         node.edit.atts['href'] = '%s/%s/form' % (request.WEBLIB_URL, item.id)
         node.delete.atts['href'] = '%s/%s?method=delete' % (request.WEBLIB_URL, item.id)

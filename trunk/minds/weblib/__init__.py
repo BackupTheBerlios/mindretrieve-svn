@@ -443,6 +443,9 @@ def query(wlib, querytxt, select_tags):
     if not terms and not select_tags:
         return queryMain(wlib)
 
+    # if querytxt is an exact match of a tag, include it.
+    include_tag = wlib.tags.getByName(querytxt)
+
     log.debug('Search terms %s tags %s', terms, select_tags)
     cat_list = {}
     related = sets.Set()
@@ -453,7 +456,9 @@ def query(wlib, querytxt, select_tags):
             continue
 
         netloc = urlparse.urlparse(item.url)[1].lower()
-        if terms:
+        if include_tag in item.tags:
+            pass
+        else:
             q_matched = True
             for w in terms:
                 if (w not in item.name.lower()) and (w not in netloc):

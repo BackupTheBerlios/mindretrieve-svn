@@ -143,9 +143,19 @@
   .col3 { width: 1.5em;}
   .col4 { width: 1.5em;}
   .col5 { width: 9%;}
+
   .altrow               {
     background-color: #eee;
   }
+
+  .selectedrow          {
+    background-color: #fc9;
+  }
+
+  .altselectedrow       {
+    background-color: #fc9;
+  }
+
   .itemDescription      {
     float: left;
   }
@@ -160,6 +170,11 @@
     top:1px;
     border:0;
   }
+
+
+  /* ------------------------------------------------------------------------
+
+     ------------------------------------------------------------------------ */
   #asyncForm {
     width: 50%;
     height: 20%;
@@ -198,6 +213,18 @@ function toggleSubCat(switchElem) {
     throw new Error('toggleSubCat subcategories class not found: switchElem.id=' + switchElem.id);
 }
 
+function toggleWebitem(e) {
+    for (var p=this.parentNode; p.nodeType == 1/*ELEMENT_NODE*/; p=p.parentNode) {
+        if (p.tagName.toLowerCase() == 'tr') {
+                 if (p.className == 'selectedrow') p.className = '';
+            else if (p.className == '') p.className = 'selectedrow';
+            else if (p.className == 'altrow') p.className = 'altselectedrow';
+            else if (p.className == 'altselectedrow') p.className = 'altrow';
+            break;
+        }
+    }
+    throw new Error('Cannot not find a parent <tr>: ' + this);
+}
 
 function selectAll(cb) {
     var checked = document.getElementById(cb).checked;
@@ -260,10 +287,20 @@ function onload(e) {
     // attach toggleSubCat event handler
     var catPane = document.getElementById('categorytPane');
     var aElems = catPane.getElementsByTagName('a');
-    for (i=0; i < aElems.length; i++) {
+    for (var i=0; i < aElems.length; i++) {
         var elem = aElems[i];
         if (elem.className == 'toggleSwitch') {
             elem.addEventListener('click', toggleSubCatEvent, false);
+        }
+    }
+    // attach event handlers to webitem checkbox
+    var tbl = document.getElementById('libTable')
+    var checkboxes = tbl.getElementsByTagName('input')
+    for (var i=0; i < checkboxes.length; i++) {
+        var elem = checkboxes[i];
+        // assume element with numeric name is the item checkbox
+        if (!isNaN(parseInt(elem.name))) {
+            elem.addEventListener('click', toggleWebitem, false);
         }
     }
 }
@@ -350,7 +387,7 @@ window.addEventListener('load', onload, false);
 
   <form id='webpages' action='/weblib' method='GET'>
   <input id='webpages_method' type='hidden' name='method' value='' />
-  <table width='100%' cellspacing='0' cellpadding='0' class='libTable'>
+  <table id='libTable' width='100%' cellspacing='0' cellpadding='0' class='libTable'>
 
   <col class='col1' />
   <col class='col2' />
@@ -358,6 +395,7 @@ window.addEventListener('load', onload, false);
   <col class='col4' />
   <col class='col5' />
 
+  <!-- header ------------------------------------------------------------------------>
   <tr class='libTableHeader'>
     <td><input id='checkAll_top' type='checkbox' onclick='selectAll("checkAll_top");'></td>
     <td colspan='4' align='right'>
@@ -366,6 +404,7 @@ window.addEventListener('load', onload, false);
     </td>
   </tr>
 
+  <!-- webItem ------------------------------------------------------------------------>
   <tr node='rep:webItem'>
     <td><input node='con:checkbox' type='checkbox' name='100' /></td>
     <td>

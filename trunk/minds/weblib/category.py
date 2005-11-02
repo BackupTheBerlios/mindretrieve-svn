@@ -5,6 +5,7 @@ from minds import weblib
 from minds.weblib import graph
 from minds.weblib import store
 
+Node = graph.Node
 
 #-----------------------------------------------------------------------
 
@@ -31,11 +32,7 @@ class Category(object):
 
     def __init__(self, wlib):
         self.wlib = wlib
-        # root is the root node of a DAG
-        # where a node is in the format of [string or Tag, list of children].
-        # string that corresponds to Tag would be represent by tag.
-        self.root = ['',[]]
-        # list of uncategorized Tags
+        self.root = Node('',[])
         self.uncategorized = []
 
 
@@ -60,6 +57,64 @@ class Category(object):
         if count > 0:
             self.setDescription(edited)
 
+
+    # TODO: move to util and add test? though it is not used now.
+    def knock_off(S, D):
+        """
+        An efficient method to remove items from S that also appear in D.
+        Both S and D should be sorted in decreasing order.
+        Removed items are simply set to None.
+        """
+        i = 0
+        j = 0
+        while i < len(S) and j < len(D):
+            s, d = S[i], D[j]
+            ssize, dsize = s[0], d[0]   # ssize and dsize represents the total order of s and d
+            result = cmp(ssize,dsize)
+            if result == 0:
+                S[i] = None
+                i += 1
+                j += 1
+            elif result > 0:
+                i += 1
+            else:
+                j += 1
+
+
+    def compile(self):
+        """
+        Build root and uncategorized from category_description
+        and current set of Tags
+        """
+
+        # TODO: should countTag in category? clean up.
+        self._countTag()
+
+        text = self.getDescription()
+        self.root = graph.parse_text_tree(text)
+
+        categorized = sets.Set()
+        for node, p in self.root.dfs():
+            tag = self.wlib.tags.getByName(node.data)
+            if tag:
+                # convert string to node
+                # TODO: should we not do this? because there is still going to be some non-tag string?
+#                node.data = tag
+                categorized.add(tag)
+
+        # build uncategorized
+        self.uncategorized = [tag for tag in self.wlib.tags if tag not in categorized]
+        self.uncategorized = weblib.sortTags(self.uncategorized)
+
+
+    def _countTag(self):
+        # construct tag statistics
+        for tag in self.wlib.tags:
+            tag.num_item = 0
+
+        for item in self.wlib.webpages:
+            for tag in item.tags:
+                tag.num_item += 1
 
 #    def inferCategory(wlib):
 #
@@ -134,63 +189,6 @@ class Category(object):
 #        return ['', tops]                             # return root
 
 
-    # TODO: move to util and add test? though it is not used now.
-    def knock_off(S, D):
-        """
-        An efficient method to remove items from S that also appear in D.
-        Both S and D should be sorted in decreasing order.
-        Removed items are simply set to None.
-        """
-        i = 0
-        j = 0
-        while i < len(S) and j < len(D):
-            s, d = S[i], D[j]
-            ssize, dsize = s[0], d[0]   # ssize and dsize represents the total order of s and d
-            result = cmp(ssize,dsize)
-            if result == 0:
-                S[i] = None
-                i += 1
-                j += 1
-            elif result > 0:
-                i += 1
-            else:
-                j += 1
-
-
-    def compile(self):
-        """
-        Build root and uncategorized from category_description
-        and current set of Tags
-        """
-
-        # TODO: should countTag in category? clean up.
-        self._countTag()
-
-        text = self.getDescription()
-        self.root = graph.parse_text_tree(text)
-
-        # convert string to node
-        categorized = sets.Set()
-        for node in graph.dfs_node(self.root):
-            tag = self.wlib.tags.getByName(node[0])
-            if tag:
-                node[0] = tag
-                categorized.add(tag)
-
-        # build uncategorized
-        self.uncategorized = [tag for tag in self.wlib.tags if tag not in categorized]
-        self.uncategorized = weblib.sortTags(self.uncategorized)
-
-
-    def _countTag(self):
-        # construct tag statistics
-        for tag in self.wlib.tags:
-            tag.num_item = 0
-
-        for item in self.wlib.webpages:
-            for tag in item.tags:
-                tag.num_item += 1
-
 
 def topoSort(wlib, g):
     ## TODO: HACKish algorithm
@@ -241,55 +239,55 @@ TEST_DATA = """
 San Francisco
     food
     travel
+        italy
 money
     account
     real estate
 real estate
     listing
     San Francisco
+        agents
 travel
     italy
         food
 """
 
-TEST_DATA0= ''
 
 def test_tag_tree():
-    g0 = graph.build_indented_text_DAG(TEST_DATA0)
-    root0 = g0['']
-
     print '\ntree0---'
-    for v, level in graph.dfs(root0):
-        if v:
-            print '..'*level + unicode(v)
-
-    g = graph.build_indented_text_DAG(TEST_DATA)
-    root = g['']
+    root0 = graph.parse_text_tree(TEST_DATA0)
+    root0.dump()
 
     print '\ntree1---'
-    for v, level in graph.dfs(root):
-        if v:
-            print '..'*level + unicode(v)
+    root0 = graph.parse_text_tree(TEST_DATA)
+    root0.dump()
 
     graph.merge_DAG(g0,g)
     print '\nmerged---'
-    for v, level in graph.dfs(root0):
-        if v:
-            print '..'*level + unicode(v)
+    root0.dump()
 
 
 def test_DAG():
     wlib = store.getMainBm()
     root = inferCategory(wlib)
     ## debug
-    for v, path in graph.dfsp(root):
+    for v, path in root.dfs():
         if not v:
             continue    # skip the root node
         print '..' * len(path) + unicode(v) + ' %s' % v.torder + ' %s' % path
 
 
+def test_find_branches():
+    root = graph.parse_text_tree(TEST_DATA)
+    branches = graph.find_branches(root, 'San Francisco')
+    print '\nSan Francisco branches---'
+    print >>sys.stderr, branches
+    Node('',branches).dump()
+
+
 def main(argv):
-    test_tag_tree()
+    test_find_branches()
+    #test_tag_tree()
     #test_DAG()
 
 

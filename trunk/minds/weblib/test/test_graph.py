@@ -2,6 +2,7 @@ import unittest
 
 from minds.weblib import graph
 
+Node = graph.Node
 
 class TestIndentedTextParsing(unittest.TestCase):
 
@@ -31,59 +32,59 @@ C1
 """
 
     def test0(self):
-        self.assertEqual(graph.parse_text_tree(''), ['',[]])
-        self.assertEqual(graph.parse_text_tree('\n'), ['',[]])
+        self.assertEqual(graph.parse_text_tree(''), Node(''))
+        self.assertEqual(graph.parse_text_tree('\n'), Node(''))
 
 
     def test_simple(self):
         tree = graph.parse_text_tree(self.DATA)
-        expected = ['', [
-        ['C1', [
-            ['C11',[]],
-            ['C12',[
-                ['C121',[]],
-                ['C122',[]],
-            ]],
-            ['C13',[]],
-        ]],
-        ['C2', [
-            ['C21', [
-                ['C211',[]],
-            ]],
-        ]],
-        ['C3', [
-            ['C31',[]],
-            ['C1',[]],
-        ]],
-        ]]
+        expected = Node('', [
+        Node('C1', [
+            Node('C11',[]),
+            Node('C12',[
+                Node('C121',[]),
+                Node('C122',[]),
+            ]),
+            Node('C13',[]),
+        ]),
+        Node('C2', [
+            Node('C21', [
+                Node('C211',[]),
+            ]),
+        ]),
+        Node('C3', [
+            Node('C31',[]),
+            Node('C1',[]),
+        ]),
+        ])
         self.assertEqual(tree, expected)
 
 
     def test_deformed(self):
         tree = graph.parse_text_tree(self.DEFORMED)
-        expected = ['', [
-        ['C1', [
-            ['C11',[]],
-            ['C12',[
-                ['C121',[]],
-                ['C122x',[]],   # child of C12, although it has smaller indent than sibling C121
-            ]],
-            ['C13x',[           # child of C1, although it has smaller indent than sibling C12
-                ['C131',[]],    # C131 is child of C13x, although it has same indent as uncle C12
-            ]],
-        ]],
-        ]]
+        expected = Node('', [
+        Node('C1', [
+            Node('C11',[]),
+            Node('C12',[
+                Node('C121',[]),
+                Node('C122x',[]),   # child of C12, although it has smaller indent than sibling C121
+            ]),
+            Node('C13x',[           # child of C1, although it has smaller indent than sibling C12
+                Node('C131',[]),    # C131 is child of C13x, although it has same indent as uncle C12
+            ]),
+        ]),
+        ])
         self.assertEqual(tree, expected)
 
         # it looks odd, but they are siblings
         self.assertEqual(graph.parse_text_tree("""
     C1
-C2""" ), ['', [['C1',[]], ['C2',[]]]])
+C2""" ), Node('', [Node('C1',[]), Node('C2',[])]))
 
 
     def test_dfs(self):
         tree = graph.parse_text_tree(self.DATA)
-        result = list(graph.dfs(tree))
+        result = [(node.data, len(p)) for node, p in tree.dfs()]
         expected = [
             ('',0),
             ('C1',1),
@@ -98,6 +99,27 @@ C2""" ), ['', [['C1',[]], ['C2',[]]]])
             ('C3',1),
             ('C31',2),
             ('C1',2),
+        ]
+        self.assertEqual(result, expected)
+
+
+    def test_bfs(self):
+        tree = graph.parse_text_tree(self.DATA)
+        result = [(node.data,level) for node,level in tree.bfs()]
+        expected = [
+            ('',0),
+            ('C1',1),
+            ('C2',1),
+            ('C3',1),
+            ('C11',2),
+            ('C12',2),
+            ('C13',2),
+            ('C21',2),
+            ('C31',2),
+            ('C1',2),
+            ('C121',3),
+            ('C122',3),
+            ('C211',3),
         ]
         self.assertEqual(result, expected)
 

@@ -56,13 +56,28 @@ def adminMain():
     admin_httpd.serve_forever()
 
 
+MAX_INDEX_INTERVAL = 24*60  # no more than 1 day
+
 def indexMain():
     interval = cfg.getint('indexing.interval',3)
+    interval = min(interval, MAX_INDEX_INTERVAL)
     log.info('Scheduled index thread to run every %s minutes' % interval)
     while not _shutdownEvent.wait(interval * 60):
         if _shutdownEvent.isSet():
             break
-        qmsg_processor.backgroundIndexTask()
+        try:
+            qmsg_processor.backgroundIndexTask()
+            # reset interval after a successful process
+            interval = cfg.getint('indexing.interval',3)
+            interval = min(interval, MAX_INDEX_INTERVAL)
+        except:
+            # log error, do not let the indexMain thread die
+            import traceback
+            traceback.print_exc()
+            # expotential backoff
+            interval *= 2
+            interval = min(interval, MAX_INDEX_INTERVAL)
+            log.info('Restart index thread in %s minutes' % interval)
 
 
 
@@ -141,13 +156,15 @@ def main():
     log.info('Python %s', sys.version)
     log.info('  Platform %s', platform)
     log.info('  pwd: %s, defaultencoding: %s', os.getcwd(), sys.getdefaultencoding())
-    log.info('PyLucene %s Lucene %s', PyLucene.VERSION, PyLucene.LUCENE_VERSION)
+    log.info('PyLucene %s Lucene %s LOCK_DIR %s',
+        PyLucene.VERSION, PyLucene.LUCENE_VERSION, PyLucene.FSDirectory.LOCK_DIR)
 
     # show index version
     import lucene_logic
     dbindex = cfg.getpath('archiveindex')
     reader = lucene_logic.Reader(pathname=dbindex)
     version = reader.getVersion()
+    reader.close()
     log.info('  Index version %s', version)
 
     proxyThread = threading.Thread(target=proxyMain, name='proxy')

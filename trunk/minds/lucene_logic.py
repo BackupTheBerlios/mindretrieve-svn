@@ -1,14 +1,22 @@
-"""Wrap lucene's IndexReader, IndexWriter and IndexSearcher.
-   Provide a few methods for use with MindRetrieve.
+"""
+Wrap lucene's IndexReader, IndexWriter and IndexSearcher.
+Provide a few methods for use with MindRetrieve.
 """
 
 import logging
 import os, os.path, sys
+import traceback
 
 import PyLucene
 from minds.config import cfg
 
-
+__all__ = [
+    'initDirectory',
+    'openDirectory',
+    'Reader',
+    'Writer',
+    'Searcher',
+]
 
 log = logging.getLogger('lucene')
 
@@ -63,7 +71,12 @@ class Reader(object):
         else:
             self.directory = openDirectory(pathname)
 
-        self.reader = PyLucene.IndexReader.open(self.directory)
+        try:
+            PyLucene.IndexReader.unlock(self.directory) ###HACK!!! TODO!!
+            self.reader = PyLucene.IndexReader.open(self.directory)
+        except:
+            log.error('Error creating IndexWriter pathname=%s directory=%s', pathname, directory)
+            raise
 
 
     def __getattr__(self, attr):
@@ -100,7 +113,11 @@ class Writer(object):
 
     def __init__(self, pathname=None):
         self.directory = openDirectory(pathname)
-        self.writer = PyLucene.IndexWriter(self.directory, PyLucene.StandardAnalyzer(), False)
+        try:
+            self.writer = PyLucene.IndexWriter(self.directory, PyLucene.StandardAnalyzer(), False)
+        except:
+            log.error('Error creating IndexWriter pathname=' + pathname)
+            raise
         self.writer.maxFieldLength = 1048576 ########<<< todo: ????
 
 
@@ -116,9 +133,6 @@ class Writer(object):
 
         uri           = meta.get('uri'          ,'')
         date          = meta.get('date'         ,'')
-        #title         = meta.get('title'        ,'')
-        #description   = meta.get('description'  ,'')
-        #keywords      = meta.get('keywords'     ,'')
         etag          = meta.get('etag'         ,'')
         last_modified = meta.get('last-modified','')
 
@@ -127,12 +141,9 @@ class Writer(object):
         doc = PyLucene.Document()
         doc.add(PyLucene.Field("docid"  , docid  , True,  True, False))
         doc.add(PyLucene.Field("content", content, False, True, True ))
-        if uri        : doc.add(PyLucene.Field('uri'        , uri        , True,  True,  False))
-        if date       : doc.add(PyLucene.Field('date'       , date       , True,  True,  False))
-        #if title      : doc.add(PyLucene.Field('title'      , title      , True,  True,  True ))
-        #if description: doc.add(PyLucene.Field('description', description, True,  True,  True ))
-        #if keywords   : doc.add(PyLucene.Field('keywords'   , keywords   , False, True,  False))
-        if etag       : doc.add(PyLucene.Field('etag'       , etag       , True,  False, False))
+        if uri : doc.add(PyLucene.Field('uri'  , uri , True,  True,  False))
+        if date: doc.add(PyLucene.Field('date' , date, True,  True,  False))
+        if etag: doc.add(PyLucene.Field('etag' , etag, True,  False, False))
 
         self.writer.addDocument(doc)
 
@@ -213,7 +224,7 @@ def luceneMain():
     writer.writer.close()
     print 'writer done'
 
-def main():
+def thread_test():
     threads = []
     for i in range(5):
         threads.append(threading.Thread(target=threadMain, args=(i,)))
@@ -225,6 +236,28 @@ def main():
 
 ########################################################################
 
+def shell(argv):
+    print __doc__
+
+    # does this provide some kind of restriction to prevent misuse?
+    if __name__ != '__main__':
+        print >>sys.stderr, 'shell() can only be launched from command line.'
+        sys.exit(-1)
+
+    local = {}
+    exec 'from minds.lucene_logic import *'in local
+    while True:
+        line = raw_input('lucene> ')
+        if not line:
+            break
+        try:
+            exec line in local
+
+        except:
+            traceback.print_exc()
+
+
 if __name__ == '__main__':
     #luceneMain()
-    main()
+    #thread_test()
+    shell(sys.argv)

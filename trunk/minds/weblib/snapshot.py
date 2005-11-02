@@ -64,15 +64,16 @@
 
 
 # Design discussion
-# 
-# Snapshot of what's in the browser v.s. fetch again
-# - only browser knows what showing
+#
+# Snapshot of what's actually loaded in the browser v.s. an explicit fetch.
+# - only browser knows exactly what's loaded. MindRetreive as a proxy only has
+#   indirectly information.
 # - fetch again may get different content. (cookie, authentication, Javascript)
 # - may trigger a transaction (though GET should be idempotent)
-# - counterpoint bookmark is used to refetch.
+# - counterpoint: Open bookmark is same as refetch.
 # - use proxy to cache. Complication, browser also have cache, not all content showing are fetched via proxy
 # - drive browser to refetch? Borwser will use right cookie and authentication. Clever but tricky.
-# - IE refetch.
+# - IE does refetch.
 
 
 import cStringIO
@@ -107,25 +108,25 @@ TEXT_CSS = 'text/css'
 # HTML Parsing
 
 LINKABLE_TAGS = {
-  'area':   'href',        
-  'body':   'background',  
-  'frame':  'src',         
-  'iframe': 'src',         
-  'img':    'src',         
-  'input':  'src',         
-  'link':   'href',        
-  'script': 'src',         
+  'area':   'href',
+  'body':   'background',
+  'frame':  'src',
+  'iframe': 'src',
+  'img':    'src',
+  'input':  'src',
+  'link':   'href',
+  'script': 'src',
 }
 
 # Below are attributes that are defined by W3C but are obscure or have
-# little browser support. They are not supported here because of 
+# little browser support. They are not supported here because of
 # difficulty of testing.
-#    BLOCKQUOTE, Q   cite      
-#    DEL, INS        cite      
-#    HEAD            profile   
-#    IMG             longdesc  
-#    FRAME, IFRAME   longdesc  
-#    IMG, INPUT      usemap    
+#    BLOCKQUOTE, Q   cite
+#    DEL, INS        cite
+#    HEAD            profile
+#    IMG             longdesc
+#    FRAME, IFRAME   longdesc
+#    IMG, INPUT      usemap
 
 # Tags below are not supported
 #    OBJECT
@@ -149,12 +150,12 @@ def scan_html(fp, baseuri, append):
             styles = []
             for token in token_stream:
                 if token[0] == hpp.DATA:
-                    styles.append(token[1])    
-                elif token[0] == hpp.COMMENT:   
+                    styles.append(token[1])
+                elif token[0] == hpp.COMMENT:
                     styles.append(token[1])     # CSS enclosed by HTML comment!
                 elif token[0] == hpp.TAG:
                     if token[1] == 'style':
-                        # <style> follows by <style>??? OK, treat it as <style>. 
+                        # <style> follows by <style>??? OK, treat it as <style>.
                         continue
                     else:
                         # No </style>??? Any other open tags would close <style>
@@ -162,13 +163,13 @@ def scan_html(fp, baseuri, append):
                 elif token[0] == hpp.ENDTAG:
                     break
             else:
-                # the stream is exhausted? Make sure next step knows 
+                # the stream is exhausted? Make sure next step knows
                 # there is no unprocessed token.
-                token = None        
-                    
+                token = None
+
             # process the style content
             _scan_html_style(tag, ''.join(styles), baseuri, append)
-                    
+
             # look at last unprecessed token
             if not token:
                 # TODO: test
@@ -177,23 +178,23 @@ def scan_html(fp, baseuri, append):
                 # hopefully this ends with a valid </style>
                 # TODO: test
                 continue
-            else:    
+            else:
                 # we got a (non-style) begin TAG??? OK, we'll process this tag.
                 tag = token[1]
                 # TODO: test
-                
+
         # ----------------------------------------------------------------------
         # read TAG and its attributes
         isLinkTag = (tag == 'link')
         uri_attr = LINKABLE_TAGS.get(tag,'')
-                    
+
         # run through attribute list to find relevant info
         uri = style = rel = ctype = ''
         for n, v in token[2]:               # TODO: need to XML decode?
             if n == uri_attr:
                 uri = v
             elif n == 'style':
-                style = v    
+                style = v
             elif isLinkTag:
                 if n == 'rel':
                     rel = v
@@ -208,9 +209,9 @@ def scan_html(fp, baseuri, append):
         # ----------------------------------------------------------------------
         # handle uri attributes (href, src, etc)
         if not uri:
-            continue     
+            continue
         #print >>sys.stderr, tag, uri, ctype
-        
+
         # note: the ctype is advisory, content-type from http may not be consistent
         # everything not HTML or CSS is APPLICATION
         if tag in ['frame','iframe']:
@@ -222,33 +223,33 @@ def scan_html(fp, baseuri, append):
                 # only want CSS from <link>
                 continue
         else:
-            ctype = APPLICATION        
+            ctype = APPLICATION
 
         append(baseuri, uri, ctype, tag)
 
 
 def _scan_html_style(tag, style, baseuri, append):
-    """ 
-    Handles inline CSS in HTML within a style block or in the style attribute. 
     """
-    # quick test to find if anything of our interest 
+    Handles inline CSS in HTML within a style block or in the style attribute.
+    """
+    # quick test to find if anything of our interest
     # (note: keyword is case-sensitive)
     if style.find('url(') < 0 and style.find('@import') < 0:
         return
-    fp = StringIO.StringIO(style)    
+    fp = StringIO.StringIO(style)
     scan_css(fp, baseuri, append, tag)
 
 
 # ----------------------------------------------------------------------
 # CSS Parsing
 #
-# See CSS2 4.3.4 URL + URN = URI for syntax rule 
+# See CSS2 4.3.4 URL + URN = URI for syntax rule
 #   http://www.w3.org/TR/REC-CSS2/syndata.html#uri
 
 # e.g. - url( "yellow" ) -> "yellow"
 url_pattern = re.compile(ur"url\( \s* (.+?) \s* \)", re.VERBOSE)
 
-# HACK: this simple parser is not foolproof. It does not handle mismatched 
+# HACK: this simple parser is not foolproof. It does not handle mismatched
 # quotes and escapes inside quote.
 
 def _get_url(s):
@@ -283,13 +284,13 @@ LINKABLE_SHORTHAND_PROPERTIES = [
 
 def scan_css(fp, baseuri, append, prefix=''):
     """ scan a CSS for all its external links """
-    
+
     # prefix is the HTML tag that has inline CSS
     if prefix:
         prefix += ' '
 
     cp = CSSParser(loglevel=logging.ERROR)
-    stylesheet = cp.parseString(fp.read().decode('UTF-8'))               ##HACK TODO encoding 
+    stylesheet = cp.parseString(fp.read().decode('UTF-8'))               ##HACK TODO encoding
     for rule in stylesheet.cssRules:                # rule: CSSRule
         if rule.type == rule.STYLE_RULE:            # CSSStyleRule
             #print rule.type, rule.selectorText
@@ -358,21 +359,21 @@ class Snapshot(object):
             res.size = len(res.data)
             res.fp.close()
             res.ctype_actual = res.fp.getheader('content-type')
-            
+
             append = lambda baseuri, uri, ctype, tag: \
                 self._append(res, baseuri, uri, ctype, tag)
             if res.ctype == TEXT_HTML:
                 scan_html(cStringIO.StringIO(res.data), res.uri, append)
             elif res.ctype == TEXT_CSS:
                 scan_css(cStringIO.StringIO(res.data), res.uri, append)
-                
+
         self.fetcher.close()
 
         t = self.fetcher.endtime - self.fetcher.starttime
         self._show_result(self.resource_list[0])
         print '%s bytes from %s resources fetched in %s' % (
-            sum([r.size for r in self.resource_list]), 
-            len(self.resource_list), 
+            sum([r.size for r in self.resource_list]),
+            len(self.resource_list),
             str(t)[2:7],
         )
         print '\nFetch report'
@@ -401,18 +402,18 @@ class Snapshot(object):
         for res in self.resource_list:
             if '/' in res.ctype_actual:
                 maintype, subtype = res.ctype_actual.split('/',1)
-            else:    
+            else:
                 maintype, subtype = res.ctype_actual, ''
             part = MIMENonMultipart(maintype, subtype)
             part.set_payload(res.data)
             part['content-location'] = res.uri
             Encoders.encode_base64(part)
             msg.attach(part)
-            
-        # generate the MIME message    
+
+        # generate the MIME message
         Generator(fp, False).flatten(msg)
-        
-        
+
+
     def _show_result(self, res):
         print str(res)
         for c in res.children:
@@ -436,12 +437,12 @@ class ConnectionObject(object):
         self.lastused = None    # datetime
         self.conn = None        # HTTPConnection
         self.count = 0
-    
+
     def connect(self):
         self.conn = httplib.HTTPConnection(self.netloc)
         self.conn.connect()
-        
-        
+
+
 class Fetcher(object):
 
     def __init__(self):
@@ -464,32 +465,32 @@ class Fetcher(object):
         elif self.queue2:
             res = self.queue2.pop(0)
         else:
-            return None        
+            return None
 
         scheme, netloc, _, _, _, _ = urlparse.urlparse(res.uri)
         conn = scheme == 'http' and self._get_conn(netloc)
         if not conn:
             # non-http or no more room in self.conns
-            res.fp = urllib2.open(res.uri)
+            res.fp = urllib2.urlopen(res.uri)
             return res
-        
+
         conn.conn.request('GET', res.uri, '', HEADERS)
         res.fp = conn.conn.getresponse()
         return res
-     
+
     def _get_conn(self, netloc):
         for conn in self.conns:
             if conn.netloc == netloc:
                 conn.count += 1
-                return conn   
-        # create new conn? 
+                return conn
+        # create new conn?
         if len(self.conns) < MAX_HTTP_CONN:
             conn = ConnectionObject(netloc)
             self.conns.append(conn)
             conn.connect()
             conn.count += 1
             return conn
-        return None    
+        return None
 
     def close(self):
         for conn in self.conns:
@@ -498,15 +499,15 @@ class Fetcher(object):
             except:
                 log.exception('Problem closing for %s' % netloc)
         self.endtime = datetime.datetime.now()
-       
+
     def report(self):
         """ Return list of (netloc, count). '' is fetches not via conn """
         result = [('', self.count)]
         result.extend([(c.netloc, c.count) for c in self.conns])
         return result
-       
-       
-        
+
+
+
 # ----------------------------------------------------------------------
 # Testing
 
@@ -528,10 +529,10 @@ def main(argv):
 
     url = argv[1]
     snapshot = Snapshot()
-    snapshot.fetch(url)                        
+    snapshot.fetch(url)
     fp = file('1.mhtml','wb')
     snapshot.generate(fp)
     fp.close()
-    
+
 if __name__ =='__main__':
     main(sys.argv)

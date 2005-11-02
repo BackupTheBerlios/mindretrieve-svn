@@ -4,6 +4,7 @@ import os, sys
 import sets
 import string
 import urllib
+from xml.sax import saxutils
 
 from minds.config import cfg
 from minds.cgibin import weblibSnapshot
@@ -12,6 +13,7 @@ from minds.cgibin.util import request
 from minds.cgibin.util import response
 from minds import weblib
 from minds.weblib import graph
+from minds.weblib import query_wlib
 from minds.weblib import store
 
 log = logging.getLogger('cgi.weblib')
@@ -54,7 +56,10 @@ def main(rfile, wfile, env):
         if form.getfirst('action') == 'cancel':
             response.redirect(wfile, request.WEBLIB_URL)
 
-        queryWebLib(wfile, env, form, tag, querytxt)
+        if tag:
+            queryTag(wfile, env, form, tag)
+        else:
+            queryWebLib(wfile, env, form, tag, querytxt)
 
 
 def doGoResource(wfile, rid, path):
@@ -93,6 +98,60 @@ def doTag(wfile, env, method, form, tid):
         response.redirect(wfile, request.WEBLIB_URL)
 
 
+def _buildCategoryList(wlib):
+    """
+    Build category list from wlib.category.
+
+    @returns list of (id, tagName, [subcat]) where subcat is (level, tagName)
+    """
+    categoryList = []
+    top_nodes = wlib.category.root.children
+    for node in top_nodes:
+        subcat = []
+        name = node.data
+        tag = wlib.tags.getByName(name)
+        id = tag and tag.id or -1
+        categoryList.append((id, name, subcat))
+        for node, path in node.dfs():
+            if path:
+                subcat.append((len(path),unicode(node)))
+    return categoryList
+
+
+def queryTag(wfile, env, form, tag):
+    wlib = store.getMainBm()
+    branches = query_wlib.query_by_tag(wlib, tag)
+
+    tags = [tag] ## hack
+    currentCategory = tags and unicode(tags[-1]) or ''
+    categoryList = _buildCategoryList(wlib)
+
+    all_items = []
+    for node, path in branches.dfs():
+        name, result = node.data
+        tag = wlib.tags.getByName(name)
+        all_items.append((tag, []))
+        for item in result:
+            all_items.append((item, [tag]))
+
+    cc_lst = wlib.getCategoryCollapseList()
+    defaultTag = unicode(wlib.getDefaultTag())
+    if wlib.category.uncategorized:
+        subcats = [(2, unicode(t)) for t in wlib.category.uncategorized]
+        categoryList.append((-1, 'TAG', subcats))
+
+    WeblibRenderer(wfile, env, '').output(
+        cc_lst,
+        defaultTag,
+        categoryList,
+        None,
+        [],
+        [],
+        currentCategory,
+        all_items)
+
+
+
 def queryWebLib(wfile, env, form, tag, querytxt):
     go_direct = form.getfirst('submit') == '>'
     if querytxt.endswith('>'):
@@ -128,14 +187,15 @@ def queryWebLib(wfile, env, form, tag, querytxt):
     folderNames = map(unicode, related)
     currentCategory = tags and unicode(tags[-1]) or ''
     categoryList = []
-    top_nodes = wlib.category.root[1]
+    top_nodes = wlib.category.root.children
     for node in top_nodes:
         subcat = []
-        tag = node[0]
+        tag = node.data
         id = hasattr(tag,'id') and tag.id or -1
         categoryList.append((id, unicode(tag), subcat))
-        for v, path in graph.dfsp(node):
-            subcat.append((len(path),unicode(v)))
+        for node, path in node.dfs():
+            if path:
+                subcat.append((len(path),unicode(node)))
 
     all_items = []
     for tags, lst in sorted(items.items()):
@@ -209,6 +269,7 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
         @param category_collapse - list of tag ids to collapse
         @param categoryList - list of (id, nodename, subcat) where
             subcat is list of (level, nodename)
+        @param webItems - list of (WebPage, [tags])
         """
 
         # default Tag
@@ -283,19 +344,27 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
         item, tags = item   ##todo
         if i % 2 == 1:
             node.atts['class'] = 'altrow'
-        node.checkbox.atts['name'] = str(item.id)
-        node.itemDescription.content = unicode(item)
-        node.itemDescription.atts['href'] = request.go_url(item)
-        node.itemDescription.atts['title'] = '%s %s' % (item.modified, item.description)
-        node.itemTag.tag.repeat(self.renderWebItemTag, tags)
-        node.edit.atts['href'] = '%s/%s/form' % (request.WEBLIB_URL, item.id)
-        node.delete.atts['href'] = '%s/%s?method=delete' % (request.WEBLIB_URL, item.id)
-        if item.cached:
-            node.cache.atts['href'] = '%s/%s/snapshotFrame' % (request.WEBLIB_URL, item.id)
-            node.cache.content = item.cached
+
+        if isinstance(item, weblib.WebPage):
+            node.checkbox.atts['name'] = str(item.id)
+            node.itemDescription.content = unicode(item)
+            node.itemDescription.atts['href'] = request.go_url(item)
+            node.itemDescription.atts['title'] = saxutils.quoteattr('%s %s' % (item.modified, item.description))[1:-1]
+            # TODO HACK, should fix HTMLTemplate which reject string with both single and double quote
+            node.itemTag.tag.repeat(self.renderWebItemTag, tags)
+            node.edit.atts['href'] = '%s/%s/form' % (request.WEBLIB_URL, item.id)
+            node.delete.atts['href'] = '%s/%s?method=delete' % (request.WEBLIB_URL, item.id)
+            if item.cached:
+                node.cache.atts['href'] = '%s/%s/snapshotFrame' % (request.WEBLIB_URL, item.id)
+                node.cache.content = item.cached
+            else:
+                node.cache.atts['href'] = '%s/%s/snapshot/get' % (request.WEBLIB_URL, item.id)
+                node.cache.content = 'download'
         else:
-            node.cache.atts['href'] = '%s/%s/snapshot/get' % (request.WEBLIB_URL, item.id)
-            node.cache.content = 'download'
+            node.checkbox.atts['name'] = str(item.id)
+            node.itemDescription.content = item.name
+            node.itemDescription.atts['href'] = request.tag_url(item.name)
+
 
     def renderWebItemTag(self, node, tag):
         node.content = unicode(tag)

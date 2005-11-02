@@ -1,6 +1,5 @@
-""" __init__.py [options] [args]
-    -h:     show this help
-    -q:     query querytxt
+"""
+Define Weblib data type Tag, WebPage and the container WebLibrary.
 """
 
 # TODO: how do I make sure WebPage fields is the right type? e.g. id is int.
@@ -80,6 +79,10 @@ class Tag(object):
         self.related    = {}    # relatedTag -> count, relatedTags is union of all tag for all items
                                 # Then inferRelation() would make it a list of tuples???
         self.num_item   = 0
+
+    def match(name):
+        # match name case insensitively
+        return self.name.lower() == name.lower()
 
     def __str__(self):
         return self.name
@@ -309,20 +312,6 @@ class WebLibrary(object):
         return lst
 
 
-#    def categorize(self):
-###        """ call this when finished loading """
-###
-###        # set item.tags from tagIds
-###        for item in self.webpages:
-###            tags = [self.tags.getById(id) for id in item.tagIds]
-###            item.tags = filter(None, tags)
-###            # remove tagIds to avoid duplicated data?
-#        #TODO: clean this
-#        import category
-#        # TODO: doc this. What's the structure of categories anyway??
-#        self.categories, self.uncategorized = category.buildCategory(self)
-
-
 # ----------------------------------------------------------------------
 
 def parseTag(wlib, name):
@@ -432,6 +421,11 @@ def query_tags(wlib, querytxt, select_tags):
     return result
 
 
+def query_by_tag(wlib, tag):
+    graph
+    pass
+
+
 def query(wlib, querytxt, select_tags):
     """ @return:
             cat_list, - tuple of tags -> list of items,
@@ -526,6 +520,7 @@ def queryMain(wlib):
 from pprint import pprint
 
 def testShowAll():
+    from minds.weblib import store
     wlib = store.getMainBm()
     for item in wlib.webpages:
         tags = [tag.name for tag in item.tags]
@@ -545,9 +540,9 @@ def testQuery(wlib, querytxt, tags):
 
     pprint(tags)
 
-    pprint(sortTags(related[0]+related[1]+related[2]))
+#    pprint(sortTags(related[0]+related[1]+related[2]))
 
-    for key, value in sorted(lst.items()):
+    for key, value in sorted(cat_list.items()):
         sys.stdout.write('\n' + u','.join(map(unicode, key)) + '\n')
         for item in value:
             tags = [tag.name for tag in item.tags]
@@ -570,6 +565,7 @@ def main(argv):
 
     tags = len(argv) > 1 and argv[1] or ''
 
+    from minds.weblib import store
     wlib = store.getMainBm()
     testQuery(wlib, querytxt, tags)
 

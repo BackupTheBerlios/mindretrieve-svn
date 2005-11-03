@@ -169,6 +169,12 @@
     xborder-bottom: thin solid white;
   }
 */
+  .itemHeader           {
+    font-weight: bold;
+  }
+  .itemHeaderSpacer     {
+    line-height:150%;
+  }
   .itemDescription      {
     float: left;
   }
@@ -441,7 +447,18 @@ window.addEventListener('load', onload, false);
   </tr>
 
   <!-- webItem ------------------------------------------------------------------------>
-  <tr node='rep:webItem'>
+
+  <tr node='con:headerTemplateHolder'>
+    <span node='-con:headerTemplate'>
+    <td><span class='itemHeaderSpacer'>&nbsp;</span></td>
+    <td colspan='4' valign='bottom'>
+    <span class='itemHeader' node='con:itemHeader'>Travel</span>
+    </td>
+    </span>
+  </tr>
+
+  <tr node='rep:webItem' class='altrow'>
+    <span node='-con:placeHolder'>
     <td><input node='con:checkbox' type='checkbox' name='100' /></td>
     <td>
         <span node='itemDescription' class='itemDescription'>
@@ -456,54 +473,64 @@ window.addEventListener('load', onload, false);
     <td><a node='con:edit' href='#' class='itemSmallLink'><img src='img/edit_icon.gif' /></a></td>
     <td><a node='con:delete' href='#' class='itemSmallLink'><img src='img/delete_icon.gif' /></a></td>
     <td><a node='con:cache' href='#' class='itemSmallLink'>2005-12-01</a></td>
-  </tr>
-
-  <tr node='rep:webItem' class='altrow'>
-    <td><input node='con:checkbox' type='checkbox' name='100' /></td>
-    <td>
-        <span node='itemDescription' class='itemDescription'>
-            <a href='#'>this is a long link </a>
-        </span>
-        <span node='itemTag' class='itemTag'>
-            <a href='#'>tag1</a>,
-            <a href='#'>tag2</a>
-        </span>
-    </td>
-    <td><a node='con:edit' href='#' class='itemSmallLink'><img src='img/edit_icon.gif' /></a></td>
-    <td><a node='con:delete' href='#' class='itemSmallLink'><img src='img/delete_icon.gif' /></a></td>
-    <td><a node='con:cache' href='#' class='itemSmallLink'>2005-12-01</a></td>
+    </span>
   </tr>
 
   <tr node='rep:webItem'>
+    <span node='-con:placeHolder'>
     <td><input node='con:checkbox' type='checkbox' name='100' /></td>
     <td>
         <span node='itemDescription' class='itemDescription'>
-            <a href='#'>this is a long link </a>
+            <a node='con:itemDescription' href='#' title='MindRetrieve - search your personal web'>this is a long link </a>
         </span>
-        <span node='itemTag' class='itemTag'>
-            <a href='#'>tag1</a>,
-            <a href='#'>tag2</a>
+        <span node='con:itemTag' class='itemTag'>
+            <a node='rep:tag' href='#' class='itemSmallLink'>tag1</a>
+            <span node="-sep:tag">, </span>
+            <a node='rep:tag' href='#' class='itemSmallLink'>tag2</a>
         </span>
     </td>
     <td><a node='con:edit' href='#' class='itemSmallLink'><img src='img/edit_icon.gif' /></a></td>
     <td><a node='con:delete' href='#' class='itemSmallLink'><img src='img/delete_icon.gif' /></a></td>
     <td><a node='con:cache' href='#' class='itemSmallLink'>2005-12-01</a></td>
+    </span>
   </tr>
 
   <tr node='rep:webItem' class='altrow'>
+    <span node='-con:placeHolder'>
     <td><input node='con:checkbox' type='checkbox' name='100' /></td>
     <td>
         <span node='itemDescription' class='itemDescription'>
-            <a href='#'>this is a long link </a>
+            <a node='con:itemDescription' href='#' title='MindRetrieve - search your personal web'>this is a long link </a>
         </span>
-        <span node='itemTag' class='itemTag'>
-            <a href='#'>tag1</a>,
-            <a href='#'>tag2</a>
+        <span node='con:itemTag' class='itemTag'>
+            <a node='rep:tag' href='#' class='itemSmallLink'>tag1</a>
+            <span node="-sep:tag">, </span>
+            <a node='rep:tag' href='#' class='itemSmallLink'>tag2</a>
         </span>
     </td>
     <td><a node='con:edit' href='#' class='itemSmallLink'><img src='img/edit_icon.gif' /></a></td>
     <td><a node='con:delete' href='#' class='itemSmallLink'><img src='img/delete_icon.gif' /></a></td>
     <td><a node='con:cache' href='#' class='itemSmallLink'>2005-12-01</a></td>
+    </span>
+  </tr>
+
+  <tr node='rep:webItem'>
+    <span node='-con:placeHolder'>
+    <td><input node='con:checkbox' type='checkbox' name='100' /></td>
+    <td>
+        <span node='itemDescription' class='itemDescription'>
+            <a node='con:itemDescription' href='#' title='MindRetrieve - search your personal web'>this is a long link </a>
+        </span>
+        <span node='con:itemTag' class='itemTag'>
+            <a node='rep:tag' href='#' class='itemSmallLink'>tag1</a>
+            <span node="-sep:tag">, </span>
+            <a node='rep:tag' href='#' class='itemSmallLink'>tag2</a>
+        </span>
+    </td>
+    <td><a node='con:edit' href='#' class='itemSmallLink'><img src='img/edit_icon.gif' /></a></td>
+    <td><a node='con:delete' href='#' class='itemSmallLink'><img src='img/delete_icon.gif' /></a></td>
+    <td><a node='con:cache' href='#' class='itemSmallLink'>2005-12-01</a></td>
+    </span>
   </tr>
 
   <tr class='libTableFooter'>

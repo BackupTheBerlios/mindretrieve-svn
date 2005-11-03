@@ -132,7 +132,7 @@ def queryTag(wfile, env, form, tag):
         tag = wlib.tags.getByName(name)
         all_items.append((tag, []))
         for item in result:
-            all_items.append((item, [tag]))
+            all_items.append((item, item.tags))
 
     cc_lst = wlib.getCategoryCollapseList()
     defaultTag = unicode(wlib.getDefaultTag())
@@ -186,16 +186,7 @@ def queryWebLib(wfile, env, form, tag, querytxt):
 
     folderNames = map(unicode, related)
     currentCategory = tags and unicode(tags[-1]) or ''
-    categoryList = []
-    top_nodes = wlib.category.root.children
-    for node in top_nodes:
-        subcat = []
-        tag = node.data
-        id = hasattr(tag,'id') and tag.id or -1
-        categoryList.append((id, unicode(tag), subcat))
-        for node, path in node.dfs():
-            if path:
-                subcat.append((len(path),unicode(node)))
+    categoryList = _buildCategoryList(wlib)
 
     all_items = []
     for tags, lst in sorted(items.items()):
@@ -272,6 +263,7 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
         @param webItems - list of (WebPage, [tags])
         """
 
+        # ------------------------------------------------------------------------
         # default Tag
         node.defaultTag.atts['href'] = request.tag_url([defaultTag])
         node.defaultTag.content = defaultTag
@@ -281,11 +273,10 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
         # category
         node.catList.repeat(self.renderCatItem, categoryList, currentCategory, category_collapse)
 
+        # ------------------------------------------------------------------------
         # no match message
         if not webItems and not tags_matched:
             node.web_items.omit()
-#            t = string.Template(node.no_match_msg.content)
-#            node.no_match_msg.content = t.safe_substitute(querytxt=self.querytxt)
             return
 
         node.no_match_msg.omit()
@@ -297,13 +288,17 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
             node.web_items.go_hint.address.atts['href'] = request.go_url(most_visited)
             node.web_items.go_hint.address.content = most_visited.name
 
+        # ------------------------------------------------------------------------
         # matched webItems
         if not tags_matched:
             node.web_items.tags_matched.omit()
         else:
             node.web_items.tags_matched.tag.repeat(self.renderTagsmatched, tags_matched)
         node.web_items.crumb.repeat(self.renderCrumb, folderNames)
-        node.web_items.webItem.repeat(self.renderWebItem, enumerate(webItems))
+
+        headerTemplate = node.web_items.headerTemplateHolder.headerTemplate
+        node.web_items.headerTemplateHolder.omit()
+        node.web_items.webItem.repeat(self.renderWebItem, enumerate(webItems), headerTemplate)
 
 
     def renderCrumb(self, node, item):
@@ -340,12 +335,12 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
             node.link.atts['class'] = 'CurrentCat'
 
 
-    def renderWebItem(self, node, (i, item)):
-        item, tags = item   ##todo
-        if i % 2 == 1:
-            node.atts['class'] = 'altrow'
+    def renderWebItem(self, node, item, headerTemplate):
+        i, (item, tags) = item
+        node.atts['class'] = i % 2 and 'altrow' or ''
 
         if isinstance(item, weblib.WebPage):
+            node = node.placeHolder
             node.checkbox.atts['name'] = str(item.id)
             node.itemDescription.content = unicode(item)
             node.itemDescription.atts['href'] = request.go_url(item)
@@ -361,9 +356,8 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
                 node.cache.atts['href'] = '%s/%s/snapshot/get' % (request.WEBLIB_URL, item.id)
                 node.cache.content = 'download'
         else:
-            node.checkbox.atts['name'] = str(item.id)
-            node.itemDescription.content = item.name
-            node.itemDescription.atts['href'] = request.tag_url(item.name)
+            node.placeHolder = headerTemplate
+            node.placeHolder.itemHeader.content = item.name
 
 
     def renderWebItemTag(self, node, tag):

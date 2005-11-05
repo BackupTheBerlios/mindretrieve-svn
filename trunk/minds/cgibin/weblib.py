@@ -98,24 +98,88 @@ def doTag(wfile, env, method, form, tid):
         response.redirect(wfile, request.WEBLIB_URL)
 
 
-def _buildCategoryList(wlib):
-    """
-    Build category list from wlib.category.
+class CategoryNode:
 
-    @returns list of (id, tagName, [subcat]) where subcat is (level, tagName)
+    BEGIN_SHOWING = object()
+
+    END_SHOWING = object()
+
+    def __init__(self, tagOrName):
+        self.tagName = unicode(tagOrName)
+        if isinstance(tagOrName, weblib.Tag):
+            self.id = tagOrName.id
+        else:
+            wlib = store.getMainBm()
+            tag = wlib.tags.getByName(tagOrName)
+            self.id = tag and tag.id or -1
+        self.level = 0
+        self.comma = False
+        self.showing = False
+
+
+def _buildCategoryList(wlib, showTag=None):
     """
+    Build two level category list from wlib.category.
+
+    @returns list of (catNode, [catNode])
+    """
+    lshowTag = showTag.lower()
     categoryList = []
+
     top_nodes = wlib.category.root.children
     for node in top_nodes:
-        subcat = []
-        name = node.data
-        tag = wlib.tags.getByName(name)
-        id = tag and tag.id or -1
-        categoryList.append((id, name, subcat))
+        # TODO: check showing
+        catNode = CategoryNode(node.data)
+        subcats = []
+        categoryList.append((catNode, subcats))
+
+        if catNode.tagName.lower() == lshowTag:
+            catNode.showing = True
+
+        showing_path = []
         for node, path in node.dfs():
-            if path:
-                subcat.append((len(path),unicode(node)))
+            if not path: continue
+            name = unicode(node)
+            subcat = CategoryNode(name)
+            subcat.level = len(path)
+            if not showing_path:
+                if name.lower() == lshowTag:
+                    showing_path = path[:] + [node]
+                    subcats.append(CategoryNode.BEGIN_SHOWING)
+            else:
+                if showing_path != path[:len(showing_path)]:
+                    showing_path = []
+                    subcats.append(CategoryNode.END_SHOWING)
+            subcats.append(subcat)
+        if showing_path:
+            subcats.append(CategoryNode.END_SHOWING)
+
+        # add comma up second last item
+        for i in range(len(subcats)-1):
+            n = subcats[i]
+            if n == CategoryNode.BEGIN_SHOWING or n == CategoryNode.END_SHOWING:
+                continue
+            n.comma = True
+
+    if wlib.category.uncategorized:
+        subcats = [CategoryNode(t) for t in wlib.category.uncategorized]
+        categoryList.append((CategoryNode('TAG'), subcats))
+
     return categoryList
+
+
+def n_dfs(root, nlist=None):
+    # a version of dfs that yield item numbering
+
+    if nlist is None:
+        nlist = []   # create a new initial nlist list
+
+    yield root, nlist
+    nlist.append(0)
+    for i, child in enumerate(root.children):
+        nlist[-1] = i+1
+        for x in n_dfs(child, nlist): yield x
+    nlist.pop()
 
 
 def queryTag(wfile, env, form, tag):
@@ -124,21 +188,20 @@ def queryTag(wfile, env, form, tag):
 
     tags = [tag] ## hack
     currentCategory = tags and unicode(tags[-1]) or ''
-    categoryList = _buildCategoryList(wlib)
+    categoryList = _buildCategoryList(wlib, tag)
 
     all_items = []
-    for node, path in branches.dfs():
+#    for node, path in branches.dfs():
+    for node, nlist in n_dfs(branches):
         name, result = node.data
         tag = wlib.tags.getByName(name)
-        all_items.append((tag, []))
+        prefix = '.'.join(map(str,nlist))
+        all_items.append((tag, prefix))
         for item in result:
             all_items.append((item, item.tags))
 
     cc_lst = wlib.getCategoryCollapseList()
     defaultTag = unicode(wlib.getDefaultTag())
-    if wlib.category.uncategorized:
-        subcats = [(2, unicode(t)) for t in wlib.category.uncategorized]
-        categoryList.append((-1, 'TAG', subcats))
 
     WeblibRenderer(wfile, env, '').output(
         cc_lst,
@@ -197,9 +260,6 @@ def queryWebLib(wfile, env, form, tag, querytxt):
 
     cc_lst = wlib.getCategoryCollapseList()
     defaultTag = unicode(wlib.getDefaultTag())
-    if wlib.category.uncategorized:
-        subcats = [(2, unicode(t)) for t in wlib.category.uncategorized]
-        categoryList.append((-1, 'TAG', subcats))
 
     WeblibRenderer(wfile, env, querytxt).output(
         cc_lst,
@@ -258,8 +318,6 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
         ):
         """
         @param category_collapse - list of tag ids to collapse
-        @param categoryList - list of (id, nodename, subcat) where
-            subcat is list of (level, nodename)
         @param webItems - list of (WebPage, [tags])
         """
 
@@ -297,7 +355,9 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
         node.web_items.crumb.repeat(self.renderCrumb, folderNames)
 
         headerTemplate = node.web_items.headerTemplateHolder.headerTemplate
+        # headerTemplateHolder is only a holder for headerTemplate, hide it
         node.web_items.headerTemplateHolder.omit()
+
         node.web_items.webItem.repeat(self.renderWebItem, enumerate(webItems), headerTemplate)
 
 
@@ -305,34 +365,46 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
         node.link.content = item
         node.link.atts['href'] = request.tag_url(item)
 
+
     def renderTagsmatched(self, node, tag):
         node.content = tag
         node.atts['href'] = request.tag_url(tag)
 
+
     def renderCatItem(self, node, item, currentCategory, category_collapse):
-        id, cat, subcat = item
-        collapse = id in category_collapse
-        node.toggleSwitch.atts['id'] = '@%s' % id
+        catNode, subcats = item
+        collapse = catNode.id in category_collapse
+        node.toggleSwitch.atts['id'] = '@%s' % catNode.id
         node.toggleSwitch.content = collapse and '+' or '-'
-        node.link.content = cat
-        if id > 0:
-            node.link.atts['href'] = request.tag_url(cat)
-            if cat == currentCategory:
-                node.link.atts['class'] = 'CurrentCat'
+        node.link.content = catNode.tagName
+        if catNode.id > 0:
+            node.link.atts['href'] = request.tag_url(catNode.tagName)
+            if catNode.tagName.lower() == currentCategory.lower():
+                #node.link.atts['class'] = 'CurrentCat'
+                node.atts['class'] = 'catShown'
         else:
             # otherwise it is a pseudo tag
             del node.link.atts['href']
         node.subcat.atts['class'] =  collapse and 'subcategoriesCollapsed'  or 'subcategories'
-        node.subcat.catItem.repeat(self.renderSubCat, subcat, currentCategory)
+        node.subcat.catItem.repeat(self.renderSubCat, subcats, currentCategory)
 
-    def renderSubCat(self, node, item, currentCategory):
-        level, name = item
-        if level > 1:
-            node.atts['class'] = 'SubCat2'
-        node.link.content = name
-        node.link.atts['href'] = request.tag_url(name)
-        if name == currentCategory:
-            node.link.atts['class'] = 'CurrentCat'
+
+    def renderSubCat(self, node, catNode, currentCategory):
+        if catNode == CategoryNode.BEGIN_SHOWING:
+            node.omittags()
+            node.link.omittags()
+            node.link.raw="<span class='catShown'>"
+        elif catNode == CategoryNode.END_SHOWING:
+            node.omittags()
+            node.link.omittags()
+            node.link.raw='</span>'
+        else:
+            if catNode.level > 1:
+                node.atts['class'] = 'SubCat2'
+            node.link.content = catNode.tagName + (catNode.comma and ',' or '')
+            node.link.atts['href'] = request.tag_url(catNode.tagName)
+            if catNode.tagName.lower() == currentCategory.lower():
+                node.link.atts['class'] = 'CurrentCat'
 
 
     def renderWebItem(self, node, item, headerTemplate):
@@ -357,7 +429,9 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
                 node.cache.content = 'download'
         else:
             node.placeHolder = headerTemplate
-            node.placeHolder.itemHeader.content = item.name
+            node.placeHolder.prefix.content = tags
+            node.placeHolder.itemHeader.content = unicode(item)
+            node.placeHolder.itemHeader.atts['href'] = request.tag_url([item])
 
 
     def renderWebItemTag(self, node, tag):

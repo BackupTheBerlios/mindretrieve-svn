@@ -62,6 +62,8 @@ class Node(object):
 
 
     def __cmp__(self, other):
+        if not isinstance(other, Node):
+            return -1
         if self.data == other.data:
             return cmp(self.children, other.children)
         else:

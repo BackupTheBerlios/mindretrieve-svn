@@ -23,7 +23,7 @@
      ------------------------------------------------------------------------
   */
   #categorytPane        {
-    width: 15em;
+    width: 16em;
     padding: 0.2cm;
     border: thin solid #777;
   }
@@ -65,7 +65,8 @@
   }
   #categorytPane .SubCat1 {
     display: inline;
-    margin-right: 0.3em;
+    xmargin-left: 0.3em;
+    xmargin-right: 0.3em;
     font-size: 95%;
     color: #000;
   }
@@ -80,11 +81,20 @@
   #categorytPane .CurrentCat {
     padding: 0;
     font-weight: bold;
-    xtext-decoration: underline;
-    xbackground-color: #f8f8f8;
-    border: thin outset #777;
+    Xborder: thin outset #777;
     padding-left: 0.2em;
     padding-right: 0.2em;
+  }
+
+  #categorytPane .catShown  {
+    padding-top: 0.5ex;
+    padding-bottom: 0.5ex;
+    line-height:150%;
+    background-color: #fc9;
+  }
+  #categorytPane .catShown a {
+    color: red;
+    text-decloration: underline;
   }
 
   /* the color of CategorySubItems is control via <a>?? */
@@ -97,6 +107,7 @@
   #categorytPane .SubCat2 a   {
     color: #777;
   }
+
 
   #organizeButton {
     font-size: 85%;
@@ -125,6 +136,8 @@
 
   .libTable     a       { text-decoration: none; }
   .libTable     a:hover { text-decoration: underline; }
+  .libTable .itemHeader a { color:black; }
+
 
   .libTableHeader       {
     background-color: #ccc;
@@ -394,9 +407,11 @@ window.addEventListener('load', onload, false);
     <a node='con:toggleSwitch' id='@3' class='toggleSwitch' href='#'>-</a><span class='MainCat'><a node='con:link' href='#'>MainCat</a></span><br />
     <span node='con:subcat' class='subcategories'>
     <li node='rep:catItem' class='SubCat1'><a node='con:link' href='#'>Sub 1</a></li>
-    <li node='rep:catItem' class='SubCat1'><a node='con:link' href='#'>Sub 2</a></li>
+<span style='border: thin outset #777;background-color1:#eee;font-size:120%;font-weight:bold;color:red'>X
+    <li node='rep:catItem' class='SubCat1'><a node='con:link' href='#' class1='CurrentCat'>Sub 2</a></li>
     <li node='rep:catItem' class='SubCat2'><a node='con:link' href='#'>Sub 21</a></li>
-    <li node='rep:catItem' class='SubCat2'><a node='con:link' href='#' class='CurrentCat'>sub 22</a></li>
+    <li node='rep:catItem' class='SubCat2'><a node='con:link' href='#'>sub 22</a></li>
+</span>
     <li node='rep:catItem' class='SubCat1'><a node='con:link' href='#'>Sub 3</a></li>
     </span>
   </ul>
@@ -452,7 +467,8 @@ window.addEventListener('load', onload, false);
     <span node='-con:headerTemplate'>
     <td><span class='itemHeaderSpacer'>&nbsp;</span></td>
     <td colspan='4' valign='bottom'>
-    <span class='itemHeader' node='con:itemHeader'>Travel</span>
+        <span node='con:prefix' class='itemHeader'>1</span>
+        <span class='itemHeader'><a node='con:itemHeader' href='#'>Travel</a></span>
     </td>
     </span>
   </tr>

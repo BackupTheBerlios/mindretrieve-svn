@@ -100,9 +100,9 @@ def doTag(wfile, env, method, form, tid):
 
 class CategoryNode:
 
-    BEGIN_SHOWING = object()
+    BEGIN_HIGHLIGHT = object()
 
-    END_SHOWING = object()
+    END_HIGHLIGHT = object()
 
     def __init__(self, tagOrName):
         self.tagName = unicode(tagOrName)
@@ -114,50 +114,50 @@ class CategoryNode:
             self.id = tag and tag.id or -1
         self.level = 0
         self.comma = False
-        self.showing = False
+        self.highlight = False
 
 
-def _buildCategoryList(wlib, showTag=None):
+def _buildCategoryList(wlib, selectTag=''):
     """
     Build two level category list from wlib.category.
 
     @returns list of (catNode, [catNode])
     """
-    lshowTag = showTag.lower()
+    lselectTag = selectTag.lower()
     categoryList = []
 
     top_nodes = wlib.category.root.children
     for node in top_nodes:
-        # TODO: check showing
+        # TODO: check highlight
         catNode = CategoryNode(node.data)
         subcats = []
         categoryList.append((catNode, subcats))
 
-        if catNode.tagName.lower() == lshowTag:
-            catNode.showing = True
+        if catNode.tagName.lower() == lselectTag:
+            catNode.highlight = True
 
-        showing_path = []
+        highlight_path = []
         for node, path in node.dfs():
             if not path: continue
             name = unicode(node)
             subcat = CategoryNode(name)
             subcat.level = len(path)
-            if not showing_path:
-                if name.lower() == lshowTag:
-                    showing_path = path[:] + [node]
-                    subcats.append(CategoryNode.BEGIN_SHOWING)
+            if not highlight_path:
+                if name.lower() == lselectTag:
+                    highlight_path = path[:] + [node]
+                    subcats.append(CategoryNode.BEGIN_HIGHLIGHT)
             else:
-                if showing_path != path[:len(showing_path)]:
-                    showing_path = []
-                    subcats.append(CategoryNode.END_SHOWING)
+                if highlight_path != path[:len(highlight_path)]:
+                    highlight_path = []
+                    subcats.append(CategoryNode.END_HIGHLIGHT)
             subcats.append(subcat)
-        if showing_path:
-            subcats.append(CategoryNode.END_SHOWING)
+        if highlight_path:
+            subcats.append(CategoryNode.END_HIGHLIGHT)
 
         # add comma up second last item
         for i in range(len(subcats)-1):
             n = subcats[i]
-            if n == CategoryNode.BEGIN_SHOWING or n == CategoryNode.END_SHOWING:
+            if n == CategoryNode.BEGIN_HIGHLIGHT or n == CategoryNode.END_HIGHLIGHT:
                 continue
             n.comma = True
 
@@ -209,7 +209,6 @@ def queryTag(wfile, env, form, tag):
         categoryList,
         None,
         [],
-        [],
         currentCategory,
         all_items)
 
@@ -238,8 +237,6 @@ def queryWebLib(wfile, env, form, tag, querytxt):
 ##        related  = [t for score,t in related[0]] + ['c'] + \
 ##            [t for score, t in related[1]] + ['r'] + \
 ##            [t for score, t in related[2]]
-    # TODO: clean up what is related???
-    related = []
 
     # quick jump?
     if go_direct and most_visited:
@@ -247,7 +244,6 @@ def queryWebLib(wfile, env, form, tag, querytxt):
         response.redirect(wfile, most_visited.url)
         return
 
-    folderNames = map(unicode, related)
     currentCategory = tags and unicode(tags[-1]) or ''
     categoryList = _buildCategoryList(wlib)
 
@@ -266,7 +262,6 @@ def queryWebLib(wfile, env, form, tag, querytxt):
         defaultTag,
         categoryList,
         most_visited,
-        folderNames,
         tags_matched,
         currentCategory,
         all_items)
@@ -290,8 +285,6 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
                             con:link
     con:no_match_msg
     con:web_items
-            rep:crumb
-                    con:link
             con:go_hint
                     con:address
             con:tags_matched
@@ -311,7 +304,6 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
         defaultTag,
         categoryList,
         most_visited,
-        folderNames,
         tags_matched,
         currentCategory,
         webItems,
@@ -326,7 +318,7 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
         node.defaultTag.atts['href'] = request.tag_url([defaultTag])
         node.defaultTag.content = defaultTag
         if currentCategory == defaultTag:
-            node.defaultTag.atts['class'] = 'CurrentCat'
+            node.defaultTag.atts['class'] = 'highlight'
 
         # category
         node.catList.repeat(self.renderCatItem, categoryList, currentCategory, category_collapse)
@@ -352,18 +344,12 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
             node.web_items.tags_matched.omit()
         else:
             node.web_items.tags_matched.tag.repeat(self.renderTagsmatched, tags_matched)
-        node.web_items.crumb.repeat(self.renderCrumb, folderNames)
 
         headerTemplate = node.web_items.headerTemplateHolder.headerTemplate
         # headerTemplateHolder is only a holder for headerTemplate, hide it
         node.web_items.headerTemplateHolder.omit()
 
         node.web_items.webItem.repeat(self.renderWebItem, enumerate(webItems), headerTemplate)
-
-
-    def renderCrumb(self, node, item):
-        node.link.content = item
-        node.link.atts['href'] = request.tag_url(item)
 
 
     def renderTagsmatched(self, node, tag):
@@ -380,8 +366,7 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
         if catNode.id > 0:
             node.link.atts['href'] = request.tag_url(catNode.tagName)
             if catNode.tagName.lower() == currentCategory.lower():
-                #node.link.atts['class'] = 'CurrentCat'
-                node.atts['class'] = 'catShown'
+                node.atts['class'] = 'highlight'
         else:
             # otherwise it is a pseudo tag
             del node.link.atts['href']
@@ -390,11 +375,11 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
 
 
     def renderSubCat(self, node, catNode, currentCategory):
-        if catNode == CategoryNode.BEGIN_SHOWING:
+        if catNode == CategoryNode.BEGIN_HIGHLIGHT:
             node.omittags()
             node.link.omittags()
-            node.link.raw="<span class='catShown'>"
-        elif catNode == CategoryNode.END_SHOWING:
+            node.link.raw="<span class='highlight'>"
+        elif catNode == CategoryNode.END_HIGHLIGHT:
             node.omittags()
             node.link.omittags()
             node.link.raw='</span>'
@@ -404,7 +389,7 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
             node.link.content = catNode.tagName + (catNode.comma and ',' or '')
             node.link.atts['href'] = request.tag_url(catNode.tagName)
             if catNode.tagName.lower() == currentCategory.lower():
-                node.link.atts['class'] = 'CurrentCat'
+                node.link.atts['class'] = 'highlight'
 
 
     def renderWebItem(self, node, item, headerTemplate):

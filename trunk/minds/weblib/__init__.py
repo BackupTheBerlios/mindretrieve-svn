@@ -80,9 +80,9 @@ class Tag(object):
                                 # Then inferRelation() would make it a list of tuples???
         self.num_item   = 0
 
-    def match(name):
+    def match(self, tagOrName):
         # match name case insensitively
-        return self.name.lower() == name.lower()
+        return self.name.lower() == unicode(tagOrName).lower()
 
     def __str__(self):
         return self.name

@@ -98,7 +98,7 @@ def doTag(wfile, env, method, form, tid):
         response.redirect(wfile, request.WEBLIB_URL)
 
 
-class CategoryNode:
+class CategoryNode(object):
 
     BEGIN_HIGHLIGHT = object()
 
@@ -168,7 +168,18 @@ def _buildCategoryList(wlib, selectTag=''):
     return categoryList
 
 
-def n_dfs(root, nlist=None):
+class WebItemNode(object):
+    def __init__(self, webitem):
+        self.webitem = webitem
+
+
+class WebItemTagNode(object):
+    def __init__(self, tag):
+        self.tag = tag
+        self.prefix = ''
+        self.suffix = ''
+
+def _n_dfs(root, nlist=None):
     # a version of dfs that yield item numbering
 
     if nlist is None:
@@ -182,35 +193,37 @@ def n_dfs(root, nlist=None):
     nlist.pop()
 
 
-def queryTag(wfile, env, form, tag):
-    wlib = store.getMainBm()
-    branches = query_wlib.query_by_tag(wlib, tag)
-
-    tags = [tag] ## hack
-    currentCategory = tags and unicode(tags[-1]) or ''
-    categoryList = _buildCategoryList(wlib, tag)
-
-    all_items = []
-#    for node, path in branches.dfs():
-    for node, nlist in n_dfs(branches):
+def _query_by_tag(wlib, select_tag):
+    webItems = []
+    branches = query_wlib.query_by_tag(wlib, select_tag)
+    for node, nlist in _n_dfs(branches):
         name, result = node.data
         tag = wlib.tags.getByName(name)
-        prefix = '.'.join(map(str,nlist))
-        all_items.append((tag, prefix))
+        tagNode = WebItemTagNode(tag)
+        tagNode.prefix = '.'.join(map(str,nlist))
+        webItems.append(tagNode)
         for item in result:
-            all_items.append((item, item.tags))
+            webItems.append(WebItemNode(item))
+    return webItems
 
+
+def queryTag(wfile, env, form, select_tag):
+    wlib = store.getMainBm()
+
+    # category pane
+    categoryList = _buildCategoryList(wlib, select_tag)
     cc_lst = wlib.getCategoryCollapseList()
-    defaultTag = unicode(wlib.getDefaultTag())
+
+    # webitem pane
+    webItems = _query_by_tag(wlib, select_tag)
 
     WeblibRenderer(wfile, env, '').output(
         cc_lst,
-        defaultTag,
+        wlib.getDefaultTag(),
         categoryList,
         None,
-        [],
-        currentCategory,
-        all_items)
+        unicode(select_tag),
+        webItems)
 
 
 
@@ -222,21 +235,9 @@ def queryWebLib(wfile, env, form, tag, querytxt):
 
     wlib = store.getMainBm()
     tags, _ = weblib.parseTags(wlib, tag)
-    items, related, most_visited = weblib.query(wlib, querytxt, tags)
-    if querytxt:
-        tags_matched = weblib.query_tags(wlib, querytxt, tags)
-        tags_matched = [t.name for t in tags_matched]
-    else:
-        tags_matched = ()
 
-    ##related hack
-    parents = []
-##    print >>sys.stderr, related
-##    if related and hasattr(related, '__len__'):
-##        parents = [t.tag for score,t in related[0]]
-##        related  = [t for score,t in related[0]] + ['c'] + \
-##            [t for score, t in related[1]] + ['r'] + \
-##            [t for score, t in related[2]]
+    # query
+    items, related, most_visited = weblib.query(wlib, querytxt, tags)
 
     # quick jump?
     if go_direct and most_visited:
@@ -244,27 +245,31 @@ def queryWebLib(wfile, env, form, tag, querytxt):
         response.redirect(wfile, most_visited.url)
         return
 
+    # category pane
+    cc_lst = wlib.getCategoryCollapseList()
     currentCategory = tags and unicode(tags[-1]) or ''
     categoryList = _buildCategoryList(wlib)
 
-    all_items = []
-    for tags, lst in sorted(items.items()):
-        tags = sets.Set(tags).difference(parents)
-        for l in lst:
-            all_items.append((l,tags))
-            tags = ()
+    # webitem pane
+    webItems = []
+    if querytxt:
+        tags_matched = weblib.query_tags(wlib, querytxt, tags)
+        for tag in tags_matched:
+            node = WebItemTagNode(tag)
+            node.suffix = '...'
+            webItems.append(node)
 
-    cc_lst = wlib.getCategoryCollapseList()
-    defaultTag = unicode(wlib.getDefaultTag())
+    for tags, lst in sorted(items.items()):
+        for l in lst:
+            webItems.append(WebItemNode(l))
 
     WeblibRenderer(wfile, env, querytxt).output(
         cc_lst,
-        defaultTag,
+        wlib.getDefaultTag(),
         categoryList,
         most_visited,
-        tags_matched,
         currentCategory,
-        all_items)
+        webItems)
 
 
 
@@ -287,8 +292,6 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
     con:web_items
             con:go_hint
                     con:address
-            con:tags_matched
-                    rep:tag
             rep:webItem
                     con:checkbox
                     con:itemDescription
@@ -304,20 +307,20 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
         defaultTag,
         categoryList,
         most_visited,
-        tags_matched,
         currentCategory,
         webItems,
         ):
         """
         @param category_collapse - list of tag ids to collapse
+        @param defaultTag - a Tag (e.g. inbox)
         @param webItems - list of (WebPage, [tags])
         """
 
         # ------------------------------------------------------------------------
         # default Tag
         node.defaultTag.atts['href'] = request.tag_url([defaultTag])
-        node.defaultTag.content = defaultTag
-        if currentCategory == defaultTag:
+        node.defaultTag.content = unicode(defaultTag)
+        if defaultTag.match(currentCategory):
             node.defaultTag.atts['class'] = 'highlight'
 
         # category
@@ -325,7 +328,7 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
 
         # ------------------------------------------------------------------------
         # no match message
-        if not webItems and not tags_matched:
+        if not webItems:
             node.web_items.omit()
             return
 
@@ -338,23 +341,12 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
             node.web_items.go_hint.address.atts['href'] = request.go_url(most_visited)
             node.web_items.go_hint.address.content = most_visited.name
 
-        # ------------------------------------------------------------------------
-        # matched webItems
-        if not tags_matched:
-            node.web_items.tags_matched.omit()
-        else:
-            node.web_items.tags_matched.tag.repeat(self.renderTagsmatched, tags_matched)
-
+        # webitems
         headerTemplate = node.web_items.headerTemplateHolder.headerTemplate
         # headerTemplateHolder is only a holder for headerTemplate, hide it
         node.web_items.headerTemplateHolder.omit()
 
         node.web_items.webItem.repeat(self.renderWebItem, enumerate(webItems), headerTemplate)
-
-
-    def renderTagsmatched(self, node, tag):
-        node.content = tag
-        node.atts['href'] = request.tag_url(tag)
 
 
     def renderCatItem(self, node, item, currentCategory, category_collapse):
@@ -393,30 +385,32 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
 
 
     def renderWebItem(self, node, item, headerTemplate):
-        i, (item, tags) = item
+        i, webItemNode = item
         node.atts['class'] = i % 2 and 'altrow' or ''
 
-        if isinstance(item, weblib.WebPage):
+        if isinstance(webItemNode, WebItemNode):
+            webitem = webItemNode.webitem
             node = node.placeHolder
-            node.checkbox.atts['name'] = str(item.id)
-            node.itemDescription.content = unicode(item)
-            node.itemDescription.atts['href'] = request.go_url(item)
-            node.itemDescription.atts['title'] = saxutils.quoteattr('%s %s' % (item.modified, item.description))[1:-1]
+            node.checkbox.atts['name'] = str(webitem.id)
+            node.itemDescription.content = unicode(webitem)
+            node.itemDescription.atts['href'] = request.go_url(webitem)
+            node.itemDescription.atts['title'] = saxutils.quoteattr('%s %s' % (webitem.modified, webitem.description))[1:-1]
             # TODO HACK, should fix HTMLTemplate which reject string with both single and double quote
-            node.itemTag.tag.repeat(self.renderWebItemTag, tags)
-            node.edit.atts['href'] = '%s/%s/form' % (request.WEBLIB_URL, item.id)
-            node.delete.atts['href'] = '%s/%s?method=delete' % (request.WEBLIB_URL, item.id)
-            if item.cached:
-                node.cache.atts['href'] = '%s/%s/snapshotFrame' % (request.WEBLIB_URL, item.id)
-                node.cache.content = item.cached
+            node.itemTag.tag.repeat(self.renderWebItemTag, webitem.tags)
+            node.edit.atts['href'] = '%s/%s/form' % (request.WEBLIB_URL, webitem.id)
+            node.delete.atts['href'] = '%s/%s?method=delete' % (request.WEBLIB_URL, webitem.id)
+            if webitem.cached:
+                node.cache.atts['href'] = '%s/%s/snapshotFrame' % (request.WEBLIB_URL, webitem.id)
+                node.cache.content = webitem.cached
             else:
-                node.cache.atts['href'] = '%s/%s/snapshot/get' % (request.WEBLIB_URL, item.id)
+                node.cache.atts['href'] = '%s/%s/snapshot/get' % (request.WEBLIB_URL, webitem.id)
                 node.cache.content = 'download'
         else:
+            tag = webItemNode.tag
             node.placeHolder = headerTemplate
-            node.placeHolder.prefix.content = tags
-            node.placeHolder.itemHeader.content = unicode(item)
-            node.placeHolder.itemHeader.atts['href'] = request.tag_url([item])
+            node.placeHolder.prefix.content = webItemNode.prefix
+            node.placeHolder.itemHeader.content = unicode(tag) + webItemNode.suffix
+            node.placeHolder.itemHeader.atts['href'] = request.tag_url([tag])
 
 
     def renderWebItemTag(self, node, tag):

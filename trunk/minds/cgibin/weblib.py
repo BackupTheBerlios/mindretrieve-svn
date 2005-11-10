@@ -58,8 +58,10 @@ def main(rfile, wfile, env):
 
         if tag:
             queryTag(wfile, env, form, tag)
-        else:
+        elif querytxt:
             queryWebLib(wfile, env, form, tag, querytxt)
+        else:
+            queryRoot(wfile, env, form)
 
 
 def doGoResource(wfile, rid, path):
@@ -98,7 +100,10 @@ def doTag(wfile, env, method, form, tid):
         response.redirect(wfile, request.WEBLIB_URL)
 
 
+# ------------------------------------------------------------------------
+
 class CategoryNode(object):
+    """ An object to be shown on the category pane """
 
     BEGIN_HIGHLIGHT = object()
 
@@ -115,6 +120,20 @@ class CategoryNode(object):
         self.level = 0
         self.comma = False
         self.highlight = False
+
+
+class WebItemNode(object):
+    """ An object to be shown on the web item pane """
+    def __init__(self, webitem):
+        self.webitem = webitem
+
+
+class WebItemTagNode(object):
+    """ An object to be shown on the web item pane """
+    def __init__(self, tag):
+        self.tag = tag
+        self.prefix = ''
+        self.suffix = ''
 
 
 def _buildCategoryList(wlib, selectTag=''):
@@ -163,21 +182,12 @@ def _buildCategoryList(wlib, selectTag=''):
 
     if wlib.category.uncategorized:
         subcats = [CategoryNode(t) for t in wlib.category.uncategorized]
+        for subcat in subcats[:-1]:
+            subcat.comma = True
         categoryList.append((CategoryNode('TAG'), subcats))
 
     return categoryList
 
-
-class WebItemNode(object):
-    def __init__(self, webitem):
-        self.webitem = webitem
-
-
-class WebItemTagNode(object):
-    def __init__(self, tag):
-        self.tag = tag
-        self.prefix = ''
-        self.suffix = ''
 
 def _n_dfs(root, nlist=None):
     # a version of dfs that yield item numbering
@@ -189,7 +199,7 @@ def _n_dfs(root, nlist=None):
     nlist.append(0)
     for i, child in enumerate(root.children):
         nlist[-1] = i+1
-        for x in n_dfs(child, nlist): yield x
+        for x in _n_dfs(child, nlist): yield x
     nlist.pop()
 
 
@@ -221,10 +231,8 @@ def queryTag(wfile, env, form, select_tag):
         cc_lst,
         wlib.getDefaultTag(),
         categoryList,
-        None,
         unicode(select_tag),
         webItems)
-
 
 
 def queryWebLib(wfile, env, form, tag, querytxt):
@@ -237,12 +245,13 @@ def queryWebLib(wfile, env, form, tag, querytxt):
     tags, _ = weblib.parseTags(wlib, tag)
 
     # query
-    items, related, most_visited = weblib.query(wlib, querytxt, tags)
+    result = query_wlib.query(wlib, querytxt, tags)
 
     # quick jump?
-    if go_direct and most_visited:
-        wlib.visit(most_visited)
-        response.redirect(wfile, most_visited.url)
+    if go_direct and result:
+        top_item = result[0][0]
+        wlib.visit(top_item)
+        response.redirect(wfile, top_item.url)
         return
 
     # category pane
@@ -253,24 +262,40 @@ def queryWebLib(wfile, env, form, tag, querytxt):
     # webitem pane
     webItems = []
     if querytxt:
-        tags_matched = weblib.query_tags(wlib, querytxt, tags)
+        tags_matched = query_wlib.query_tags(wlib, querytxt, tags)
         for tag in tags_matched:
             node = WebItemTagNode(tag)
             node.suffix = '...'
             webItems.append(node)
 
-    for tags, lst in sorted(items.items()):
-        for l in lst:
-            webItems.append(WebItemNode(l))
+    for item,_ in result:
+        webItems.append(WebItemNode(item))
 
     WeblibRenderer(wfile, env, querytxt).output(
         cc_lst,
         wlib.getDefaultTag(),
         categoryList,
-        most_visited,
         currentCategory,
         webItems)
 
+
+def queryRoot(wfile, env, form):
+    wlib = store.getMainBm()
+
+    # category pane
+    cc_lst = wlib.getCategoryCollapseList()
+    currentCategory = ''
+    categoryList = _buildCategoryList(wlib)
+
+    # webitem pane
+    webItems = map(WebItemNode, query_wlib.queryRoot(wlib))
+
+    WeblibRenderer(wfile, env, '').output(
+        cc_lst,
+        wlib.getDefaultTag(),
+        categoryList,
+        currentCategory,
+        webItems)
 
 
 # ----------------------------------------------------------------------
@@ -306,7 +331,6 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
         category_collapse,
         defaultTag,
         categoryList,
-        most_visited,
         currentCategory,
         webItems,
         ):
@@ -322,6 +346,9 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
         node.defaultTag.content = unicode(defaultTag)
         if defaultTag.match(currentCategory):
             node.defaultTag.atts['class'] = 'highlight'
+# Actually need to make sure it is not doing search
+#        if not currentCategory:
+#            node.rootTag.atts['class'] = 'highlight'
 
         # category
         node.catList.repeat(self.renderCatItem, categoryList, currentCategory, category_collapse)
@@ -331,15 +358,8 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
         if not webItems:
             node.web_items.omit()
             return
-
-        node.no_match_msg.omit()
-
-        # most visited
-        if not most_visited:
-            node.web_items.go_hint.omit()
         else:
-            node.web_items.go_hint.address.atts['href'] = request.go_url(most_visited)
-            node.web_items.go_hint.address.content = most_visited.name
+            node.no_match_msg.omit()
 
         # webitems
         headerTemplate = node.web_items.headerTemplateHolder.headerTemplate

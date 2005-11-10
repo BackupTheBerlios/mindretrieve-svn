@@ -9,15 +9,6 @@
     width: 100%;
   }
 
-  .go_hint          {
-    margin-top: 1ex;
-    font-size: smaller;
-    color: #999;
-    float: right;
-  }
-  .go_hint a        { color: #999}
-
-
   /* ------------------------------------------------------------------------
      Category Pane
      ------------------------------------------------------------------------
@@ -418,10 +409,6 @@ window.addEventListener('load', onload, false);
 </div>
 
 <div node='con:web_items'>
-  <div id='crumb'>
-      <span node='con:go_hint' class='go_hint'>Go to <a node='con:address' href='#'>website</a>.</span>
-  </div>
-
   <form id='webpages' action='/weblib' method='GET'>
   <input id='webpages_method' type='hidden' name='method' value='' />
   <table id='libTable' width='100%' cellspacing='0' cellpadding='0' class='libTable'>

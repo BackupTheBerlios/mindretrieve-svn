@@ -1,5 +1,6 @@
 """ __init__.py [options] [args]
     -h:     show this help
+    -a:     show all
     -q:     query querytxt
     -t:     query tag
 """
@@ -19,6 +20,7 @@ import urlparse
 
 from minds.config import cfg
 from minds.util import dsv
+from minds import weblib
 from minds.weblib import util
 from minds.weblib import mhtml
 from minds.weblib import graph
@@ -105,63 +107,57 @@ def _attach_result(branches, wlib, tag_tree_index):
 
 
 def query(wlib, querytxt, select_tags):
-    """ @return:
-            cat_list, - tuple of tags -> list of items,
-            related,
-            most_visited
     """
+    @return - sorted list of (webpage, score)
+    """
+    querytxt = querytxt.lower()
     terms = _parse_terms(querytxt)
     select_tags_set = sets.Set(select_tags)
-    if not terms and not select_tags:
+    if not terms:
         return queryMain(wlib)
 
-    # if querytxt is an exact match of a tag, include it.
-    include_tag = wlib.tags.getByName(querytxt)
+    result = [] # list of (score, active_score, Webpage)
 
-    log.debug('Search terms %s tags %s', terms, select_tags)
-    cat_list = {}
-    related = sets.Set()
-    most_visited = None
     for item in wlib.webpages:
-        # filter by select_tag
+        # first filter by select_tag
         if select_tags_set and select_tags_set.difference(item.tags):
             continue
 
-        netloc = urlparse.urlparse(item.url)[1].lower()
-        if include_tag in item.tags:
-            pass
-        else:
-            q_matched = True
+        score = 0
+
+        lname = item.name.lower()
+        for w in terms:
+            if w in lname:
+                score += 10
+
+        if score == 0:
+            # Secondly check domain name
+            # Note we don't do this if name already matched
+            # We'll leave score level and let activity determine ranking.
+            lnetloc = urlparse.urlparse(item.url)[1].lower()
             for w in terms:
-                if (w not in item.name.lower()) and (w not in netloc):
-                    q_matched = False
+                if w in lnetloc:
+                    score += 1
                     break
-            if not q_matched:
-                continue
 
-            # most visited only activates with a querytxt
-            if not most_visited or item.lastused > most_visited.lastused:
-                most_visited = item
+        if score == 0:
+            continue
 
-        cat = util.diff(item.tags, select_tags)
-        cat2bookmark = cat_list.setdefault(tuple(cat),[])
-        cat2bookmark.append(item)
-        related.union_update(item.tags)
+        # add a match
+        score = score/len(terms)  # normalize score
+        r = (score, item.lastused, item)
+        result.append(r)
 
-    related = [(t.num_item, None) for t in related]
-    related = [related,[],[]]
+    result.sort(reverse=True)
+    result = [(item, (s1,s2)) for s1,s2,item in result]
+    return result
 
-    return cat_list, tuple(related), most_visited
 
-def queryMain(wlib):
-    """ @return: cat_list, related, random where
-            cat_list: tuple of tags -> list of items,
+def queryRoot(wlib):
     """
-    items = [item for item in wlib.webpages if not item.tags]
-    tags = [l for l in wlib.tags]
-    ## TODO: need clean up, also should not use private _lst
-    random_page = wlib.webpages._lst and random.choice(wlib.webpages._lst) or None
-    return {tuple(): items}, (), random_page
+    A special case to round up items with no tags
+    """
+    return [item for item in wlib.webpages if not item.tags]
 
 
 
@@ -179,32 +175,23 @@ def testShowAll():
 
 
 def testQuery(wlib, querytxt, tags):
-    tags,unknown = parseTags(wlib, tags)
+    tags,unknown = weblib.parseTags(wlib, tags)
     if unknown:
         print 'Ignore unknown tags', unknown
 
-    tags_matched = query_tags(wlib, querytxt, tags)
-    print 'Tags matched',
-    pprint(tags_matched)
+    result = query(wlib, querytxt, tags)
 
-    cat_list, related, most_visited = query(wlib, querytxt, tags)
-
-    pprint(tags)
-
-#    pprint(sortTags(related[0]+related[1]+related[2]))
-
-    for key, value in sorted(cat_list.items()):
-        sys.stdout.write('\n' + u','.join(map(unicode, key)) + '\n')
-        for item in value:
-            tags = [tag.name for tag in item.tags]
-            print '  %s (%s)' % (unicode(item), ','.join(tags))
-
-    print 'Most visited:', most_visited
+    for item, score in result:
+        tags = [tag.name for tag in item.tags]
+        print '  %s [%s] (%s)' % (unicode(item), score, ','.join(tags))
 
 
 def main(argv):
+    tags = None
     querytxt = ''
     if len(argv) <= 1:
+        pass
+    elif argv[1] == '-a':
         testShowAll()
         sys.exit(0)
     elif argv[1] == '-h':
@@ -227,8 +214,10 @@ def main(argv):
             print '..'*len(path) + name
             for item in result:
                 print u'%s  %s' % ('  '*len(path), item)
+    elif querytxt:
+        testQuery(wlib, querytxt, '')
     else:
-        testQuery(wlib, querytxt, tags)
+        pprint(queryRoot(wlib))
 
 
 if __name__ == '__main__':

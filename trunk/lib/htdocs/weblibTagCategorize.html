@@ -2,7 +2,7 @@
 <html>
 <head>
 <title>MindRetrieve - Categorize tags</title>
-<link rel="stylesheet" href="main.css" type="text/css">
+<link rel="stylesheet" href="/main.css" type="text/css">
 <style>
   .error_message {
     color:red;
@@ -178,12 +178,12 @@ tag_base['tag3'] = [5 ,'webpage3'];
 <!-- TAB HEADER -->
 <div class='tabHeader'>
 &nbsp;
-<span class='inactiveTab'><a href='/weblib.tagName'>Tag Name</a></span>
-<span class='activeTab'><a href='/weblib.categorize'>Categorize</a></span>
+<span class='inactiveTab'><a href='/weblib/tag_naming'>Tag Name</a></span>
+<span class='activeTab'><a href='/weblib/tag_categorize'>Categorize</a></span>
 </div>
 
 <!-- main content -->
-<form method='post' action='/weblib.categorize'>
+<form method='post' action='/weblib/tag_categorize'>
 <input node='con:return_url' type='hidden' name='return_url' />
 
 <table cellspacing='0' cellpadding='2'>

@@ -4,14 +4,14 @@
 <title>MindRetrieve - Configuration</title>
 <link rel="stylesheet" href="/main.css" type="text/css">
 <style>
-  .error_message { 
+  .error_message {
     color:red;
   }
   #form_table   {
-    margin-top: 4ex; 
-    margin-left: 15%; 
+    margin-top: 4ex;
+    margin-left: 15%;
     margin-right: 15%;
-    margin-bottom: 4ex; 
+    margin-bottom: 4ex;
     width: 70%;
     border: medium solid #963;
   }
@@ -19,7 +19,7 @@
     text-align: center;
     color: #fff;
     font-weight: bold;
-    background-color: #963; 
+    background-color: #963;
   }
   #form_content {
     padding-top: 1ex;
@@ -31,7 +31,7 @@
   }
   .filler       {
     line-height: 1.5ex;
-  }  
+  }
   .datatext {
     color: #696;
     margin-left: 0.5em;
@@ -62,28 +62,28 @@ function choose(opt) {
 
 <!-- form table -->
 <table id='form_table' cellspacing='0' cellpadding='0'>
-<tr><td id='form_title'>  
+<tr><td id='form_title'>
     <span style='float: right'><input id='close_form' type='checkbox' onclick='close_form()' /></span>
     <span>Organize</span>
 </td></tr>
 
 <tr><td id='form_content'>
 
-<form node='con:edit_form' id='edit_form' method='POST' action='/weblib.entryOrg'>
+<form node='con:edit_form' id='edit_form' method='POST' action='/weblib/entryOrg'>
     <input type='hidden' node='con:id_list' name='id_list' value=''/>
     <input type='hidden' node='con:return_url' name='return_url' value=''/>
 
     <table cellspacing='5'>
     <tr node='con:error'>
         <td colspan='3'><span node='con:message' class='error_message'>Please correct the error.</span></td>
-    </tr>    
+    </tr>
     <tr>
         <td colspan='3'>
             <div class='entryInfo'>Organize: <span class='datatext' node='con:form_title'>$names,...[$total entries]</span></div>
             <div class='entryInfo'>Common tags: <span class='datatext' node='con:all_tags'>$all_tags</span></div>
             <div class='entryInfo'>Other tags: <span class='datatext' node='con:some_tags'>$some_tags</span></div>
         </td>
-    </tr>    
+    </tr>
     <tr><td colspan='3' class='instructions'>Set all entries to the tags below</td></tr>
     <tr>
         <td><input node='con:set_option' id='set_option' type='radio' name='option' value='set_option' /></td>
@@ -91,7 +91,7 @@ function choose(opt) {
         <td>
             <input node='con:set_tags' type='text' name='set_tags' size='50' onchange='choose("set_option");'/>
         </td>
-    </tr>    
+    </tr>
     <tr><td colspan='3' class='instructions'>Add and/or remove tags from all entries</td></tr>
     <tr>
         <td><input node='con:add_remove_option' id='add_remove_option' type='radio' name='option' value='add_remove_option' /></td>
@@ -99,7 +99,7 @@ function choose(opt) {
         <td>
             <input node='con:add_tags' type='text' name='add_tags' size='50' onchange='choose("add_remove_option");'/>
         </td>
-    </tr>    
+    </tr>
     <tr>
         <td></td>
         <td>Remove Tags</td>
@@ -115,7 +115,7 @@ function choose(opt) {
             <input type='submit' name='action' value='OK'      />
             <input type='button' name='action' value='Cancel' onclick='close_form()' />
         </td>
-    </tr>    
+    </tr>
     </table>
 
     <!-- Script to handle posting with new tags -->

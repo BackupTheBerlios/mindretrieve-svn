@@ -11,26 +11,27 @@ import search
 import snoop
 import weblib
 import weblibEntryOrg
-import weblibCategorize
-import weblibTagName
+import weblibTagCategorize
+import weblibTagNaming
 
-cgi_registry = {
-  ''                : home,
-  '_config'         : _config,
-  '_threadpool'     : _threadpool,
-  'archive_view'    : archive_view,
-  'config'          : config,
-  'docreader'       : docreader,
-  'help'            : help,
-  'home'            : home,
-  'indexnow'        : indexnow,
-  'library'         : library,
-  'search'          : search,
-  'snoop'           : snoop,
-  'weblib'          : weblib,
-  'weblib.entryOrg' : weblibEntryOrg,
-  'weblib.categorize' : weblibCategorize,
-  'weblib.tagName'  : weblibTagName,
-}
+# list of tuple of (script_name, module)
+cgi_registry = [
+  ('/_config'              , _config),
+  ('/_threadpool'          , _threadpool),
+  ('/archive_view'         , archive_view),
+  ('/config'               , config),
+  ('/docreader'            , docreader),
+  ('/help'                 , help),
+  ('/home'                 , home),
+  ('/indexnow'             , indexnow),
+  ('/library'              , library),
+  ('/search'               , search),
+  ('/snoop'                , snoop),
+  ('/weblib/entryOrg'      , weblibEntryOrg),
+  ('/weblib/tag_categorize', weblibTagCategorize),
+  ('/weblib/tag_naming'    , weblibTagNaming),
+  ('/weblib'               , weblib),
+  ('/'                     , home),
+]
 
 

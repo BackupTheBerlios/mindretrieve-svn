@@ -280,7 +280,7 @@ function organizeSelected() {
         return;
     }
     var form = document.getElementById('webpages');
-    form.action = '/weblib.entryOrg';
+    form.action = '/weblib/entryOrg';
     var m = document.getElementById('webpages_method');
     m.value = 'GET';
     form.submit();
@@ -296,7 +296,7 @@ function deleteSelected() {
             return;
     }
     var form = document.getElementById('webpages');
-    form.action = '/weblib.entryOrg';
+    form.action = '/weblib/entryOrg';
     var m = document.getElementById('webpages_method');
     m.value = 'DELETE';
     form.submit();
@@ -363,7 +363,7 @@ window.addEventListener('load', onload, false);
 <ul>
   <ul>
     <span class='SubCat1'><a node='con:rootTag' href='/weblib?tag='>/</a></span><span class='MainCat'><a node='con:defaultTag' href='/weblib?tag='>inbox</a></span>
-    <span style='float: right'><input id='organizeButton' type='button' value='Organize' onclick='window.location="/weblib.tagName";' /></span>
+    <span style='float: right'><input id='organizeButton' type='button' value='Organize' onclick='window.location="/weblib/tag_naming";' /></span>
   </ul>
   <ul node='rep:catList'>
     <a node='con:toggleSwitch' id='@1' class='toggleSwitch' href='#'>+</a><span class='MainCat'><a node='con:link' href='#'>MainCat</a></span><br />

@@ -73,48 +73,49 @@ class AppHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         Serve a POST request.
         This is only implemented for CGI scripts.
         """
-        script_name, path_info, query_string = self._parse_cgipath(self.path)
-        if self._is_cgi(script_name):
-            self.run_cgi(script_name, path_info, query_string)
+        cgi_info = self._lookup_cgi(self.path)
+        if cgi_info:
+            self.run_cgi(cgi_info)
         else:
             self.send_error(501, "Can only POST to CGI scripts")
 
 
     def send_head(self):
         """Version of send_head that support CGI scripts"""
-        script_name, path_info, query_string = self._parse_cgipath(self.path)
-        if self._is_cgi(script_name):
-            return self.run_cgi(script_name, path_info, query_string)
+        cgi_info = self._lookup_cgi(self.path)
+        if cgi_info:
+            return self.run_cgi(cgi_info)
         else:
             return SimpleHTTPServer.SimpleHTTPRequestHandler.send_head(self)
 
 
-    def _is_cgi(self, script_name):
-        return cgibin.cgi_registry.get(script_name.lstrip('/'),None)
-
-
-    def _parse_cgipath(self, path):
+    def _lookup_cgi(self, path):
         """
-        Assume path map to a CGI. Parse the components.
+        Parse the path and Lookup CGI registry.
 
         general format of a cgi path for app_httpserver
           [/SCRIPT_NAME][/PATH_INFO]?[QUERY_STRING]
 
-        Return SCRIPT_NAME, PATH_INFO, QUERY_STRING
+        Return module, script name, PATH_INFO, QUERY_STRING or None
         """
-        path, query_string = path.find('?') >= 0 and path.rsplit('?',1) or [path,'']
-        i = path.find('/',1)
-        if i > 0:
-            script_name, path_info = path[:i], path[i:]
-        else:
-            script_name, path_info = path, ''
+        for name, mod in cgibin.cgi_registry:
+            if not path.startswith(name):
+                continue
+            path_info = path[len(name):]
+            if path_info and path_info[0] not in ['/','?']:
+                continue # not a match
+            if '?' in path_info:
+                path_info, query_string = path_info.split('?',1)
+            else:
+                query_string = ''
+            return mod, name, path_info, query_string
+        return None
 
-        return script_name, path_info, query_string
 
+    def run_cgi(self, cgi_info):
+        """ Execute a CGI script. cgi_info is the value returned from _lookup_cgi() """
 
-    def run_cgi(self, script_name, path_info, query_string):
-        """Execute a CGI script."""
-
+        mod, script_name, path_info, query_string = cgi_info
         env = self.makeEnviron(script_name, path_info, query_string)
 
         parsed_wfile = CGIFileFilter(self.wfile)
@@ -122,21 +123,15 @@ class AppHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         #don't support decoded_query in command line
         # decoded_query = query.replace('+', ' ')
 
+        # reloading good for development time
         try:
-            mod = cgibin.cgi_registry.get(script_name.lstrip('/'),None)
-            if not mod:
-                self.send_error(404, "Not found %s" % self.path)
-                return
+            reload(mod)
+        except: # todo: HACK HACK reload does not work in py2exe service version. But it is OK not to reload.
+            pass
 
-            # reloading good for development time
-            try:
-                reload(mod)
-            except: # todo: HACK HACK reload does not work in py2exe service version. But it is OK not to reload.
-                pass
-
+        try:
             mod.main(self.rfile, parsed_wfile, env)
             parsed_wfile.flush()
-
         except:
             log.exception("CGI execution error: %s" % script_name)
             if parsed_wfile.state >= parsed_wfile.SENT:

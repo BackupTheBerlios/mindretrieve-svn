@@ -2,7 +2,7 @@
 <html>
 <head>
 <title>MindRetrieve - Edit Tag Names</title>
-<link rel="stylesheet" href="main.css" type="text/css">
+<link rel="stylesheet" href="/main.css" type="text/css">
 <style>
   .error_message {
     color:red;
@@ -95,13 +95,13 @@ tag_base['@3'] = [5 ,'webpage3'];
 <!-- TAB HEADER -->
 <div class='tabHeader'>
 &nbsp;
-<span class='activeTab'><a href='/weblib.tagName'>Tag Name</a></span>
-<span class='inactiveTab'><a href='/weblib.categorize'>Categorize</a></span>
+<span class='activeTab'><a href='/weblib/tag_naming'>Tag Name</a></span>
+<span class='inactiveTab'><a href='/weblib/tag_categorize'>Categorize</a></span>
 </div>
 
 <!-- main content -->
 
-<form id='tagForm' method='POST' action='/weblib.tagName'>
+<form id='tagForm' method='POST' action='/weblib/tag_naming'>
 <input node='con:return_url' type='hidden' name='return_url' />
 
 <p><select id='tags' name='tags' size='20' multiple='true'>

@@ -34,8 +34,12 @@ class TestWeblibCGI(unittest.TestCase):
     msg = (p == no_pattern) and 'unexpected pattern found' or 'pattern missing'
     self.assert_(not p,
         'failed:%s\n  %s: %s%s' % (path, msg, p,
-            patterns_tester.showFile(buf, 'out', 1024),
+            patterns_tester.showFile(buf, 'out', 10240),
     ))
+
+
+  # ------------------------------------------------------------------------
+  # /weblib
 
   def test_weblib(self):
     self.checkPathForPattern("/weblib", [
@@ -81,14 +85,9 @@ class TestWeblibCGI(unittest.TestCase):
     )
 
 
-  def test_GET_form_new(self):
-    self.checkPathForPattern("/weblib/_", [
-        '<html>', 'Add Entry', '</html>',
-    ])
-    self.checkPathForPattern("/weblib/_/form", [
-        '<html>', 'Add Entry', '</html>',
-    ])
 
+  # ------------------------------------------------------------------------
+  # weblib form
 
   def test_GET_form(self):
     self.checkPathForPattern("/weblib/4", [
@@ -99,12 +98,33 @@ class TestWeblibCGI(unittest.TestCase):
     ])
 
 
+  def test_GET_form_new(self):
+    self.checkPathForPattern("/weblib/_", [
+        '<html>', 'Add Entry', '</html>',
+    ])
+    self.checkPathForPattern("/weblib/_/form", [
+        '<html>', 'Add Entry', '</html>',
+    ])
+
+
+  def test_GET_form_URL_match(self):
+    # note URL http://en.wikipedia.org/wiki/Moscow_Kremlin match id 5.
+    # This will be an edit.
+    self.checkPathForPattern("/weblib/_?url=http://en.wikipedia.org/wiki/Moscow_Kremlin", [
+        '<html>',
+        'Edit Entry',
+        '<form action="/weblib/5"',     # will PUT to id 5 instead of _!
+        'English, Kremlin',             # some tag used by id 5
+        '</html>',
+    ])
+
+
   def test_PUT_form_new(self):
     wlib = store.getMainBm()
     self.assertEqual(len(wlib.webpages),5)
 
     # PUT new form
-    self.checkPathForPattern("/weblib/_?method=put&filled=1&u=http%3A%2F%2Fwww.mindretrieve.net%2F&t=Test%20Title", [
+    self.checkPathForPattern("/weblib/_?method=put&filled=1&url=http%3A%2F%2Fwww.mindretrieve.net%2F&title=Test%20Title", [
         'HTTP/1.0 302 Found',
         'location: /weblib',
     ])
@@ -120,7 +140,7 @@ class TestWeblibCGI(unittest.TestCase):
     self.assertEqual(item.name, 'MindRetrieve - Search Your Personal Web')
 
     # PUT form
-    self.checkPathForPattern("/weblib/1?method=put&filled=1&u=http%3A%2F%2Fwww.mindretrieve.net%2F&t=Test%20Title", [
+    self.checkPathForPattern("/weblib/1?method=put&filled=1&url=http%3A%2F%2Fwww.mindretrieve.net%2F&title=Test%20Title", [
         'HTTP/1.0 302 Found',
         'location: /weblib',
     ])
@@ -131,8 +151,12 @@ class TestWeblibCGI(unittest.TestCase):
     self.assertEqual(item.name, 'Test Title')
 
 
+
+  # ------------------------------------------------------------------------
+  # entryOrg
+
   def test_GET_entryOrg(self):
-    self.checkPathForPattern("/weblib.entryOrg", [
+    self.checkPathForPattern("/weblib/entryOrg", [
         '<html>', 'Organize', '</html>',
     ])
 
@@ -141,13 +165,29 @@ class TestWeblibCGI(unittest.TestCase):
     self.fail()
 
 
-  def test_GET_categorize(self):
-    self.checkPathForPattern("/weblib.categorize", [
+  # ------------------------------------------------------------------------
+  # tag_categorize
+
+  def test_GET_tag_categorize(self):
+    self.checkPathForPattern("/weblib/tag_categorize", [
         '<html>', 'Tag Categories', '</html>',
     ])
 
 
-  def test_PUT_categorize(self):
+  def test_PUT_tag_categorize(self):
+    self.fail()
+
+
+  # ------------------------------------------------------------------------
+  # tag_naming
+
+  def test_GET_tag_naming(self):
+    self.checkPathForPattern("/weblib/tag_naming", [
+        '<html>', 'Edit Tag Names', '</html>',
+    ])
+
+
+  def test_PUT_tag_naming(self):
     self.fail()
 
 

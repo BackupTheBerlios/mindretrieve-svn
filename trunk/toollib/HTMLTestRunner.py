@@ -1,5 +1,25 @@
+"""
+A TestRunner for use with the Python unit testing framework. It
+generates a HTML report to show the result at a glance.
+
+The simplest way to use this is to invoke its main method. E.g.
+
+    import unittest
+    import HTMLTestRunner
+
+    ... define your tests ...
+
+    if __name__ == '__main__':
+        HTMLTestRunner.main()
+
+You can also instantiates a HTMLTestRunner object for finer
+control.
+"""
 __author__ = "Wai Yip Tung"
 __version__ = "0.5"
+
+# TODO: allow link to custom CSS
+# TODO: color stderr
 
 import datetime
 import string
@@ -8,9 +28,6 @@ import sys
 import time
 import unittest
 from xml.sax import saxutils
-
-# TODO: allow link to custom CSS
-# TODO: color stderr
 
 TestResult = unittest.TestResult
 
@@ -27,7 +44,7 @@ class OutputRedirector(object):
 
     def flush(self):
         self.fp.flush()
-        
+
 # The redirectors below is used to capture output during testing. Output
 # sent to sys.stdout and sys.stderr are automatically captured. However
 # in some cases sys.stdout is already cached before HTMLTestRunner is
@@ -57,9 +74,9 @@ body        { font-family: verdana, arial, helvetica, sans-serif; font-size: 80%
 table       { font-size: 100%; }
 pre         { }
 h1          { }
-.heading    { 
-    margin-top: 0ex; 
-    margin-bottom: 1ex; 
+.heading    {
+    margin-top: 0ex;
+    margin-bottom: 1ex;
 }
 #show_detail_line {
     margin-top: 3ex;
@@ -74,8 +91,8 @@ h1          { }
     border: thin solid #777;
     padding: 2px;
 }
-#header_row { 
-    font-weight: bold; 
+#header_row {
+    font-weight: bold;
     color: white;
     background-color: #777;
 }
@@ -175,9 +192,9 @@ function showOutput(id, name) {
 <h1>$description</h1>
 <p class='heading'><strong>Time:</strong> $time</p>
 <p class='heading'><strong>Status:</strong> $status</p>
-<p id='show_detail_line'>Show 
-<a href='javascript:showCase(0)'>Summary</a> 
-<a href='javascript:showCase(1)'>Failed</a> 
+<p id='show_detail_line'>Show
+<a href='javascript:showCase(0)'>Summary</a>
+<a href='javascript:showCase(1)'>Failed</a>
 <a href='javascript:showCase(2)'>All</a>
 </p>
 <table id='result_table'>
@@ -245,7 +262,7 @@ TEST_OUTPUT_TMPL = string.Template(r"""
 # ----------------------------------------------------------------------
 
 class _TestResult(TestResult):
-    # note: _TestResult is a pure representation of results. 
+    # note: _TestResult is a pure representation of results.
     # It lacks the output and reporting ability compares to unittest._TextTestResult.
 
     def __init__(self):
@@ -253,8 +270,8 @@ class _TestResult(TestResult):
         self.result = []
         self.stdout0 = None
         self.stderr0 = None
-        
-        
+
+
     def startTest(self, test):
         TestResult.startTest(self, test)
         self.outputBuffer = StringIO.StringIO()
@@ -264,11 +281,11 @@ class _TestResult(TestResult):
         self.stderr0 = sys.stderr
         sys.stdout = stdout_redirector
         sys.stderr = stderr_redirector
-    
-    
+
+
     def complete_output(self):
-        """ 
-        Disconnect output redirection and return buffer. 
+        """
+        Disconnect output redirection and return buffer.
         Safe to call multiple times.
         """
         if self.stdout0:
@@ -277,15 +294,15 @@ class _TestResult(TestResult):
             self.stdout0 = None
             self.stderr0 = None
         return self.outputBuffer.getvalue()
-        
-    
+
+
     def stopTest(self, test):
         # Usually one of addSuccess, addError or addFailure would have been called.
         # But there are some path in unittest that would bypass this.
         # We must disconnect stdout in stopTest(), which is guaranteed to be called.
         self.complete_output()
-        
-        
+
+
     def addSuccess(self, test):
         TestResult.addSuccess(self, test)
         output = self.complete_output()
@@ -312,7 +329,7 @@ class HTMLTestRunner:
         # unittest itself has no good mechanism for user to define a
         # description neither in TestCase nor TestSuite. Allow user to
         # pass in the description as a parameter.
-                
+
         # note: this is different from unittest.TextTestRunner's
         # 'descrpitions' parameter, which is an integer flag.
 
@@ -329,8 +346,10 @@ class HTMLTestRunner:
         self.generateReport(test, result)
         print >>sys.stderr, '\nTime Elapsed: %s' % (self.stopTime-self.startTime)
         return result
-        
+
     def sortResult(self, result_list):
+        # unittest does not seems to run in any particular order.
+        # Here at least we want to group them together by class.
         rmap = {}
         classes = []
         for n,t,o,e in result_list:
@@ -338,23 +357,23 @@ class HTMLTestRunner:
             if not rmap.has_key(cls):
                 rmap[cls] = []
                 classes.append(cls)
-            rmap[cls].append((n,t,o,e))           
+            rmap[cls].append((n,t,o,e))
         r = [(cls, rmap[cls]) for cls in classes]
         return r
-        
+
     def generateReport(self, test, result):
         rows = []
         npAll = nfAll = neAll = 0
         sortedResult = self.sortResult(result.result)
         for cid, (cls, cls_results) in enumerate(sortedResult):
             # update counts
-            np = nf = ne = 0            
+            np = nf = ne = 0
             for n,t,o,e in cls_results:
                 if n == 0: np += 1
                 elif n == 1: nf += 1
                 else: ne += 1
-            npAll += np                
-            nfAll += nf                
+            npAll += np
+            nfAll += nf
             neAll += ne
 
             row = CLASS_TMPL.safe_substitute(
@@ -367,7 +386,7 @@ class HTMLTestRunner:
                 cid = 'c%s' % (cid+1),
             )
             rows.append(row)
-            
+
             for tid, (n,t,o,e) in enumerate(cls_results):
                 # e.g. 'pt1.1', 'ft1.1', etc
                 has_output = bool(o or e)
@@ -389,10 +408,11 @@ class HTMLTestRunner:
                             .replace("'", '&apos;') \
                             .replace('"', '&quot;') \
                             .replace('\\','\\\\') \
+                            .replace('\r','\\r') \
                             .replace('\n','\\n'),
                     )
                     rows.append(row)
-                    
+
         report = HTML_TMPL.safe_substitute(
             title = self.description,
             css = CSS,
@@ -403,7 +423,7 @@ class HTMLTestRunner:
             count = str(npAll+nfAll+neAll),
             Pass = str(npAll),
             fail = str(nfAll),
-            error = str(neAll),            
+            error = str(neAll),
         )
         self.stream.write(report)
 
@@ -413,8 +433,8 @@ class HTMLTestRunner:
 ##############################################################################
 
 class TestProgram(unittest.TestProgram):
-    """ 
-    A variation of the unittest.TestProgram. Please refer to the base 
+    """
+    A variation of the unittest.TestProgram. Please refer to the base
     class for command line parameters.
     """
     # TODO: unittest.TestProgram.createTests() is useful. On the other
@@ -425,7 +445,7 @@ class TestProgram(unittest.TestProgram):
         """ Pick HTMLTestRunner as the default test runner. """
         if self.testRunner is None:
             self.testRunner = HTMLTestRunner(verbosity=self.verbosity)
-        unittest.TestProgram.runTests(self)  
+        unittest.TestProgram.runTests(self)
 
 main = TestProgram
 

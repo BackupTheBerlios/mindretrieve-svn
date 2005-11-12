@@ -361,7 +361,13 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
             node.web_items.omit()
             return
         else:
-            node.no_match_msg.omit()
+            ###node.no_match_msg.omit()
+            from minds import search_engine
+            search_list = []
+            for engine in search_engine.getEngines():
+                search_list.append('<a href="%s">%s</a>' % (engine.url.replace('%s',self.querytxt.encode('utf8')), engine.label))
+            node.no_match_msg.raw = """Found %s items. Search %s.""" % (len(webItems), ' '.join(search_list))
+
 
         # webitems
         headerTemplate = node.web_items.headerTemplateHolder.headerTemplate

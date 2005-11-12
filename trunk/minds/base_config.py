@@ -1,14 +1,14 @@
 """
 This module loads a configuration file and setup basic logging.
 
-Instead of loading this module directly, import either one of the two 
+Instead of loading this module directly, import either one of the two
 convenient module.
 
 In test code, import safe_config as the first module like
 
     from minds.safe_config import cfg
-        
-In application code, load the actual configuration file by importing 
+
+In application code, load the actual configuration file by importing
 config as first first module like
 
     from minds.config import cfg
@@ -31,7 +31,7 @@ from toollib.path import path
 # - bind together 2 config files and present as a single configuration. (is 2 config files a good idea?)
 # - parse boolean and integer fields with default fallback.
 
-# The order configuration 
+# The order configuration
 
 # 1. user setting
 # 2. factory shipped config value
@@ -84,24 +84,14 @@ logs=testlogs
 # ------------------------------------------------------------------------
 
 def setupLogging():
-    """ 
-    Setup a bootstrap logging to console. 
+    """
+    Setup a bootstrap logging to console.
     Main program would use config to log to file later.
     """
-#    global bootstrapHdlr
-#    bootstrapHdlr = logging.StreamHandler(sys.stdout)
-#    formatter = logging.Formatter('%(asctime)s %(name)-10s - %(message)s')
-#    bootstrapHdlr.setFormatter(formatter)
-#    rootlog = logging.getLogger()
-#    rootlog.addHandler(bootstrapHdlr)
-#    rootlog.setLevel(logging.DEBUG)
-
-
-#    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(name)-10s - %(message)s')
     logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 setupLogging()
-
+log = logging.getLogger('cfg')
 
 
 # ------------------------------------------------------------------------
@@ -128,11 +118,11 @@ class Config(object):
             self.config_path = path(pathname)
             # ConfigParser.read() do nothing if name does not exist. Check first.
             if not self.config_path.exists():
-                logging.getLogger().error('Config file does not exist: %s', self.config_path)
+                log.error('Config file does not exist: %s', self.config_path)
                 return
-            logging.getLogger().info('Loading config file: %s', self.config_path)
+            log.info('Loading config file: %s', self.config_path)
             self.cparser.read(self.config_path)
-            
+
         self._load_pref(self.getpath('data')/PREFERENCE_FILE)
 
 
@@ -146,20 +136,20 @@ class Config(object):
 
         self.config_path = path(CONFIG_FILE)
         self.cparser.read(self.config_path)
-        
+
         self.cparser.readfp( StringIO.StringIO(SYSTEM_DEFAULT_CONFIG), 'System Default')
-        logging.getLogger().info('Load test config. Data path: %s', self.getpath('data'))
-        
+        log.info('Load test config. Data path: %s', self.getpath('data'))
+
         self._load_pref(self.getpath('data')/PREFERENCE_FILE)
 
 
     def _load_pref(self, pref_path):
         self.pref_path = pref_path
-        logging.getLogger().info('Loading preference file: %s', self.pref_path)
-        
+        log.info('Loading preference file: %s', self.pref_path)
+
         # merge with pref
         self.cparser.read(self.pref_path)
-        
+
         # pparser is mainly used for save
         self.pparser.read(self.pref_path)
 
@@ -187,8 +177,8 @@ class Config(object):
         if len(parts) < 2:
             raise KeyError('Invalid configuration key: %s' % key)
         return parts
-        
-            
+
+
     def get(self, key, default=None):
         section, name = self._parseKey(key)
         try:
@@ -229,21 +219,21 @@ class Config(object):
 
     def update_pref(items):
         """
-        @params items - list of key, value tuples 
+        @params items - list of key, value tuples
         """
         for k,v in items:
             section, name = self._parseKey(key)
             self.cparser.set(section, name, value)
             self.pparser.set(section, name, value)
-            
-        logging.getLogger().error('Updating preference: %s', self.pref_path)
+
+        log.error('Updating preference: %s', self.pref_path)
         fp = self.pref_path.open('wb')
         try:
             self.pparser.write(fp)
         finally:
-            fp.close()    
-        
-        
+            fp.close()
+
+
     def __str__(self):
         buf = StringIO.StringIO()
         buf.write('Config file: %s\n' % self.config_path)
@@ -252,7 +242,57 @@ class Config(object):
             buf.write('\n[%s]\n' % s)
             for name, value in self.cparser.items(s):
                 buf.write('%s=%s\n' % (name,value))
-        return buf.getvalue()        
+        return buf.getvalue()
+
+
+    def readObject(self, prefix, required_attrs, optional_attrs):
+        """
+        Read object in the format of:
+
+        [prefix.ddd]
+        name1=value1
+        name2=value2
+
+        Build object with the attribute names referencing values.
+        Return list of objects.
+        """
+        prefix += '.'
+        result = []
+        for section in self.cparser.sections():
+            if not section.startswith(prefix):
+                continue
+            try:
+                id = int(section[len(prefix):])
+            except:
+                continue
+
+            # build attributes dictionary
+            items = self.cparser.items(section)
+            attrs = dict([(name, value) for name, value in items
+                        if name in required_attrs or name in optional_attrs])
+
+            # has all the required fields?
+            data = None
+            for r in required_attrs:
+                if r not in attrs:
+                    log.warn('Section "%s" kissing required attribute "%s"', section, r)
+                    break
+            else:
+                data = DataObject()
+            if not data:
+                continue
+
+            data.__dict__.update(attrs)
+            result.append(data)
+
+        return result
+
+
+class DataObject:
+    def __init__(self):
+        pass
+    def __repr__(self):
+        return str(self.__dict__)
 
 
 
@@ -267,12 +307,20 @@ def main(argv):
         line = raw_input('Config key: ')
         if not line:
             break
-        try:    
+        try:
             value = cfg.get(line,'n/a')
             print line,'=',value
         except Exception, e:
-            print e    
+            print e
+
+
+def testReadObject():
+    from minds.config import cfg
+    o = cfg.readObject('search_engine',['id','url','label'],['shortcut','history','method','encoding'])
+    from pprint import pprint
+    pprint(o)
 
 
 if __name__ =='__main__':
-    main(sys.argv)
+    testReadObject()
+    #main(sys.argv)

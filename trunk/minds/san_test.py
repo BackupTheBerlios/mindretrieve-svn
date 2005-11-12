@@ -9,6 +9,7 @@ failed.
 
 Options
  -n         no recursion
+ -m module  test module specified
  --prefix   subclasses of unittest.TestCase with the prefix would be
             included in unit testing. Default is 'Test'.
 '''
@@ -66,13 +67,13 @@ def generate_allmodules(basedir, recurse):
 
 
 def loadModules(prefix):
-    """ Return modules, errorlist and tests found. """
+    """ Return modules, errorlist, num_testmodules, suite. """
 
     try:
         from minds import allmodules
     except ImportError:
         traceback.print_exc()
-        
+
     try:
         reload(allmodules)
     except ImportError:
@@ -146,24 +147,58 @@ def sanity_test(basedir, recurse, prefix):
     HTMLTestRunner.HTMLTestRunner(verbosity=2).run(suite)
 
 
+def _import(name):
+    mod = __import__(name, globals(), locals())
+    components = name.split('.')
+    for comp in components[1:]:
+        mod = getattr(mod, comp)
+    return mod
+
+
+# todo: largely cut & paste from sanity_test(). Consolidate?
+def test_module(modname, prefix):
+    # remove any bootstrap log handler installed
+    rootlog = logging.getLogger()
+    map(rootlog.removeHandler, rootlog.handlers)
+
+    # reinitialize logging with stdout_redirector
+    logging.basicConfig(stream=HTMLTestRunner.stdout_redirector, level=logging.DEBUG)
+    print >>sys.stderr, 'Date:', datetime.datetime.now()
+
+    suite = loadTestCases(_import(modname), prefix)
+
+    HTMLTestRunner.HTMLTestRunner(verbosity=2).run(suite)
+
+
+
 def main(argv):
     try:
-        optlist, args = getopt.getopt(argv[1:], 'n', ['prefix='])
+        optlist, args = getopt.getopt(argv[1:], 'nm:', ['prefix='])
     except:
         print __doc__
         sys.exit(-1)
 
+##    print >>sys.stderr, argv
+##    print >>sys.stderr, optlist
+  #  sys.exit(-1)
     basedir = 'minds'
     recurse = True
+    modname = ''
     prefix = 'Test'
     for key, value in optlist:
         if key == '-n':
             recurse = False
-        if key =='--prefix':
+        elif key == '-m':
+            modname = value
+        elif key =='--prefix':
             prefix = value
+
     if len(args) > 0: basedir = args[0]
 
-    sanity_test(basedir, recurse, prefix)
+    if not modname:
+        sanity_test(basedir, recurse, prefix)
+    else:
+        test_module(modname, prefix)
 
 
 if __name__ == '__main__':

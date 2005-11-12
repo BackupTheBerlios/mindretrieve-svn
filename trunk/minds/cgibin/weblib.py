@@ -20,55 +20,56 @@ log = logging.getLogger('cgi.weblib')
 
 
 def main(rfile, wfile, env):
-    method, form, rid, tid, path = request.parse_weblib_url(rfile, env)
-    log.debug('method %s rid %s', method, rid)
-
     wlib = store.getMainBm()
 
-    if rid:
+    req = request.WeblibRequest(rfile, env)
+    log.debug('method %s rid %s', req.method, req.rid)
+
+    if req.rid:
+        path = req.path
         # rid based (note rid maybe -1)
         if path and path.startswith('go;'):
-            doGoResource(wfile, rid, path)
+            doGoResource(wfile, req)
         elif path and path.startswith('snapshot'):
-            weblibSnapshot.main(wfile, env, method, form, rid, path)
+            weblibSnapshot.main(wfile, env, req.method, req.form, req.rid, path)
         elif path == 'form':
-            weblibForm.main(wfile, env, method, form, rid)
+            weblibForm.main(wfile, req)
         else:
             # show form by default
-            weblibForm.main(wfile, env, method, form, rid)
+            weblibForm.main(wfile, req)
 
-    elif tid:
-        doTag(wfile, env, method, form, tid)
+    elif req.tid:
+        doTag(wfile, req)
 
     else:
         # query
-        querytxt = form.getfirst('query','').decode('utf-8')
-        tag = form.getfirst('tag','').decode('utf-8')
+        querytxt = req.param('query')
+        tag = req.param('tag')
 
         # redirect to default tag (if it is defined)
-        if (not 'tag' in form) and (not querytxt):
+        if not ('tag' in req.form or querytxt):
             dt = wlib.getDefaultTag()
             if dt:
                 url = request.tag_url([dt])
                 response.redirect(wfile, url)
                 return
 
-        if form.getfirst('action') == 'cancel':
+        if req.param('action') == 'cancel':
             response.redirect(wfile, request.WEBLIB_URL)
 
         if tag:
-            queryTag(wfile, env, form, tag)
+            queryTag(wfile, req, tag)
         elif querytxt:
-            queryWebLib(wfile, env, form, tag, querytxt)
+            queryWebLib(wfile, req, tag, querytxt)
         else:
-            queryRoot(wfile, env, form)
+            queryRoot(wfile, req)
 
 
-def doGoResource(wfile, rid, path):
+def doGoResource(wfile, req):
     # the path are really for user's information only.
     # rid alone determines where to go.
     wlib = store.getMainBm()
-    item = wlib.webpages.getById(rid)
+    item = wlib.webpages.getById(req.rid)
     if not item:
         wfile.write('404 not found\r\n\r\n%s not found' % rid)
         return
@@ -77,23 +78,24 @@ def doGoResource(wfile, rid, path):
     response.redirect(wfile, item.url)
 
 
-def doTag(wfile, env, method, form, tid):
+def doTag(wfile, req):
     wlib = store.getMainBm()
-    # we only do category_collapse setting so far
-    if form.has_key('category_collapse'):
-        # suppose to do this only for POST
-        value = form.getfirst('category_collapse').lower()
-        flag = value=='on'
-        log.debug('doTag setCategoryCollapse @%s %s' % (tid, flag))
 
-        wlib.setCategoryCollapse(tid, flag)
+    # we only do category_collapse setting right now
+    if 'category_collapse' in req.form:
+        cc = req.param('category_collapse')
+        # suppose to do this only for POST
+        flag = cc.lower() == 'on'
+        log.debug('doTag setCategoryCollapse @%s %s' % (req.tid, flag))
+
+        wlib.setCategoryCollapse(req.tid, flag)
         store.save(wlib)
 
         # response for debug only
         wfile.write('content-type: text/plain\r\n')
         wfile.write('cache-control: no-cache\r\n')
         wfile.write('\r\n')
-        wfile.write('setCategoryCollapse @%s %s' % (tid, flag))
+        wfile.write('setCategoryCollapse @%s %s' % (req.tid, flag))
 
     else:
         # not supported
@@ -217,7 +219,7 @@ def _query_by_tag(wlib, select_tag):
     return webItems
 
 
-def queryTag(wfile, env, form, select_tag):
+def queryTag(wfile, req, select_tag):
     wlib = store.getMainBm()
 
     # category pane
@@ -227,7 +229,7 @@ def queryTag(wfile, env, form, select_tag):
     # webitem pane
     webItems = _query_by_tag(wlib, select_tag)
 
-    WeblibRenderer(wfile, env, '').output(
+    WeblibRenderer(wfile, req.env, '').output(
         cc_lst,
         wlib.getDefaultTag(),
         categoryList,
@@ -235,8 +237,8 @@ def queryTag(wfile, env, form, select_tag):
         webItems)
 
 
-def queryWebLib(wfile, env, form, tag, querytxt):
-    go_direct = form.getfirst('submit') == '>'
+def queryWebLib(wfile, req, tag, querytxt):
+    go_direct = req.param('submit') == '>'
     if querytxt.endswith('>'):
         querytxt = querytxt[:-1]
         go_direct = True
@@ -271,7 +273,7 @@ def queryWebLib(wfile, env, form, tag, querytxt):
     for item,_ in result:
         webItems.append(WebItemNode(item))
 
-    WeblibRenderer(wfile, env, querytxt).output(
+    WeblibRenderer(wfile, req.env, querytxt).output(
         cc_lst,
         wlib.getDefaultTag(),
         categoryList,
@@ -279,7 +281,7 @@ def queryWebLib(wfile, env, form, tag, querytxt):
         webItems)
 
 
-def queryRoot(wfile, env, form):
+def queryRoot(wfile, req):
     wlib = store.getMainBm()
 
     # category pane
@@ -290,7 +292,7 @@ def queryRoot(wfile, env, form):
     # webitem pane
     webItems = map(WebItemNode, query_wlib.queryRoot(wlib))
 
-    WeblibRenderer(wfile, env, '').output(
+    WeblibRenderer(wfile, req.env, '').output(
         cc_lst,
         wlib.getDefaultTag(),
         categoryList,

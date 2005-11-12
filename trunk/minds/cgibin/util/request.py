@@ -36,6 +36,56 @@ weblib/@%tid?               POST                      change tag setting
 
 """
 
+class Request(object):
+
+    def __init__(self, rfile, env, encoding='utf8'):
+        self.env = env
+        self.encoding = encoding
+        self.form = cgi.FieldStorage(fp=rfile, environ=env, keep_blank_values=1)
+
+        # the HTTP method
+        self.method = env.get('REQUEST_METHOD','GET')
+        # allow form parameter to override method
+        self.method = self.param('method') or self.method
+        self.method = self.method.upper()
+
+
+    def param(self, name, default=''):
+        """ a shorthand for getfirst(). Unicode support."""
+        value = self.form.getfirst(name,default)
+        return value.decode(self.encoding)
+
+
+class WeblibRequest(Request):
+
+    def __init__(self, rfile, env, encoding='utf8'):
+        Request.__init__(self, rfile, env, encoding)
+
+        # parse rid, tid and path for the /weblib URI scheme
+        self.rid = None
+        self.tid = None
+        self.path = ''
+
+        # /a/b/c -> [a,b/c]
+        resources = env.get('PATH_INFO', '').lstrip('/').split('/',1)
+        resource = resources[0]
+        if resource == '_':
+            self.rid = -1
+        elif resource.startswith('@'):
+            try:
+                self.tid = int(resource[1:])
+            except ValueError:
+                pass
+        else:
+            try:
+                self.rid = int(resource)
+            except ValueError:
+                pass
+
+        if len(resources) > 1:
+            self.path = resources[1]
+
+
 def parse_weblib_url(rfile, env, keep_blank_values=1):
     """
     Parse the input request base on the weblib URL scheme.

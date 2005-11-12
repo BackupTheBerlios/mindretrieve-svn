@@ -115,7 +115,7 @@ function close_form() {
 
     <script>
     function ask_save_new_tags() {
-      msg = 'The tags (' + new_tags + ') have not been used before. Save with the new tags?';
+      msg = 'The tags (' + new_tags + ') have not been used before. Add the new tags?';
       if (confirm(msg)) {
           form = document.getElementById('edit_form');
           form.elements['create_tags'].value = '1';

@@ -8,86 +8,86 @@ from minds.config import cfg
 from minds.cgibin.util import request
 from minds.cgibin.util import response
 from minds import weblib
+from minds.weblib import query_wlib
 from minds.weblib import store
 
-log = logging.getLogger('cgi.weblib')
+log = logging.getLogger('cgi.wlibfrm')
 
 
 class Bean(object):
     """ The bean that represents one web entry """
 
-    def __init__(self, rid, form):
-        self.rid = rid
-        self.form = form
+    def __init__(self, req):
         self.item = None
 
+        # tags input as entered by user
         self.tags = ''
 
         # tags not known
         self.newTags = sets.Set()
-        self.create_tags = self.form.getfirst('create_tags','').decode('utf-8')
+        self.create_tags = req.param('create_tags')
 
         self.errors = []
 
-        self._readForm(rid, form)
+        self._readForm(req)
 
 
-    def _readForm(self, rid, form):
+    def _readForm(self, req):
         wlib = store.getMainBm()
 
-        if form.has_key('filled'):
+        if 'filled' in req.form:
             # User is submitting form, use the parameters in the query
-            item = weblib.WebPage(
-                id          = rid,
-                name        = form.getfirst('title','').decode('utf-8'),
-                url         = form.getfirst('url','').decode('utf-8'),
-                description = form.getfirst('description','').decode('utf-8'),
-                modified    = form.getfirst('modified','').decode('utf-8'),
-                lastused    = form.getfirst('lastused','').decode('utf-8'),
-                cached      = form.getfirst('cached','').decode('utf-8'),
+            self.item = weblib.WebPage(
+                id          = req.rid,
+                name        = req.param('title'),
+                url         = req.param('url'),
+                description = req.param('description'),
+                modified    = req.param('modified'),
+                lastused    = req.param('lastused'),
+                cached      = req.param('cached'),
             )
-            self.item = item
-
-            self._parseTags()
+            self._parseTags(req)
 
         else:
-            # Three variations
-            # 1. Edit link from main page (or other source)
+            # Request comes from three possible sources
+            #
+            # 1. The edit link from main page (or similar)
             #       rid is an existing webpage
             # 2. Submit new page via bookmarklet
-            #       no rid (or not exist), URL is new
+            #       rid is -1 and URL is new
             # 3. Submit existing page via bookmarklet
-            #       no rid (or not exist), URL found in weblib
-            item = wlib.webpages.getById(rid)
+            #       rid is -1 and URL found in weblib
+            item = wlib.webpages.getById(req.rid)
             if item:
-                # make a copy of existing item
+                # Case 1. make a copy of existing item
                 item = item.__copy__()
             else:
-                url = form.getfirst('url','').decode('utf-8')
-                matches = weblib.find_url(wlib, url)
+                url = req.param('url')
+                matches = query_wlib.find_url(wlib, url)
                 if not matches:
-                    # this is a new webpage
+                    # Case 2. this is a new webpage
                     item = wlib.newWebPage(
-                        name        = form.getfirst('title','').decode('utf-8'),
+                        name        = req.param('title'),
                         url         = url,
-                        description = form.getfirst('description','').decode('utf-8'),
+                        description = req.param('description'),
                     )
-                    item.tags = [wlib.getDefaultTag()]
-                    item.tags = filter(None, item.tags) # don't want [None]
+                    if wlib.getDefaultTag():
+                        item.tags = [wlib.getDefaultTag()]
                 else:
-                    # use existing webpage
+                    # Case 3. use existing webpage
                     item = matches[0].__copy__()
                     # however override with possibly new title and description
-                    item.name        = form.getfirst('title','').decode('utf-8')
-                    item.description = form.getfirst('description','').decode('utf-8')
+                    item.name        = req.param('title')
+                    item.description = req.param('description')
+                    # note: subsequent action is POSTed to existing item's rid
 
             self.item = item
             self.tags  = ', '.join([l.name for l in item.tags])
 
 
-    def _parseTags(self):
+    def _parseTags(self, req):
         wlib = store.getMainBm()
-        self.tags = self.form.getfirst('tags','').decode('utf-8')
+        self.tags = req.param('tags')
         self.item.tags, self.newTags = weblib.parseTags(wlib, self.tags)
 
 
@@ -106,31 +106,31 @@ class Bean(object):
         if not self.item:
             return 'None'
         else:
-            return u'%s(%s)' % (self.item.name, self.item.rid)
+            return u'%s(%s)' % (self.item.name, self.item.id)
 
 
-def main(wfile, env, method, form, rid):
+def main(wfile, req):
     # this is called from the controller weblib
-    bean = Bean(rid, form)
-    if method == 'GET':
-        doGetResource(wfile, env, bean)
-    elif method == 'PUT':
-        doPutResource(wfile, env, bean)
-    elif method == 'DELETE':
-        doDeleteResource(wfile, env, bean)
+    bean = Bean(req)
+    if req.method == 'GET':
+        doGetResource(wfile, req, bean)
+    elif req.method == 'PUT':
+        doPutResource(wfile, req, bean)
+    elif req.method == 'DELETE':
+        doDeleteResource(wfile, req)
 
 
-def doGetResource(wfile, env, bean):
-    return_url = request.get_return_url(env, bean.form)
-    EditRenderer(wfile,env,'').output( return_url, bean)
+def doGetResource(wfile, req, bean):
+    return_url = request.get_return_url(req.env, req.form)
+    EditRenderer(wfile,req.env,'').output( return_url, bean)
 
 
-def doPutResource(wfile, env, bean):
+def doPutResource(wfile, req, bean):
     wlib = store.getMainBm()
-    return_url = request.get_return_url(env, bean.form)
+    return_url = request.get_return_url(req.env, req.form)
 
     if not bean.validate():
-        EditRenderer(wfile,env,'').output( return_url, bean)
+        EditRenderer(wfile,req.env,'').output( return_url, bean)
         return
 
     if bean.newTags:
@@ -139,14 +139,14 @@ def doPutResource(wfile, env, bean):
             l = weblib.Tag(name=unicode(t))
             wlib.addTag(l)
         # reparse after created tags
-        bean._parseTags()
+        bean._parseTags(req)
         assert not bean.newTags
 
     item = bean.item
     # is it an existing item?
-    if bean.rid >= 0 and wlib.webpages.getById(bean.rid):
+    if item.id >= 0 and wlib.webpages.getById(item.id):
         # update existing item from bean
-        item0             = wlib.webpages.getById(bean.rid)
+        item0             = wlib.webpages.getById(item.id)
         item0.name        = item.name
         item0.url         = item.url
         item0.description = item.description
@@ -156,7 +156,6 @@ def doPutResource(wfile, env, bean):
 #        item0.cached      = item.cached
         item = item0
 
-    print >>sys.stderr, '## PUT Res item.id %s' % item.id
     if item.id < 0:
         log.info('Adding WebPage: %s' % unicode(item))
         wlib.addWebPage(item)
@@ -170,16 +169,15 @@ def doPutResource(wfile, env, bean):
     response.redirect(wfile, return_url)
 
 
-def doDeleteResource(wfile, env, bean):
+def doDeleteResource(wfile, req):
     wlib = store.getMainBm()
-    item = wlib.webpages.getById(bean.rid)
+    item = wlib.webpages.getById(req.rid)
     if item:
         log.info('Deleting WebPage %s' % unicode(item))
-        # todo: may need to delete tags too.
         wlib.deleteWebPage(item)
         wlib.category.compile()
         store.save(wlib)
-    return_url = request.get_return_url(env, bean.form)
+    return_url = request.get_return_url(req.env, req.form)
     response.redirect(wfile, return_url)
 
 
@@ -214,7 +212,7 @@ class EditRenderer(response.CGIRendererHeadnFoot):
         node.form_title.content = item.id == -1 and 'Add entry' or 'Edit entry'
 
         form = node.form
-        id = item.id == -1 and '_' or str(item.id)
+        id = item.id < 0 and '_' or str(item.id)
         form.atts['action'] = request.rid_url(id)
 
         if bean.errors:

@@ -25,25 +25,23 @@ OPTION_MAP = {
 # /weblib.entryOrg?method=POST&id_list=840&option=set_option&set_tags=tech&add_tags=&remove_tags=&action=OK&create_tags=
 
 def main(rfile, wfile, env):
-
-    method, form, _, _, _ = request.parse_weblib_url(rfile, env)
-
-    if method == 'GET':
-        doShowForm(wfile, env, form)
-    elif method == 'POST':
-        doPost(wfile, env, form)
-    elif method == 'DELETE':
-        doDelete(wfile, env, form)
+    req = request.Request(rfile, env)
+    if req.method == 'GET':
+        doShowForm(wfile, req)
+    elif req.method == 'POST':
+        doPost(wfile, req)
+    elif req.method == 'DELETE':
+        doDelete(wfile, req)
 
 
-def _buildEntries(form):
+def _buildEntries(req):
     # scan for ddd=On from 'checkbox' fields or id_list='ddd,ddd' from 'hidden' field
     # build the id list ids.
-    id_list = form.getfirst('id_list','').split(',')
+    id_list = req.param('id_list').split(',')
 
     wlib = store.getMainBm()
     entries = []
-    for k in itertools.chain(form.keys(), id_list):
+    for k in itertools.chain(req.form.keys(), id_list):
         k = k.strip()
         if not k.isdigit():
             continue
@@ -53,22 +51,22 @@ def _buildEntries(form):
     return entries
 
 
-def doPost(wfile, env, form):
+def doPost(wfile, req):
     wlib = store.getMainBm()
-    entries = _buildEntries(form)
+    entries = _buildEntries(req)
     errors = []
 
     # parse set/add/remove tags
     set_tags = ''
     add_tags = ''
     remove_tags = ''
-    option = form.getfirst('option','')
+    option = req.param('option')
     option = OPTION_MAP.get(option,None)
     if option == SET:
-        set_tags = form.getfirst('set_tags','').decode('utf8')
+        set_tags = req.param('set_tags')
     elif option == ADD_REMOVE:
-        add_tags = form.getfirst('add_tags','').decode('utf8')
-        remove_tags = form.getfirst('remove_tags','').decode('utf8')
+        add_tags = req.param('add_tags')
+        remove_tags = req.param('remove_tags')
     else:
         errors.append('Please select set tags or add or remove tags.')
     set_tags, unknown1 = weblib.parseTags(wlib, set_tags)
@@ -76,7 +74,7 @@ def doPost(wfile, env, form):
     remove_tags, unknown3 = weblib.parseTags(wlib, remove_tags)
 
     # deal with new tags
-    create_tags = form.getfirst('create_tags','')
+    create_tags = req.param('create_tags')
     unknown = []
     if (unknown1 or unknown2 or unknown3) and not create_tags:
         unknown = unknown1 + unknown2 + unknown3
@@ -84,7 +82,7 @@ def doPost(wfile, env, form):
         errors.append('These tags are not previous used: ' + tags)
 
     if errors:
-        doShowForm(wfile, env, form, errors, new_tags=unknown)
+        doShowForm(wfile, req, errors, new_tags=unknown)
         return
 
     if unknown1:
@@ -96,13 +94,13 @@ def doPost(wfile, env, form):
     weblib.organizeEntries(entries, set_tags, add_tags, remove_tags)
     store.save(wlib)
 
-    return_url = request.get_return_url(env, form)
+    return_url = request.get_return_url(req)
     response.redirect(wfile, return_url)
 
 
-def doDelete(wfile, env, form):
+def doDelete(wfile, req):
     wlib = store.getMainBm()
-    entries = _buildEntries(form)
+    entries = _buildEntries(req)
     for item in entries:
         try:
             log.debug('Delete web page: %s', unicode(item))
@@ -110,12 +108,12 @@ def doDelete(wfile, env, form):
         except:
             log.exception('Unable to delete: %s', unicode(item))
     store.save(wlib)
-    return_url = request.get_return_url(env, form)
+    return_url = request.get_return_url(req)
     response.redirect(wfile, return_url)
 
 
-def doShowForm(wfile, env, form, errors=None, new_tags=None):
-    entries = _buildEntries(form)
+def doShowForm(wfile, req, errors=None, new_tags=None):
+    entries = _buildEntries(req)
     names = ''
     all_tags = []
     some_tags = sets.Set()
@@ -134,15 +132,26 @@ def doShowForm(wfile, env, form, errors=None, new_tags=None):
     some_tags = map(unicode,some_tags)
 
     # refill if data entered for this form
-    option = form.getfirst('option','')
+    option = req.param('option')
     option = OPTION_MAP.get(option, None)
-    set_tags = form.getfirst('set_tags','')
-    add_tags = form.getfirst('add_tags','')
-    remove_tags = form.getfirst('remove_tags','')
+    set_tags = req.param('set_tags')
+    add_tags = req.param('add_tags')
+    remove_tags = req.param('remove_tags')
 
-    return_url = request.get_return_url(env, form)
-    EntryOrgRenderer(wfile, env, '').output(return_url, errors, new_tags, ids, names, all_tags, some_tags, option, set_tags, add_tags, remove_tags)
-
+    return_url = request.get_return_url(req)
+    EntryOrgRenderer(wfile, req.env, '').output(
+        return_url,
+        errors,
+        new_tags,
+        ids,
+        names,
+        all_tags,
+        some_tags,
+        option,
+        set_tags,
+        add_tags,
+        remove_tags,
+        )
 
 
 # ----------------------------------------------------------------------

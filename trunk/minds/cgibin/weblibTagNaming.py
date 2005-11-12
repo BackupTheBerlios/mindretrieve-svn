@@ -14,20 +14,20 @@ log = logging.getLogger('cgi.tagnam')
 
 def main(rfile, wfile, env):
     wlib = store.getMainBm()
-    method, form, _, _, _ = request.parse_weblib_url(rfile, env)
-    tags = [weblib.parseTag(wlib, tag_id) for tag_id in form.getlist('tags')]
+    req = request.Request(rfile, env)
+    tags = [weblib.parseTag(wlib, tag_id) for tag_id in req.form.getlist('tags')]
     tags = filter(None, tags)
-    if method == 'POST':
-        doPost(wfile, env, form, tags)
-    elif method == 'DELETE':
-        doDelete(wfile, env, form, tags)
+    if req.method == 'POST':
+        doPost(wfile, req, tags)
+    elif req.method == 'DELETE':
+        doDelete(wfile, req, tags)
     else:
-        doShowForm(wfile, env, form)
+        doShowForm(wfile, req)
 
 
-def doShowForm(wfile, env, form):
+def doShowForm(wfile, req):
     wlib = store.getMainBm()
-    return_url = request.get_return_url(env, form)
+    return_url = request.get_return_url(req)
 
     tag_dict = dict([
                     (tag, ['@%s' % tag.id,
@@ -49,12 +49,12 @@ def doShowForm(wfile, env, form):
     tag_base = [(tag.name.lower(), b) for tag,b in tag_dict.items()]
     tag_base.sort()
     tag_base = [b for name,b in tag_base]
-    TagNameRenderer(wfile, env, '').output(return_url, [], tag_base)
+    TagNameRenderer(wfile, req.env, '').output(return_url, [], tag_base)
 
 
-def doPost(wfile, env, form, tags):
+def doPost(wfile, req, tags):
     wlib = store.getMainBm()
-    newName = form.getfirst('newName','').decode('utf8')
+    newName = req.param('newName')
     newTag = weblib.parseTag(wlib, newName)
     log.info('doPost tags %s newName %s newTag %s', ','.join(map(unicode,tags)), newName, newTag)
 
@@ -69,11 +69,11 @@ def doPost(wfile, env, form, tags):
             wlib.tag_merge_del(tag, newTag)
     store.save(wlib)
 
-    return_url = request.get_return_url(env, form)
-    response.redirect(wfile, '/weblib.tagName?return_url=' + return_url)
+    return_url = request.get_return_url(req)
+    response.redirect(wfile, '/weblib/tag_naming?return_url=' + return_url)
 
 
-def doDelete(wfile, env, form, tags):
+def doDelete(wfile, req, tags):
     wlib = store.getMainBm()
     log.info('doDelete tags %s', ','.join(map(unicode,tags)))
 
@@ -82,8 +82,8 @@ def doDelete(wfile, env, form, tags):
 
     store.save(wlib)
 
-    return_url = request.get_return_url(env, form)
-    response.redirect(wfile, '/weblib.tagName?return_url=' + return_url)
+    return_url = request.get_return_url(req)
+    response.redirect(wfile, '/weblib/tag_naming?return_url=' + return_url)
 
 
 # ----------------------------------------------------------------------

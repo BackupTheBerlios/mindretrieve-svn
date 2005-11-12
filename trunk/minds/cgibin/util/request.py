@@ -53,7 +53,9 @@ class Request(object):
     def param(self, name, default=''):
         """ a shorthand for getfirst(). Unicode support."""
         value = self.form.getfirst(name,default)
-        return value.decode(self.encoding)
+        if hasattr(value,'decode'):
+            value = value.decode(self.encoding)
+        return value
 
 
 class WeblibRequest(Request):
@@ -86,55 +88,11 @@ class WeblibRequest(Request):
             self.path = resources[1]
 
 
-def parse_weblib_url(rfile, env, keep_blank_values=1):
-    """
-    Parse the input request base on the weblib URL scheme.
-    @return
-        method - HTTP method (auxilliary way by the method parameter)
-        form - cgi.FieldStorage
-        rid - resource id, -1 for new, None for n/a
-        tid - tag id or None
-        path - rest of path follows rid or tid (without initial '/')
-    """
-    form = cgi.FieldStorage(fp=rfile, environ=env, keep_blank_values=keep_blank_values)
-
-    # the HTTP method
-    method = env.get('REQUEST_METHOD','GET')
-    # allow form parameter to override method
-    method = form.getfirst('method') or method
-    method = method.upper()
-
-    # parse rid, tid and path
-    rid = None
-    tid = None
-    path = ''
-    # /a/b/c -> [a,b/c]
-    resources = env.get('PATH_INFO', '').lstrip('/').split('/',1)
-    resource = resources[0]
-    if resource == '_':
-        rid = -1
-    elif resource.startswith('@'):
-        try:
-            tid = int(resource[1:])
-        except ValueError:
-            pass
-    else:
-        try:
-            rid = int(resource)
-        except ValueError:
-            pass
-
-    if len(resources) > 1:
-        path = resources[1]
-
-    return method, form, rid, tid, path
-
-
-def get_return_url(env, form):
+def get_return_url(req):
     """ Find what URL to go to when this form is closed? """
-    r = form.getfirst('return_url')
+    r = req.param('return_url')
     if r: return r
-    r = env.get('HTTP_REFERER','')
+    r = req.env.get('HTTP_REFERER','')
     if r: return r
     return WEBLIB_URL
 

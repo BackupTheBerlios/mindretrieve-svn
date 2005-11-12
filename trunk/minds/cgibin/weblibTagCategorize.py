@@ -12,16 +12,16 @@ from minds.weblib import store
 log = logging.getLogger('cgi.categry')
 
 def main(rfile, wfile, env):
-    method, form, _, _, _ = request.parse_weblib_url(rfile, env)
-    if method == 'POST':
-        doPost(wfile, env, form)
+    req = request.Request(rfile, env)
+    if req.method == 'POST':
+        doPost(wfile, req)
     else:
-        doShowForm(wfile, env, form)
+        doShowForm(wfile, req)
 
 
-def doShowForm(wfile, env, form):
+def doShowForm(wfile, req):
     wlib = store.getMainBm()
-    return_url = request.get_return_url(env, form)
+    return_url = request.get_return_url(req)
 
     # build tag_base
     tag_dict = dict([
@@ -53,20 +53,20 @@ def doShowForm(wfile, env, form):
     un_list.sort()
     uncategorized = [t for l,t in un_list]
 
-    CategorizeRenderer(wfile, env, '').output(return_url, [], tag_base, wlib.category.getDescription(), uncategorized)
+    CategorizeRenderer(wfile, req.env, '').output(return_url, [], tag_base, wlib.category.getDescription(), uncategorized)
 
 
-def doPost(wfile, env, form):
+def doPost(wfile, req):
     wlib = store.getMainBm()
 
     # TODO: parse and check for error?
-    text = form.getfirst('category_description','').decode('utf-8')
+    text = req.param('category_description')
     wlib.category.setDescription(text)
     wlib.category.compile()
     store.save(wlib)
 
-    return_url = request.get_return_url(env, form)
-    response.redirect(wfile, '/weblib.categorize')
+    return_url = request.get_return_url(req)
+    response.redirect(wfile, '/weblib/tag_categorize')
 
 
 # ----------------------------------------------------------------------

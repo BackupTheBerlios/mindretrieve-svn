@@ -121,13 +121,13 @@ def main(wfile, req):
 
 
 def doGetResource(wfile, req, bean):
-    return_url = request.get_return_url(req.env, req.form)
+    return_url = request.get_return_url(req)
     EditRenderer(wfile,req.env,'').output( return_url, bean)
 
 
 def doPutResource(wfile, req, bean):
     wlib = store.getMainBm()
-    return_url = request.get_return_url(req.env, req.form)
+    return_url = request.get_return_url(req)
 
     if not bean.validate():
         EditRenderer(wfile,req.env,'').output( return_url, bean)
@@ -177,7 +177,7 @@ def doDeleteResource(wfile, req):
         wlib.deleteWebPage(item)
         wlib.category.compile()
         store.save(wlib)
-    return_url = request.get_return_url(req.env, req.form)
+    return_url = request.get_return_url(req)
     response.redirect(wfile, return_url)
 
 

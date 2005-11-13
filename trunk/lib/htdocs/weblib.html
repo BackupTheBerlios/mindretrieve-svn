@@ -113,10 +113,11 @@
     padding-left: 1em;
   }
 
-  #no_match_msg {
-    padding: 1em;
+  #found_msg {
+    padding-left: 0.2em;
+    padding-right: 0.5em;
+    margin-bottom: 0.5ex;
   }
-
 
   .libTable     a       { text-decoration: none; }
   .libTable     a:hover { text-decoration: underline; }
@@ -358,12 +359,12 @@ window.addEventListener('load', onload, false);
 
 
 
-<!--categoryPane---------------------------------------------------------->
+<!--==categoryPane========================================================================-->
 <td id='categorytPane'>
 <ul>
   <ul>
-    <span class='SubCat1'><a node='con:rootTag' href='/weblib?tag='>/</a></span><span class='MainCat'><a node='con:defaultTag' href='/weblib?tag='>inbox</a></span>
     <span style='float: right'><input id='organizeButton' type='button' value='Organize' onclick='window.location="/weblib/tag_naming";' /></span>
+    <span class='SubCat1'><a node='con:rootTag' href='/weblib?tag='>/</a></span><span class='MainCat'><a node='con:defaultTag' href='/weblib?tag='>inbox</a></span>
   </ul>
   <ul node='rep:catList'>
     <a node='con:toggleSwitch' id='@1' class='toggleSwitch' href='#'>+</a><span class='MainCat'><a node='con:link' href='#'>MainCat</a></span><br />
@@ -401,11 +402,15 @@ window.addEventListener('load', onload, false);
 
 
 
-<!--itemPane-------------------------------------------------------------->
+<!--==itemPane========================================================================-->
 <td id='itemPane'>
 
-<div node='con:no_match_msg' id='no_match_msg'>
-    No item found.
+<div node='con:found_msg' id='found_msg'>
+    <div node='con:search_engine' style='float:right'>Search "<span node='-con:querytxt'>x</span>" in
+    <a node='rep:engine' href="#">engine1</a>
+    <a node='rep:engine' href="#">engine2</a>
+    </div>
+    Found <span node='-con:count'>no</span> items.
 </div>
 
 <div node='con:web_items'>
@@ -419,7 +424,7 @@ window.addEventListener('load', onload, false);
   <col class='col4' />
   <col class='col5' />
 
-  <!-- header ------------------------------------------------------------------------>
+  <!--==header========================================================================-->
   <tr class='libTableHeader'>
     <td><input id='checkAll_top' type='checkbox' onclick='selectAll("checkAll_top");'></td>
     <td colspan='4' align='right'>
@@ -428,7 +433,7 @@ window.addEventListener('load', onload, false);
     </td>
   </tr>
 
-  <!-- webItem ------------------------------------------------------------------------>
+  <!--==webItem========================================================================-->
 
   <tr node='con:headerTemplateHolder'>
     <span node='-con:headerTemplate'>
@@ -439,6 +444,7 @@ window.addEventListener('load', onload, false);
     </td>
     </span>
   </tr>
+
 
   <tr node='rep:webItem' class='altrow'>
     <span node='-con:placeHolder'>

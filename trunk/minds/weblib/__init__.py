@@ -388,188 +388,188 @@ def organizeEntries(entries, set_tags, add_tags, remove_tags):
             item.tags = [t for t in item.tags if t not in remove_tags]
 
 
-#----------------------------------------------------------------------
-# Query
-
-def find_url(wlib, url):
-    """
-    @url - url to search for. String matching, no normalization.
-    @return list of matched WebPages
-    """
-    return [item for item in wlib.webpages if item.url == url]
-
-
-def _parse_terms(s):
-    """ break down input into search terms """
-    s = s.lower()
-    # TODO: use pyparsing to parse quotes
-    return map(string.strip, s.split())
-
-
-def query_tags(wlib, querytxt, select_tags):
-    """ find list of tag that match querytxt """
-    terms = _parse_terms(querytxt)
-    if not select_tags:
-        select_tags = wlib.tags
-    result = []
-    for tag in select_tags:
-        tagname = tag.name.lower()
-        for w in terms:
-            if w in tagname:
-                result.append(tag)
-                break
-    return result
-
-
-def query_by_tag(wlib, tag):
-    graph
-    pass
-
-
-def query(wlib, querytxt, select_tags):
-    """ @return:
-            cat_list, - tuple of tags -> list of items,
-            related,
-            most_visited
-    """
-    terms = _parse_terms(querytxt)
-    select_tags_set = sets.Set(select_tags)
-    if not terms and not select_tags:
-        return queryMain(wlib)
-
-    # if querytxt is an exact match of a tag, include it.
-    include_tag = wlib.tags.getByName(querytxt)
-
-    log.debug('Search terms %s tags %s', terms, select_tags)
-    cat_list = {}
-    related = sets.Set()
-    most_visited = None
-    for item in wlib.webpages:
-        # filter by select_tag
-        if select_tags_set and select_tags_set.difference(item.tags):
-            continue
-
-        netloc = urlparse.urlparse(item.url)[1].lower()
-        if include_tag in item.tags:
-            pass
-        else:
-            q_matched = True
-            for w in terms:
-                if (w not in item.name.lower()) and (w not in netloc):
-                    q_matched = False
-                    break
-            if not q_matched:
-                continue
-
-            # most visited only activates with a querytxt
-            if not most_visited or item.lastused > most_visited.lastused:
-                most_visited = item
-
-        cat = util.diff(item.tags, select_tags)
-        cat2bookmark = cat_list.setdefault(tuple(cat),[])
-        cat2bookmark.append(item)
-        related.union_update(item.tags)
-
-##    if select_tags: ##hack
-##        related = analyzeRelated(select_tags[0],related)
-##        print >>sys.stderr, related
-##    else:
-##        related = [(t.rel.num_item, t.rel) for t in related]
-##        related = [related,[],[]]
-
-    related = [(t.num_item, None) for t in related]
-    related = [related,[],[]]
-
-    return cat_list, tuple(related), most_visited
-
-##refactor
-##def analyzeRelated(tag,related):
-##    parents, children, others = [],[],[]
-##    for count, rel in tag.rel.related:
-##        if count == tag.rel.num_item:
-##            parents.append((rel.torder, rel))
-##        elif count == rel.num_item:
-##            children.append((rel.torder, rel))
-##        else:
-##            pe = 100 * count / tag.rel.num_item
-##            ce = 100 * count / rel.num_item
-##            x =  (pe+ce,pe,ce)
-##            others.append((x, rel))
-##    parents.sort()
-##    children.sort()
-##    others.sort(reverse=True)
+###----------------------------------------------------------------------
+### Query
 ##
-##    return (parents, children, others)
-
-
-def queryMain(wlib):
-    """ @return: cat_list, related, random where
-            cat_list: tuple of tags -> list of items,
-    """
-    items = [item for item in wlib.webpages if not item.tags]
-    tags = [l for l in wlib.tags]
-    ## TODO: need clean up, also should not use private _lst
-    random_page = wlib.webpages._lst and random.choice(wlib.webpages._lst) or None
-    return {tuple(): items}, (), random_page
-
-
-
-# ----------------------------------------------------------------------
-# Command line
-
-from pprint import pprint
-
-def testShowAll():
-    from minds.weblib import store
-    wlib = store.getMainBm()
-    for item in wlib.webpages:
-        tags = [tag.name for tag in item.tags]
-        print '%s (%s)' % (item.name, ','.join(tags))
-
-
-def testQuery(wlib, querytxt, tags):
-    tags,unknown = parseTags(wlib, tags)
-    if unknown:
-        print 'Ignore unknown tags', unknown
-
-    tags_matched = query_tags(wlib, querytxt, tags)
-    print 'Tags matched',
-    pprint(tags_matched)
-
-    cat_list, related, most_visited = query(wlib, querytxt, tags)
-
-    pprint(tags)
-
-#    pprint(sortTags(related[0]+related[1]+related[2]))
-
-    for key, value in sorted(cat_list.items()):
-        sys.stdout.write('\n' + u','.join(map(unicode, key)) + '\n')
-        for item in value:
-            tags = [tag.name for tag in item.tags]
-            print '  %s (%s)' % (unicode(item), ','.join(tags))
-
-    print 'Most visited:', most_visited
-
-
-def main(argv):
-    querytxt = ''
-    if len(argv) <= 1:
-        testShowAll()
-        sys.exit(0)
-    elif argv[1] == '-h':
-        print __doc__
-        sys.exit(-1)
-    elif argv[1] == '-q':
-        querytxt = argv[2]
-        del argv[:2]
-
-    tags = len(argv) > 1 and argv[1] or ''
-
-    from minds.weblib import store
-    wlib = store.getMainBm()
-    testQuery(wlib, querytxt, tags)
-
-
-if __name__ == '__main__':
-    sys.stdout = codecs.getwriter('utf8')(sys.stdout,'replace')
-    main(sys.argv)
+##def find_url(wlib, url):
+##    """
+##    @url - url to search for. String matching, no normalization.
+##    @return list of matched WebPages
+##    """
+##    return [item for item in wlib.webpages if item.url == url]
+##
+##
+##def _parse_terms(s):
+##    """ break down input into search terms """
+##    s = s.lower()
+##    # TODO: use pyparsing to parse quotes
+##    return map(string.strip, s.split())
+##
+##
+##def query_tags(wlib, querytxt, select_tags):
+##    """ find list of tag that match querytxt """
+##    terms = _parse_terms(querytxt)
+##    if not select_tags:
+##        select_tags = wlib.tags
+##    result = []
+##    for tag in select_tags:
+##        tagname = tag.name.lower()
+##        for w in terms:
+##            if w in tagname:
+##                result.append(tag)
+##                break
+##    return result
+##
+##
+##def query_by_tag(wlib, tag):
+##    graph
+##    pass
+##
+##
+##def query(wlib, querytxt, select_tags):
+##    """ @return:
+##            cat_list, - tuple of tags -> list of items,
+##            related,
+##            most_visited
+##    """
+##    terms = _parse_terms(querytxt)
+##    select_tags_set = sets.Set(select_tags)
+##    if not terms and not select_tags:
+##        return queryMain(wlib)
+##
+##    # if querytxt is an exact match of a tag, include it.
+##    include_tag = wlib.tags.getByName(querytxt)
+##
+##    log.debug('Search terms %s tags %s', terms, select_tags)
+##    cat_list = {}
+##    related = sets.Set()
+##    most_visited = None
+##    for item in wlib.webpages:
+##        # filter by select_tag
+##        if select_tags_set and select_tags_set.difference(item.tags):
+##            continue
+##
+##        netloc = urlparse.urlparse(item.url)[1].lower()
+##        if include_tag in item.tags:
+##            pass
+##        else:
+##            q_matched = True
+##            for w in terms:
+##                if (w not in item.name.lower()) and (w not in netloc):
+##                    q_matched = False
+##                    break
+##            if not q_matched:
+##                continue
+##
+##            # most visited only activates with a querytxt
+##            if not most_visited or item.lastused > most_visited.lastused:
+##                most_visited = item
+##
+##        cat = util.diff(item.tags, select_tags)
+##        cat2bookmark = cat_list.setdefault(tuple(cat),[])
+##        cat2bookmark.append(item)
+##        related.union_update(item.tags)
+##
+####    if select_tags: ##hack
+####        related = analyzeRelated(select_tags[0],related)
+####        print >>sys.stderr, related
+####    else:
+####        related = [(t.rel.num_item, t.rel) for t in related]
+####        related = [related,[],[]]
+##
+##    related = [(t.num_item, None) for t in related]
+##    related = [related,[],[]]
+##
+##    return cat_list, tuple(related), most_visited
+##
+####refactor
+####def analyzeRelated(tag,related):
+####    parents, children, others = [],[],[]
+####    for count, rel in tag.rel.related:
+####        if count == tag.rel.num_item:
+####            parents.append((rel.torder, rel))
+####        elif count == rel.num_item:
+####            children.append((rel.torder, rel))
+####        else:
+####            pe = 100 * count / tag.rel.num_item
+####            ce = 100 * count / rel.num_item
+####            x =  (pe+ce,pe,ce)
+####            others.append((x, rel))
+####    parents.sort()
+####    children.sort()
+####    others.sort(reverse=True)
+####
+####    return (parents, children, others)
+##
+##
+##def queryMain(wlib):
+##    """ @return: cat_list, related, random where
+##            cat_list: tuple of tags -> list of items,
+##    """
+##    items = [item for item in wlib.webpages if not item.tags]
+##    tags = [l for l in wlib.tags]
+##    ## TODO: need clean up, also should not use private _lst
+##    random_page = wlib.webpages._lst and random.choice(wlib.webpages._lst) or None
+##    return {tuple(): items}, (), random_page
+##
+##
+##
+### ----------------------------------------------------------------------
+### Command line
+##
+##from pprint import pprint
+##
+##def testShowAll():
+##    from minds.weblib import store
+##    wlib = store.getMainBm()
+##    for item in wlib.webpages:
+##        tags = [tag.name for tag in item.tags]
+##        print '%s (%s)' % (item.name, ','.join(tags))
+##
+##
+##def testQuery(wlib, querytxt, tags):
+##    tags,unknown = parseTags(wlib, tags)
+##    if unknown:
+##        print 'Ignore unknown tags', unknown
+##
+##    tags_matched = query_tags(wlib, querytxt, tags)
+##    print 'Tags matched',
+##    pprint(tags_matched)
+##
+##    cat_list, related, most_visited = query(wlib, querytxt, tags)
+##
+##    pprint(tags)
+##
+###    pprint(sortTags(related[0]+related[1]+related[2]))
+##
+##    for key, value in sorted(cat_list.items()):
+##        sys.stdout.write('\n' + u','.join(map(unicode, key)) + '\n')
+##        for item in value:
+##            tags = [tag.name for tag in item.tags]
+##            print '  %s (%s)' % (unicode(item), ','.join(tags))
+##
+##    print 'Most visited:', most_visited
+##
+##
+##def main(argv):
+##    querytxt = ''
+##    if len(argv) <= 1:
+##        testShowAll()
+##        sys.exit(0)
+##    elif argv[1] == '-h':
+##        print __doc__
+##        sys.exit(-1)
+##    elif argv[1] == '-q':
+##        querytxt = argv[2]
+##        del argv[:2]
+##
+##    tags = len(argv) > 1 and argv[1] or ''
+##
+##    from minds.weblib import store
+##    wlib = store.getMainBm()
+##    testQuery(wlib, querytxt, tags)
+##
+##
+##if __name__ == '__main__':
+##    sys.stdout = codecs.getwriter('utf8')(sys.stdout,'replace')
+##    main(sys.argv)

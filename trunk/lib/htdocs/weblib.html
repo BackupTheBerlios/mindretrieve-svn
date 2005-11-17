@@ -281,7 +281,7 @@ function organizeSelected() {
         return;
     }
     var form = document.getElementById('webpages');
-    form.action = '/weblib/entryOrg';
+    form.action = '/weblib/multiform';
     var m = document.getElementById('webpages_method');
     m.value = 'GET';
     form.submit();
@@ -297,7 +297,7 @@ function deleteSelected() {
             return;
     }
     var form = document.getElementById('webpages');
-    form.action = '/weblib/entryOrg';
+    form.action = '/weblib/multiform';
     var m = document.getElementById('webpages_method');
     m.value = 'DELETE';
     form.submit();

@@ -304,8 +304,7 @@ def queryRoot(wfile, req):
 
 class WeblibRenderer(response.CGIRendererHeadnFoot):
     TEMPLATE_FILE = 'weblib.html'
-    """ weblib.html 2005-10-14
-    con:category_collapse_init
+    """ weblib.html 2005-11-11
     con:header
     con:rootTag
     con:defaultTag
@@ -315,18 +314,24 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
             con:subcat
                     rep:catItem
                             con:link
-    con:no_match_msg
+    con:found_msg
+            con:count
+            con:search_engine
+                    con:querytxt
     con:web_items
-            con:go_hint
-                    con:address
+            con:headerTemplateHolder
+                    con:headerTemplate
+                            con:prefix
+                            con:itemHeader
             rep:webItem
-                    con:checkbox
-                    con:itemDescription
-                    con:itemTag
-                            rep:tag
-                    con:edit
-                    con:delete
-                    con:cache
+                    con:placeHolder
+                            con:checkbox
+                            con:itemDescription
+                            con:itemTag
+                                    rep:tag
+                            con:edit
+                            con:delete
+                            con:cache
     con:footer
     """
     def render(self, node,
@@ -356,19 +361,24 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
         node.catList.repeat(self.renderCatItem, categoryList, currentCategory, category_collapse)
 
         # ------------------------------------------------------------------------
-        # no match message
+        # Matching message
         if not webItems:
             node.web_items.omit()
             return
-        else:
-            ###node.no_match_msg.omit()
+
+        if self.querytxt:
+            count = sum(1 for item in webItems if isinstance(item, WebItemNode))
+            node.found_msg.count.content = str(count)
             from minds import search_engine
-            search_list = []
-            for engine in search_engine.getEngines():
-                search_list.append('<a href="%s">%s</a>' % (engine.url.replace('%s',self.querytxt.encode('utf8')), engine.label))
-            node.no_match_msg.raw = """Found %s items. Search %s.""" % (len(webItems), ' '.join(search_list))
+            if search_engine.getEngines():
+                node.found_msg.search_engine.engine.repeat(self.renderSearchEngine, search_engine.getEngines())
+                node.found_msg.search_engine.querytxt.content = self.querytxt
+            else:
+                node.found_msg.search_engine.omit()
+        else:
+            node.found_msg.omit()
 
-
+        # ------------------------------------------------------------------------
         # webitems
         headerTemplate = node.web_items.headerTemplateHolder.headerTemplate
         # headerTemplateHolder is only a holder for headerTemplate, hide it
@@ -410,6 +420,11 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
             node.link.atts['href'] = request.tag_url(catNode.tagName)
             if catNode.tagName.lower() == currentCategory.lower():
                 node.link.atts['class'] = 'highlight'
+
+
+    def renderSearchEngine(self, node, engine):
+        node.atts['href'] = engine.url.replace('%s',self.querytxt.encode('utf8'))
+        node.content = engine.label
 
 
     def renderWebItem(self, node, item, headerTemplate):

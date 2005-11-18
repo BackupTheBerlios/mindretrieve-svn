@@ -40,7 +40,7 @@ def main(argv):
     if len(argv) <= 1:
         print __doc__
         sys.exit(-1)
-        
+
     option = argv[1]
 
     if 'lib' not in sys.path:
@@ -74,7 +74,8 @@ def main(argv):
         san_test.main(argv)
 
     elif option == '--test':
-        testmain(argv)
+        from minds import san_test
+        san_test.main(['','-m',argv[2]])
 
     elif option == '--run':
         run(argv)

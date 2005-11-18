@@ -225,6 +225,9 @@ def queryTag(wfile, req, select_tag):
     # category pane
     categoryList = _buildCategoryList(wlib, select_tag)
     cc_lst = wlib.getCategoryCollapseList()
+    tag = wlib.tags.getByName(select_tag)
+    if tag and tag.id in cc_lst:
+        cc_lst.remove(tag.id)
 
     # webitem pane
     webItems = _query_by_tag(wlib, select_tag)
@@ -257,9 +260,11 @@ def queryWebLib(wfile, req, tag, querytxt):
         return
 
     # category pane
-    cc_lst = wlib.getCategoryCollapseList()
-    currentCategory = tags and unicode(tags[-1]) or ''
     categoryList = _buildCategoryList(wlib)
+    cc_lst = wlib.getCategoryCollapseList()
+    tag = tags and wlib.getTagByName(tags[-1]) or None
+    if tag and tag.id in cc_lst:
+        cc_lst.remove(tag.id)
 
     # webitem pane
     webItems = []
@@ -277,7 +282,7 @@ def queryWebLib(wfile, req, tag, querytxt):
         cc_lst,
         wlib.getDefaultTag(),
         categoryList,
-        currentCategory,
+        '',
         webItems)
 
 
@@ -362,10 +367,6 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
 
         # ------------------------------------------------------------------------
         # Matching message
-        if not webItems:
-            node.web_items.omit()
-            return
-
         if self.querytxt:
             count = sum(1 for item in webItems if isinstance(item, WebItemNode))
             node.found_msg.count.content = str(count)
@@ -377,6 +378,10 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
                 node.found_msg.search_engine.omit()
         else:
             node.found_msg.omit()
+
+        if not webItems:
+            node.web_items.omit()
+            return
 
         # ------------------------------------------------------------------------
         # webitems

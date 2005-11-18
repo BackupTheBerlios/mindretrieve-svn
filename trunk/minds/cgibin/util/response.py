@@ -12,14 +12,14 @@ from toollib import HTMLTemplate
 
 ASCII = ''.join(map(chr,range(0x20, 0x80)))
 
-def redirect(wfile, url):    
+def redirect(wfile, url):
     # 2005-08-24 TODO
     # wikipedia uses http encoded utf-8 encoded unicode string in links.
     #   e.g. http://zh.wikipedia.org/wiki/%E5%85%8B%E9%87%8C%E5%A7%86%E6%9E%97%E5%AE%AB
     # Opera seems over zealous for converting it into unicode (in document.location).
     # This seems to be the main reason we end up with unicode URL here.
     # Can we count on servers in general to accept UTF-8 encoded characters???
-    
+
     # only use this to quote non-ASCII characters
     url = urllib.quote(url.encode('utf8'), ASCII)
     wfile.write('location: %s\r\n\r\n' % url)
@@ -39,7 +39,14 @@ javascript:
             ds=ma['content'].value;
         }
     }
-    d.location='http://%s/weblib/_?url='+encodeURIComponent(d.location)+'&title='+encodeURIComponent(d.title)+'&description='+encodeURIComponent(ds);
+    h = window.innerHeight * 0.6;
+    w = window.innerWidth * 0.8;
+    s = 'width=' + w + ',height=' + h;
+    win = window.open(
+        'http://%s/weblib/_?url='+encodeURIComponent(d.location)+'&title='+encodeURIComponent(d.title)+'&description='+encodeURIComponent(ds),
+        'weblibForm', s);
+    win.focus();
+    void(0);
 """
 
 def buildBookmarklet(env):
@@ -48,32 +55,32 @@ def buildBookmarklet(env):
     port = env.get('SERVER_PORT','80')
     # SERVER_NAME is actually not that good. Override with 'localhost'
     host = 'localhost'
-    
+
     b = BOOKMARKLET % ('%s:%s' %  (host, port))
     # dehydrate spaces
-    return b.replace('\n','').replace(' ','')  
+    return b.replace('\n','').replace(' ','')
 
 
 # ----------------------------------------------------------------------
 
 class CGIRenderer(object):
-    """ 
+    """
     Base class of CGI responses.
     1. Open and compile HTMLTemplate.
     2. Output HTTP headers including Content-type and encoding.
     3. Prepare an encoding output stream.
     4. Execute the template render() method and sent output to wfile.
-    
+
     User should:
     1. Subclass CGIRenderer and implement the render method.
     2. Instantiate a CGIRenderer subclass, provide wfile, etc, as arguments.
-    3. Invoke the output method, provide the template specific arguments.    
+    3. Invoke the output method, provide the template specific arguments.
     """
-    
-    # template filename to be overriden by user.
-    TEMPLATE_FILE = None     
 
-    def __init__(self, wfile, 
+    # template filename to be overriden by user.
+    TEMPLATE_FILE = None
+
+    def __init__(self, wfile,
         content_type='text/html',
         encoding='utf-8',
         cache_control='no-cache'):
@@ -83,10 +90,10 @@ class CGIRenderer(object):
         fp = tpath.open('rb')
         try:
             self.template = HTMLTemplate.Template(self._render0, fp.read())
-        finally:    
+        finally:
             fp.close()
-        
-        # HTTP header    
+
+        # HTTP header
         wfile.write('Content-type: %s; charset=%s\r\n' % (content_type, encoding))
         if cache_control:
             wfile.write('Cache-control: %s\r\n' % (cache_control,))
@@ -98,16 +105,16 @@ class CGIRenderer(object):
 
     def output(self, *args):
         self.out.write(self.template.render(*args))
-        
-        
+
+
     def _render0(self, node, *args):
         # To be overridden by subclass to define pre-render logic
         self.render(node, *args)
-        
-        
+
+
     def render(self, node, *args):
         # To be overridden by user
-        raise NotImplementedError()    
+        raise NotImplementedError()
 
 
 
@@ -125,7 +132,7 @@ class CGIRendererHeadnFoot(CGIRenderer):
         super(CGIRendererHeadnFoot, self).__init__(wfile, *args)
         self.env = env
         self.querytxt = querytxt
-        
+
     def _format_template(self, tmpl, render, *args):
         """ helper to render header and footer """
         tpath = cfg.getpath('docBase')/tmpl
@@ -135,7 +142,7 @@ class CGIRendererHeadnFoot(CGIRenderer):
         finally:
             fp.close()
         text = template.render(*args)
-        
+
         # remove some extra data from text to make it embeddable.
         # raise exception if REMOVE_TEXT is not found
         i = text.index(self.REMOVE_TEXT)
@@ -143,7 +150,7 @@ class CGIRendererHeadnFoot(CGIRenderer):
 
     def _renderHeader(self, node, querytxt):
         node.querytxt.atts['value'] = querytxt
-        
+
     def _renderFooter(self, node, href):
         node.bookmarklet.atts['href'] = href.replace("'",'&apos;')
 

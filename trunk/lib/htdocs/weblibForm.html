@@ -44,29 +44,42 @@ function close_form() {
     window.location = rurl.value;
 }
 */
+function openHome() {
+    w=window.open("/weblib","mindretrieve");
+    w.focus();
+    window.close();
+}
+
 function ondelete() {
     var form = document.getElementById('edit_form');
     form.elements['method'].value = 'DELETE';
     form.submit();
 }
+
+function onload(e) {
+    window.focus();
+}
+
+window.addEventListener('load', onload, false);
+
 </script>
 </head>
 
 
-<body onload='window.focus();'>
+<body>
 
-<div node='-con:header' style='width:100%;background-color:#ddd;text-align:center'>--HEADER--</div>
+<div id='header'>
+<form action='/weblib' method='get'>
+<table width="100%" cellspacing='0' cellpadding='0'>
+<tr>
+  <td>
+  <a id='homeLink' href='javascript:void(0);' onclick='javascript:openHome();' style='font-size:150%'>MindRetrieve</a>
+  </td>
+</tr>
+</table>
+</form>
+</div>
 
-<!-- form table -->
-<!--
-<table id='form_table' cellspacing='0' cellpadding='0'>
-<tr><td id='form_title'>
-    <span style='float: right'><input id='close_form' type='checkbox' onclick='close_form()' /></span>
-    <span node='-con:form_title'></span>
-</td></tr>
-
-<tr><td id='form_content'>
--->
 <form node='con:form' id='edit_form' method='GET' action='/weblib/$id'>
     <input type='hidden' name='method' value='PUT' />
     <input type='hidden' name='filled' value='1' />
@@ -136,12 +149,6 @@ function ondelete() {
     </script>
 
 </form>
-<!--
-</td></tr>
-</table> -->   <!-- end form table -->
-
-
-<div node='-con:footer' style='width:100%;background-color:#ddd;text-align:center'>--FOOTER--</div>
 
 </body>
 </html>

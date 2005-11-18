@@ -121,14 +121,14 @@ def main(wfile, req):
 
 
 def doGetResource(wfile, req, bean):
-    EditRenderer(wfile,req.env,'').output(bean)
+    FormRenderer(wfile).output(bean)
 
 
 def doPutResource(wfile, req, bean):
     wlib = store.getMainBm()
 
     if not bean.validate():
-        EditRenderer(wfile,req.env,'').output(bean)
+        FormRenderer(wfile).output(bean)
         return
 
     if bean.newTags:
@@ -182,7 +182,7 @@ def doDeleteResource(wfile, req):
 
 # ----------------------------------------------------------------------
 
-class EditRenderer(response.CGIRendererHeadnFoot):
+class FormRenderer(response.CGIRenderer):
     TEMPLATE_FILE = 'weblibForm.html'
     """
     con:header

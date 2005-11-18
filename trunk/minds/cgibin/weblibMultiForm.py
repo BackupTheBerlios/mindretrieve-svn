@@ -122,7 +122,7 @@ def doShowForm(wfile, req, errors=[], checklist=[], new_tags=[]):
     # refill if data entered for this form
     add_tags = req.param('add_tags')
 
-    MultiFormRenderer(wfile, req.env, '').output(
+    MultiFormRenderer(wfile).output(
         [],
         new_tags,
         ids,
@@ -187,7 +187,7 @@ def doDelete(wfile, req):
 
 # ----------------------------------------------------------------------
 
-class MultiFormRenderer(response.CGIRendererHeadnFoot):
+class MultiFormRenderer(response.CGIRenderer):
     TEMPLATE_FILE = 'weblibMultiForm.html'
     """ 2005-11-15
     con:header

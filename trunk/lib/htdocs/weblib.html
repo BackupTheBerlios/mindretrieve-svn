@@ -70,17 +70,7 @@
     margin-right: 0;
     font-size: 80%;
   }
-/*
-  #categorytPane .CurrentCat::before { content: "[" }
-  #categorytPane .CurrentCat::after  { content: "]" }
-  #categorytPane .CurrentCat {
-    padding: 0;
-    font-weight: bold;
-    Xborder: thin outset #777;
-    padding-left: 0.2em;
-    padding-right: 0.2em;
-  }
-*/
+
   #categorytPane .highlight  {
     padding-top: 0.5ex;
     padding-bottom: 0.5ex;
@@ -270,6 +260,11 @@ function openWeblibForm(url) {
     win.focus();
 }
 
+function openWeblibFormFull(url) {
+    win = window.open(url, 'weblibForm');
+    win.focus();
+}
+
 function selectAll(cb) {
     var checked = document.getElementById(cb).checked;
     var form = document.getElementById('webpages');
@@ -383,7 +378,9 @@ window.addEventListener('load', onload, false);
 <td id='categorytPane'>
 <ul>
   <ul>
-    <span style='float: right'><input id='organizeButton' type='button' value='Organize' onclick='window.location="/weblib/tag_naming";' /></span>
+    <span style='float: right'>
+    <input id='organizeButton' type='button' value='Organize' onclick='javascript:openWeblibFormFull("/weblib/tag_naming");' />
+    </span>
     <span class='SubCat1'><a node='con:rootTag' href='/weblib?tag='>/</a></span><span class='MainCat'><a node='con:defaultTag' href='/weblib?tag='>inbox</a></span>
   </ul>
   <ul node='rep:catList'>

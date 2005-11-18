@@ -49,7 +49,7 @@ def doShowForm(wfile, req):
     tag_base = [(tag.name.lower(), b) for tag,b in tag_dict.items()]
     tag_base.sort()
     tag_base = [b for name,b in tag_base]
-    TagNameRenderer(wfile, req.env, '').output(return_url, [], tag_base)
+    TagNameRenderer(wfile).output(return_url, [], tag_base)
 
 
 def doPost(wfile, req, tags):
@@ -102,7 +102,7 @@ def _title_format(webpage,count):
     return s[:_TRIM_TITLE] + suffix
 
 
-class TagNameRenderer(response.CGIRendererHeadnFoot):
+class TagNameRenderer(response.CGIRenderer):
     TEMPLATE_FILE = 'weblibTagNaming.html'
     """ 2005-10-03
     tem:

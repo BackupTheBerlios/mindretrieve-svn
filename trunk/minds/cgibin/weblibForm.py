@@ -222,6 +222,7 @@ class FormRenderer(response.CGIRenderer):
         if item:
             form.name       .atts['value'] = item.name
             form.url        .atts['value'] = item.url
+            form.url_link   .atts['href']  = item.url
             form.description.content       = item.description
             form.tags       .atts['value'] = bean.tags
             form.modified   .atts['value'] = item.modified

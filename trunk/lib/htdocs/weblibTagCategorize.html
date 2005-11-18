@@ -31,9 +31,24 @@
 // init the tag info database
 var tag_base= new Array;
 
-function close_form() {
-    rurl = document.getElementById('return_url');
-    window.location = rurl.value;
+function openHome() {
+    w=window.open("/weblib","mindretrieve");
+    w.focus();
+    window.close();
+}
+
+function refreshParent() {
+    // Refresh parent after update.
+    // Strictly speaking we should only refresh right after udpate, not
+    // everytime this is loaded. Right now it is coded for simplicity only.
+    p = window.opener;
+    if (p) {
+        try {
+            if ('onupdate' in p)
+                p.onupdate();
+        }
+        catch (e) {}
+    }
 }
 
 function setHeight() {
@@ -159,7 +174,12 @@ function addListeners(e) {
     elem.addEventListener('focus', uncategorized_changed, false);
 }
 
-window.addEventListener('load', addListeners, false);
+function onload(e) {
+    refreshParent();
+    addListeners();
+}
+
+window.addEventListener('load', onload, false);
 </script>
 
 <script node='con:tag_base_init'>
@@ -173,7 +193,18 @@ tag_base['tag3'] = [5 ,'webpage3'];
 
 
 <body>
-<div node='-con:header' style='width:100%;background-color:#ddd;text-align:center'>--HEADER--</div>
+
+<div id='header'>
+<form action='/weblib' method='get'>
+<table width="100%" cellspacing='0' cellpadding='0'>
+<tr>
+  <td>
+  <a id='homeLink' href='javascript:void(0);' onclick='javascript:openHome();' style='font-size:150%'>MindRetrieve</a>
+  </td>
+</tr>
+</table>
+</form>
+</div>
 
 <!-- TAB HEADER -->
 <div class='tabHeader'>
@@ -235,8 +266,8 @@ tag1
 <br />
 <!-- action buttons -->
 <input class='btn' type='submit' name='action' value='Update' />
-<!--<input class='btn' type='reset' name='action' />-->
-<input class='btn' type='button' name='action' value='Cancel' onclick='close_form()' />
+&nbsp;
+<input class='btn' type='button' name='action' value='Close' onclick='javascript:window.close()' />
 </td>
 
 
@@ -268,8 +299,6 @@ tag1
 </tr>
 </table>
 </form>
-
-<div node='-con:footer' style='width:100%;background-color:#ddd;text-align:center'>--footer--</div>
 
 </body>
 </html>

@@ -36,14 +36,7 @@
 </style>
 
 <script>
-/*
-function close_form() {
-    elem = document.getElementById('close_form');
-    elem.checked='';
-    rurl = document.getElementById('return_url');
-    window.location = rurl.value;
-}
-*/
+
 function openHome() {
     w=window.open("/weblib","mindretrieve");
     w.focus();
@@ -93,7 +86,9 @@ window.addEventListener('load', onload, false);
     </tr>
     <tr>
         <td>*Address</td>
-        <td><input type='text' node='con:url' name='url' size='100' /></td>
+        <td><input type='text' node='con:url' name='url' size='95' />
+        <a node='con:url_link' href="#" target='_blank'>open</a>
+        </td>
     </tr>
     <tr>
         <td>Description</td>

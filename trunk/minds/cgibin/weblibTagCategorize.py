@@ -53,7 +53,7 @@ def doShowForm(wfile, req):
     un_list.sort()
     uncategorized = [t for l,t in un_list]
 
-    CategorizeRenderer(wfile, req.env, '').output(return_url, [], tag_base, wlib.category.getDescription(), uncategorized)
+    CategorizeRenderer(wfile).output(return_url, [], tag_base, wlib.category.getDescription(), uncategorized)
 
 
 def doPost(wfile, req):
@@ -85,7 +85,7 @@ def _title_format(webpage,count):
     return s[:_TRIM_TITLE] + suffix
 
 
-class CategorizeRenderer(response.CGIRendererHeadnFoot):
+class CategorizeRenderer(response.CGIRenderer):
     TEMPLATE_FILE = 'weblibTagCategorize.html'
     """ 2005-10-03
     tem:

@@ -121,16 +121,14 @@ def main(wfile, req):
 
 
 def doGetResource(wfile, req, bean):
-    return_url = request.get_return_url(req)
-    EditRenderer(wfile,req.env,'').output( return_url, bean)
+    EditRenderer(wfile,req.env,'').output(bean)
 
 
 def doPutResource(wfile, req, bean):
     wlib = store.getMainBm()
-    return_url = request.get_return_url(req)
 
     if not bean.validate():
-        EditRenderer(wfile,req.env,'').output( return_url, bean)
+        EditRenderer(wfile,req.env,'').output(bean)
         return
 
     if bean.newTags:
@@ -166,7 +164,8 @@ def doPutResource(wfile, req, bean):
 
     wlib.category.compile()
     store.save(wlib)
-    response.redirect(wfile, return_url)
+
+    response.redirect(wfile, '/updateParent.html')
 
 
 def doDeleteResource(wfile, req):
@@ -177,8 +176,8 @@ def doDeleteResource(wfile, req):
         wlib.deleteWebPage(item)
         wlib.category.compile()
         store.save(wlib)
-    return_url = request.get_return_url(req)
-    response.redirect(wfile, return_url)
+
+    response.redirect(wfile, '/updateParent.html')
 
 
 # ----------------------------------------------------------------------
@@ -204,12 +203,12 @@ class EditRenderer(response.CGIRendererHeadnFoot):
             con:new_tags
     con:footer
     """
-    def render(self, node, return_url, bean):
+    def render(self, node, bean):
 
         item = bean.item
         wlib = store.getMainBm()
 
-        node.form_title.content = item.id == -1 and 'Add entry' or 'Edit entry'
+#        node.form_title.content = item.id == -1 and 'Add entry' or 'Edit entry'
 
         form = node.form
         id = item.id < 0 and '_' or str(item.id)
@@ -221,7 +220,6 @@ class EditRenderer(response.CGIRendererHeadnFoot):
             form.error.omit()
 
         if item:
-            form.return_url .atts['value'] = return_url
             form.name       .atts['value'] = item.name
             form.url        .atts['value'] = item.url
             form.description.content       = item.description

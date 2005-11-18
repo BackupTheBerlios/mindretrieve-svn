@@ -262,6 +262,14 @@ function setWebitemRow(checkbox) {
 
 }
 
+function openWeblibForm(url) {
+    h = window.innerHeight * 0.6;
+    w = window.innerWidth * 0.8;
+    s = 'width=' + w + ',height=' + h;
+    win = window.open(url, 'weblibForm', s);
+    win.focus();
+}
+
 function selectAll(cb) {
     var checked = document.getElementById(cb).checked;
     var form = document.getElementById('webpages');
@@ -274,16 +282,22 @@ function selectAll(cb) {
     }
 }
 
+function editWebItem(id) {
+    url = '/weblib/' + id + '/form';
+    openWeblibForm(url);
+}
+
 function organizeSelected() {
     var count = countSelected();
     if (count == 0) {
         alert('Please select items to be organized.')
         return;
     }
+    openWeblibForm()
     var form = document.getElementById('webpages');
     form.action = '/weblib/multiform';
-    var m = document.getElementById('webpages_method');
-    m.value = 'GET';
+    form.target = 'weblibForm';
+    form.elements['method'].value = 'GET';
     form.submit();
 }
 
@@ -298,8 +312,8 @@ function deleteSelected() {
     }
     var form = document.getElementById('webpages');
     form.action = '/weblib/multiform';
-    var m = document.getElementById('webpages_method');
-    m.value = 'DELETE';
+    form.target = 'asyncFrame'
+    form.elements['method'].value = 'DELETE';
     form.submit();
 }
 
@@ -318,6 +332,11 @@ function countSelected() {
             count++;
     }
     return count
+}
+
+// event fire by child window
+function onupdate() {
+    window.location.reload();
 }
 
 function onload(e) {
@@ -415,7 +434,7 @@ window.addEventListener('load', onload, false);
 
 <div node='con:web_items'>
   <form id='webpages' action='/weblib' method='GET'>
-  <input id='webpages_method' type='hidden' name='method' value='' />
+  <input type='hidden' name='method' value='' />
   <table id='libTable' width='100%' cellspacing='0' cellpadding='0' class='libTable'>
 
   <col class='col1' />
@@ -428,7 +447,7 @@ window.addEventListener('load', onload, false);
   <tr class='libTableHeader'>
     <td><input id='checkAll_top' type='checkbox' onclick='selectAll("checkAll_top");'></td>
     <td colspan='4' align='right'>
-       <input type='button' value='Organize' onclick='organizeSelected();' />
+       <input type='button' value='Edit' onclick='organizeSelected();' />
        <input type='button' value='Delete'  onclick='deleteSelected();' />
     </td>
   </tr>
@@ -459,8 +478,8 @@ window.addEventListener('load', onload, false);
             <a node='rep:tag' href='#' class='itemSmallLink'>tag2</a>
         </span>
     </td>
-    <td><a node='con:edit' href='#' class='itemSmallLink'><img src='img/edit_icon.gif' /></a></td>
-    <td><a node='con:delete' href='#' class='itemSmallLink'><img src='img/delete_icon.gif' /></a></td>
+    <td><a node='con:edit' href='javascript:editWebItem(%s);' class='itemSmallLink'><img src='img/edit_icon.gif' /></a></td>
+    <td><a node='con:delete' href='#' class='itemSmallLink' target='asyncFrame'><img src='img/delete_icon.gif' /></a></td>
     <td><a node='con:cache' href='#' class='itemSmallLink'>2005-12-01</a></td>
     </span>
   </tr>
@@ -525,7 +544,7 @@ window.addEventListener('load', onload, false);
   <tr class='libTableFooter'>
     <td><input id='checkAll_bottom' type='checkbox' onclick='selectAll("checkAll_bottom")'></td>
     <td colspan='4' align='right'>
-       <input type='button' value='Organize' onclick='organizeSelected();' />
+       <input type='button' value='Edit' onclick='organizeSelected();' />
        <input type='button' value='Delete'  onclick='deleteSelected();' />
     </td>
   </tr>

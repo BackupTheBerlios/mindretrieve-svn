@@ -440,7 +440,8 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
             node.itemDescription.atts['title'] = saxutils.quoteattr('%s %s' % (webitem.modified, webitem.description))[1:-1]
             # TODO HACK, should fix HTMLTemplate which reject string with both single and double quote
             node.itemTag.tag.repeat(self.renderWebItemTag, webitem.tags)
-            node.edit.atts['href'] = '%s/%s/form' % (request.WEBLIB_URL, webitem.id)
+##            node.edit.atts['href'] = '%s/%s/form' % (request.WEBLIB_URL, webitem.id)
+            node.edit.atts['href'] %= webitem.id
             node.delete.atts['href'] = '%s/%s?method=delete' % (request.WEBLIB_URL, webitem.id)
             if webitem.cached:
                 node.cache.atts['href'] = '%s/%s/snapshotFrame' % (request.WEBLIB_URL, webitem.id)

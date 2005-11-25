@@ -24,14 +24,14 @@ def _run_close(fp, func, *args):
     try:
         return func(*args)
     finally:
-        fp.close()       
+        fp.close()
 
 
 def _open(filename, mode):
     """ open filename relative to weblib directory """
     return (cfg.getpath('weblib')/filename).open(mode)
-    
-    
+
+
 def load(filename=None):
     # note: WEBLIB_FILENAME is not default parameter because it may change
     fp = _open(filename or WEBLIB_FILENAME,'rb')
@@ -39,7 +39,7 @@ def load(filename=None):
     log.debug('Loaded %s items:%s,%s', filename, len(wlib.tags), len(wlib.webpages))
     return wlib
 
-    
+
 def save(wlib, filename=None):
     # note: WEBLIB_FILENAME is not default parameter because it may change
     fp = _open(filename or WEBLIB_FILENAME,'wb')
@@ -55,12 +55,12 @@ def load_opera(filename=None):
     return wlib
 
 # ----------------------------------------------------------------------
-wlib_instance = None
+###wlib_instance = None
 
 def getMainBm():
-    if wlib_instance:
-        return wlib_instance
-    return reloadMainBm()
+    # TODO: migrate to minds_lib.getWeblib directly
+    from minds.weblib import minds_lib
+    return minds_lib.getWeblib()
 
 
 def reloadMainBm():
@@ -68,18 +68,18 @@ def reloadMainBm():
     wlib_instance = load()
 #    wlib_instance.init_index()
     return wlib_instance
-    
-    
+
+
 # ----------------------------------------------------------------------
 
 # adhoc cmdline tool. May not work
 def main(argv):
     from minds.weblib import minds045_lib
-    
+
     wlib = minds_lib.load(file(WEBLIB_FILENAME+'X','rb'))
     minds_lib.save(file(WEBLIB_FILENAME+'Y','wb'),wlib)
     return
-    
+
     wlib = minds045_lib.load(file(WEBLIB_FILENAME,'rb'))
     minds_lib.save(file(WEBLIB_FILENAME+'X','wb'),wlib)
     return
@@ -90,4 +90,3 @@ def main(argv):
 
 if __name__ =='__main__':
     main(sys.argv)
-        

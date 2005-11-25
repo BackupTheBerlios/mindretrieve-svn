@@ -7,62 +7,276 @@ import unittest
 from minds.safe_config import cfg as testcfg
 from minds import weblib
 from minds.weblib import minds_lib
-from minds.weblib import store
 
 testpath = testcfg.getpath('testDoc')
-wpath = testcfg.getpath('weblib')
 
 
 class TestWeblib(unittest.TestCase):
 
     TESTFILE_PATH = testpath/'test_weblib/weblib.dat'
-    
+
     def setUp(self):
-        # rewire store to use the working copy of test weblib.dat
-        self.TESTFILE_PATH.copy(wpath/'weblib.dat')
- 
+        self.store = minds_lib.Store()
+        self.buf = StringIO.StringIO()
+        self.store.load('*test*buffer*', self.buf)
+
+
     def tearDown(self):
         pass
-                
-    def test0(self):
-        null_fp = StringIO.StringIO('')    
-        wlib = minds_lib.load(null_fp)
-        self.assertEqual(len(wlib.webpages), 0)
-        self.assertEqual(len(wlib.tags), 0)
+
+
+    def _make_test_data(self):
+        store = self.store
+        wlib = store.wlib
+        store.writeTag(weblib.Tag(name='def_tag1'))
+        store.writeTag(weblib.Tag(name='def_tag2'))
+        store.writeTag(weblib.Tag(name='def_tag3'))
+        self.assertEqual(wlib.tags.getById(1).name, 'def_tag1')
+        store.writeWebPage(weblib.WebPage(name='def_page1'))
+        store.writeWebPage(weblib.WebPage(name='def_page2'))
+        store.writeWebPage(weblib.WebPage(name='def_page3'))
+        self.assertEqual(wlib.webpages.getById(1).name, 'def_page1')
+        self.assertEqual((3, 3), (len(wlib.tags), len(wlib.webpages)))
+
+
+    def _assert_weblib_size(self, nt, nw):
+        self.assertEqual(len(self.store.wlib.tags), nt)
+        self.assertEqual(len(self.store.wlib.webpages), nw)
+
+
+    def test_init(self):
+        self._assert_weblib_size(0, 0)
+
+
+    def test_write_tag_new(self):
+        wlib = self.store.wlib
+        self._make_test_data()
+
+        # before
+        nt, nw = len(wlib.tags), len(wlib.webpages)
+        self.assertTrue('Tag1' not in self.buf.getvalue())
+
+        # write
+        tag = weblib.Tag(name='Tag1')
+        self.assertTrue(tag.id == -1)
+        self.store.writeTag(tag)
+
+        # after
+        self._assert_weblib_size(nt+1, nw)
+        self.assertTrue('Tag1' in self.buf.getvalue())
+
+        self.assertTrue(tag.id >= 0)
+        t = wlib.getTag('tag1')
+        self.assertTrue(t)
+        self.assertTrue(t.id == tag.id)
+
+        # before
+        self.assertTrue(not wlib.tags.getById(10))
+
+        # write webpage with new id assigned
+        tag = weblib.Tag(id=10, name='Tag10')
+        self.store.writeTag(tag)
+
+        # verify
+        self._assert_weblib_size(nt+2, nw)
+        self.assertEqual(wlib.tags.getById(10).name, 'Tag10')
+
+
+
+    def test_write_tag_existing(self):
+        wlib = self.store.wlib
+        self._make_test_data()
+
+        # before
+        nt, nw = len(wlib.tags), len(wlib.webpages)
+        self.assertTrue('new tag1' not in self.buf.getvalue())
+        self.assertTrue(wlib.getTag('def_tag1'))
+
+        # write
+        tag = weblib.Tag(id=1, name='new tag1')
+        self.store.writeTag(tag)
+
+        # after
+        self._assert_weblib_size(nt, nw)
+        self.assertTrue('new tag1' in self.buf.getvalue())
+        self.assertTrue(not wlib.getTag('def_tag1'))
+        self.assertTrue(wlib.getTag('new tag1'))
+
+
+    def test_write_webpage_new(self):
+        wlib = self.store.wlib
+        self._make_test_data()
+
+        # before
+        nt, nw = len(wlib.tags), len(wlib.webpages)
+        self.assertTrue('Page1' not in self.buf.getvalue())
+
+        # write
+        item = weblib.WebPage(name='Page1')
+        self.assertTrue(item.id == -1)
+        self.store.writeWebPage(item)
+
+        # after
+        self._assert_weblib_size(nt, nw+1)
+        self.assertTrue('Page1' in self.buf.getvalue())
+        self.assertTrue(item.id >= 0)
+        self.assertTrue(wlib.webpages.getById(item.id))
+
+        # before
+        self.assertTrue(not wlib.webpages.getById(10))
+
+        # write webpage with new id assigned
+        item = weblib.WebPage(id=10, name='Page10')
+        self.store.writeWebPage(item)
+
+        # verify
+        self._assert_weblib_size(nt, nw+2)
+        self.assertEqual(wlib.webpages.getById(10).name, 'Page10')
+
+
+    def test_write_webpage_existing(self):
+        wlib = self.store.wlib
+        self._make_test_data()
+
+        # before
+        nt, nw = len(wlib.tags), len(wlib.webpages)
+        self.assertTrue('new page1' not in self.buf.getvalue())
+        self.assertTrue(wlib.webpages.getById(1).name, 'def_tag1')
+
+        # write
+        tag = weblib.Tag(id=1, name='new page1')
+        self.store.writeTag(tag)
+
+        # after
+        self._assert_weblib_size(nt, nw)
+        self.assertTrue('new page1' in self.buf.getvalue())
+        self.assertTrue(wlib.webpages.getById(1).name, 'new tag1')
+
+
+    def test_update_tags(self):
+        wlib = self.store.wlib
+        self._make_test_data()
+
+        # before
+        nt, nw = len(wlib.tags), len(wlib.webpages)
+        self.assertTrue('xxx' not in self.buf.getvalue())
+
+        # update
+        self.store.updateTag(1,flags='XXX')
+
+        # after
+        self._assert_weblib_size(nt, nw)
+        self.assertTrue('XXX' in self.buf.getvalue())
+        self.assertEqual(wlib.tags.getById(1).flags, 'XXX')
+
+        # update not exist
+        self.assertRaises(KeyError, self.store.updateTag, 10, flags='YYY')
+
+        # after
+        self._assert_weblib_size(nt, nw)
+        self.assertTrue('YYY' not in self.buf.getvalue())
+
+
+    def test_update_webpage(self):
+        wlib = self.store.wlib
+        self._make_test_data()
+
+        # before
+        nt, nw = len(wlib.tags), len(wlib.webpages)
+        self.assertTrue('2001' not in self.buf.getvalue())
+
+        # update
+        self.store.updateWebPage(1,lastused='2001')
+
+        # after
+        self._assert_weblib_size(nt, nw)
+        self.assertTrue('2001' in self.buf.getvalue())
+        self.assertEqual(wlib.webpages.getById(1).lastused, '2001')
+
+        # update not exist
+        self.assertRaises(KeyError, self.store.updateWebPage, 10, lastused='2010')
+
+        # after
+        self._assert_weblib_size(nt, nw)
+        self.assertTrue('2010' not in self.buf.getvalue())
+
+
+    def test_remove_tag(self):
+        wlib = self.store.wlib
+        self._make_test_data()
+
+        # before
+        nt, nw = len(wlib.tags), len(wlib.webpages)
+        self.assertTrue('r:@1' not in self.buf.getvalue())
+
+        # remove
+        self.store.removeItem(wlib.tags.getById(1))
+
+        # after
+        self._assert_weblib_size(nt-1, nw)
+        self.assertTrue('r:@1' in self.buf.getvalue())
+        self.assertEqual(wlib.tags.getById(1), None)
+
+
+    def test_remove_webpage(self):
+        wlib = self.store.wlib
+        self._make_test_data()
+
+        # before
+        nt, nw = len(wlib.tags), len(wlib.webpages)
+        self.assertTrue('r:1' not in self.buf.getvalue())
+
+        # remove
+        self.store.removeItem(wlib.webpages.getById(1))
+
+        # after
+        self._assert_weblib_size(nt, nw-1)
+        self.assertTrue('r:1' in self.buf.getvalue())
+        self.assertEqual(wlib.webpages.getById(1), None)
+
+
+    def test_load0(self):
+        self.store.load('empty file', StringIO.StringIO(''))
+        wlib = self.store.wlib
+        self._assert_weblib_size(0,0)
+
+
+    def _load_TESTFILE(self):
+        self.TESTTEXT = file(self.TESTFILE_PATH,'rb').read()
+        self.buf = StringIO.StringIO(self.TESTTEXT)
+        self.store.load('*test*weblib*', self.buf)
+
 
     def test_load(self):
-        wlib = store.getMainBm()
-        self.assertEqual(len(wlib.webpages), 5)
-        self.assertEqual(len(wlib.tags), 5)
-        
-        # note that 4 languages are used in the test data
-        
+        # Load the test file. Note that 4 languages are used in the test data.
+        self._load_TESTFILE()
+
+        wlib = self.store.wlib
+        self._assert_weblib_size(6,5)
+
         # test all tags are retrieved
-        tag_names = [t.name for t in wlib.tags]
-        test_tags = [
+        tag_names = sorted([t.name for t in wlib.tags])
+        test_tags = sorted([
+            u'inbox',
             u'Русский',
             u'Français',
             u'日本語',
             u'Kremlin',
             u'English',
-        ]
-        tag_names.sort()
-        test_tags.sort()
+        ])
         self.assertEqual( tag_names, test_tags)
 
         # test all URLs match
-        # URL is the last field in the file. 
+        # URL is the last field in the file.
         # If they matches then the order of fields is likely right.
-        urls = [item.url for item in wlib.webpages]
-        test_urls = [
+        urls = sorted([item.url for item in wlib.webpages])
+        test_urls = sorted([
             u'http://www.mindretrieve.net/',
             u'http://ru.wikipedia.org/wiki/Московский_Кремль',
             u'http://fr.wikipedia.org/wiki/Kremlin_de_Moscou',
             u'http://ja.wikipedia.org/wiki/クレムリン',
             u'http://en.wikipedia.org/wiki/Moscow_Kremlin',
-        ]
-        urls.sort()
-        test_urls.sort()
+        ])
         self.assertEqual(urls, test_urls)
 
         # test the tag ids (for one sample webpage) are correctly retrieve
@@ -74,24 +288,26 @@ class TestWeblib(unittest.TestCase):
             wlib.tags.getByName('Kremlin'),
             wlib.tags.getByName(u'日本語'),
         ])
-        self.assertEqual(len(item.tags), 2)
         self.assertEqual(tags, test_tags)
 
 
-    def test_load_save(self):
-        # Assert that load and then save would result in identical file        
+    def test_load_n_save(self):
+        # Assert that load and then save would result in identical file
         # This is actually not a sure thing
         # - output may contain time sensitive information
         # - The test weblib.dat is hand edited and may contain artifacts like extra blank lines
         # We can do one more round of load-save to circumvent the last problem though
-        original = file(self.TESTFILE_PATH, 'rb').read()
-        wlib = minds_lib.load(StringIO.StringIO(original))
-        buf = StringIO.StringIO()
-        minds_lib.save(buf, wlib)
 
-        buf.seek(0)
-        for lineno, line0 in enumerate(StringIO.StringIO(original)):
-            line1 = buf.next()
+        self._load_TESTFILE()
+        output = StringIO.StringIO()
+        self.store.save('*output*buffer*', output)
+
+        #print >>sys.stderr, output.getvalue()
+
+        fp0 = StringIO.StringIO(self.TESTTEXT)
+        output.seek(0)
+        for lineno, line0 in enumerate(fp0):
+            line1 = output.next()
             # compare it line by line so error is easier to spot
             line0 = line0.rstrip()
             line1 = line1.rstrip()
@@ -100,10 +316,74 @@ class TestWeblib(unittest.TestCase):
                 line1.encode('string_escape'),
             ))
 
-    def test_default_tag(self):
-        self.fail()
-        
-        
+
+    def _check_changed(self):
+        # verify the changes made in test_change_n_save()
+        #print >>sys.stderr, self.store
+        wlib = self.store.wlib
+        self._assert_weblib_size(7, 4)
+        self.assertTrue(wlib.getTag('tag1'))
+        self.assertTrue(wlib.getTag('tag2'))
+        self.assertTrue(not wlib.getTag('English'))
+        self.assertEqual(wlib.webpages.getById(1).lastused, '2001')
+        self.assertTrue(not wlib.webpages.getById(2))
+
+
+    def test_change_n_save(self):
+        # change wlib and generates change records
+        # reload the changed data file to ensure changes are playback correctly
+        # similarly test the saved snapshot data file
+        self._load_TESTFILE()
+        self._assert_weblib_size(6, 5)
+        wlib = self.store.wlib
+
+        # add tag
+        tag1 = weblib.Tag(name='tag1')
+        self.store.writeTag(tag1)
+
+        # modify tag
+        tag_english = wlib.getTag('English')
+        tag2 = tag_english.__copy__()
+        tag2.name = 'tag2'
+        self.store.writeTag(tag2)
+
+        # update webpage
+        self.store.updateWebPage(1, lastused='2001')
+
+        # delete webpage
+        item2 = wlib.webpages.getById(2)
+        self.store.removeItem(item2)
+
+        self._check_changed()
+
+        # this is the changed data file
+        changed_data = self.buf.getvalue()
+        # changed data file have records appended to TESTTEXT
+        self.assertTrue( changed_data.startswith(self.TESTTEXT))
+
+        # reload changed data file
+        old_weblib = self.store.wlib
+        self.store.load('*changed*buffer*', StringIO.StringIO(changed_data))
+        self.assertTrue(self.store.wlib is not old_weblib)  # a new wlib is really loaded :)
+        self._check_changed()
+
+        # save data file snapshot
+        buf = StringIO.StringIO()
+        self.store.save('*snapshot*buffer*', buf)
+        snapshot_data = buf.getvalue()
+        # unlike changed data snapshot save records without change records
+        self.assertTrue( not snapshot_data.startswith(self.TESTTEXT))
+
+        # load snapshot and verify
+        old_weblib = self.store.wlib
+        self.store.load('*snapshot*buffer*', StringIO.StringIO(snapshot_data))
+        self.assertTrue(self.store.wlib is not old_weblib)  # a new wlib is really loaded :)
+        self._check_changed()
+
+
+#    def test_default_tag(self):
+#        self.fail()
+
+
 if __name__ == '__main__':
     unittest.main()
-    

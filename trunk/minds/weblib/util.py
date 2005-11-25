@@ -20,11 +20,13 @@ class IdList(object):
         self._lst = []
         self._id2item = {}
 
+    def acquireId(self):
+        self._lastId += 1
+        return self._lastId
+
     def append(self, item):
         if item.id < 0:
-            # generate new id
-            self._lastId += 1
-            item.id = self._lastId
+            item.id = self.acquireId()
 
         elif item.id > self._lastId:
             # id supplied, maintain self._lastId

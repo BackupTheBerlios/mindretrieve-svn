@@ -1,5 +1,6 @@
+weblib-version: 0.5
 encoding: UTF8
-versioun: 0.5
+category_description:
 
 id|name|description|tagIds|modified|lastused|cached|archived|flags|url
 @120|inbox||||||||

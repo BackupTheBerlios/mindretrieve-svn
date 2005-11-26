@@ -67,6 +67,8 @@ def doPost(wfile, req, tags):
             newTag = weblib.parseTag(wlib, newName)
         else:
             wlib.tag_merge_del(tag, newTag)
+
+    wlib.category.compile()
     store.save(wlib)
 
     return_url = request.get_return_url(req)
@@ -80,6 +82,7 @@ def doDelete(wfile, req, tags):
     for tag in tags:
         wlib.tag_merge_del(tag)
 
+    wlib.category.compile()
     store.save(wlib)
 
     return_url = request.get_return_url(req)

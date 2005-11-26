@@ -168,7 +168,8 @@ def doPost(wfile, req):
 
     log.debug('organizeEntries %s entries set add %s remove %s.', len(entries), add_tags, remove_tags)
     weblib.organizeEntries(entries, [], add_tags, remove_tags)
-    store.save(wlib)
+    wlib.category.compile()
+
     response.redirect(wfile, '/updateParent.html')
 
 
@@ -178,10 +179,10 @@ def doDelete(wfile, req):
     for item in entries:
         try:
             log.debug('Delete web page: %s', unicode(item))
-            wlib.deleteWebPage(item)
+            store.getStore().removeItem(item)
         except:
             log.exception('Unable to delete: %s', unicode(item))
-    store.save(wlib)
+##    store.save(wlib)
     response.redirect(wfile, '/updateParent.html')
 
 

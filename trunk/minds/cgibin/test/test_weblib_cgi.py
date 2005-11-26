@@ -1,4 +1,6 @@
+﻿# -*- coding: utf-8 -*-
 import datetime
+import StringIO
 import sys
 import unittest
 
@@ -11,19 +13,20 @@ from minds.weblib import store
 
 
 testpath = testcfg.getpath('testDoc')
-weblib_path = testcfg.getpath('weblib')
+##weblib_path = testcfg.getpath('weblib')
 
 class TestWeblibCGI(unittest.TestCase):
 
   def setUp(self):
-    # we're going to overwrite file in weblib_path, make sure it is test.
-    assert 'test' in weblib_path
-    # load the test weblib.dat
-    from minds.weblib import store
+##    # we're going to overwrite file in weblib_path, make sure it is test.
+##    assert 'test' in weblib_path
+    stor = store.getStore()
     testfile_path = testpath/'test_weblib/weblib.dat'
-    testfile_path.copy(weblib_path/store.MINDS_FILENAME)
-    store.reloadMainBm()
-    # note: this test has a side effect of overwriting and loading a test weblib.dat
+    testdata = file(testfile_path,'rb').read()
+    stor.load('*test*data*',StringIO.StringIO(testdata))
+##    testfile_path.copy(weblib_path/store.MINDS_FILENAME)
+##    store.reloadMainBm()
+##    # note: this test has a side effect of overwriting and loading a test weblib.dat
 
 
   def checkPathForPattern(self, path, patterns, no_pattern=None):
@@ -126,7 +129,7 @@ class TestWeblibCGI(unittest.TestCase):
     # PUT new form
     self.checkPathForPattern("/weblib/_?method=put&filled=1&url=http%3A%2F%2Fwww.mindretrieve.net%2F&title=Test%20Title", [
         'HTTP/1.0 302 Found',
-        'location: /weblib',
+        'location: /updateParent.html',
     ])
 
     # one item has added
@@ -142,7 +145,7 @@ class TestWeblibCGI(unittest.TestCase):
     # PUT form
     self.checkPathForPattern("/weblib/1?method=put&filled=1&url=http%3A%2F%2Fwww.mindretrieve.net%2F&title=Test%20Title", [
         'HTTP/1.0 302 Found',
-        'location: /weblib',
+        'location: /updateParent.html',
     ])
 
     # one item has changed
@@ -155,14 +158,34 @@ class TestWeblibCGI(unittest.TestCase):
   # ------------------------------------------------------------------------
   # entryOrg
 
-  def test_GET_entryOrg(self):
-    self.checkPathForPattern("/weblib/entryOrg", [
-        '<html>', 'Organize', '</html>',
+  def test_GET_multiform(self):
+    self.checkPathForPattern("/weblib/multiform?method=GET&2=on&3=on", [
+        '<html>',
+        'Московский Кремль — Википедия',    # title
+        'Français', # tag
+        '</html>',
     ])
 
 
-  def test_PUT_entryOrg(self):
-    self.fail()
+  def test_POST_multiform(self):
+    url = ''.join(['/weblib/multiform?id_list=2%2C3',
+            '&%40122=on&%40122changed=1',       # Français add
+            '&%40121=on&%40121changed=',        # Русский unchanged
+            '&add_tags=inbox',
+            '&method=POST',
+            ])
+    self.checkPathForPattern(url, [
+        'HTTP/1.0 302 Found',
+        'location: /updateParent.html',
+    ])
+
+    wlib = store.getMainBm()
+    item2 = wlib.webpages.getById(2)
+#    self.assertTrue(120 in [t.id for t in item2.tags])  # inbox
+    self.assertTrue(122 in [t.id for t in item2.tags])  # Français
+    item3 = wlib.webpages.getById(3)
+#    self.assertTrue(120 in [t.id for t in item3.tags])  # inbox
+    self.assertTrue(122 in [t.id for t in item3.tags])  # Français
 
 
   # ------------------------------------------------------------------------

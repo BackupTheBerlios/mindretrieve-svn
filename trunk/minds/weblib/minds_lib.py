@@ -94,7 +94,7 @@ class Store(object):
         self.lock = threading.RLock()
 
         self.pathname = cfg.getpath('weblib') / self.DEFAULT_FILENAME
-        self.wlib = weblib.WebLibrary()
+        self.wlib = weblib.WebLibrary(self)
         self.writer = None
         self.reset()
 
@@ -167,7 +167,7 @@ class Store(object):
         try:
             reader = codecs.getreader(self.ENCODING)(fp,'replace')
 
-            self.wlib = weblib.WebLibrary()
+            self.wlib = weblib.WebLibrary(self)
             wlib = self.wlib
 
             # read headers
@@ -356,14 +356,21 @@ class Store(object):
 
     def writeTag(self, tag, flush=True):
         """
-        The tag can be new or an existing tag.
-        If tag.id is less than 0, an new id would be assigned.
+        The tag can be a new or an existing tag.
+
+        If tag.id is less than 0, a new id would be assigned.
+
+        Note: Special instruction to rename a tag
+        ----------------------------------------------------------------
+        Tags are indexed by name. We need the oldTag intact in order to
+        update the index. In order to rename a tag, clone the tag and
+        assign it a new name. Then call writeTag().
         """
         self.lock.acquire()
         try:
             if tag.id < 0:
                 tag.id = self.wlib.tags.acquireId()
-            line = 'w:' + self._serialize_tag(tag)
+            line = self._serialize_tag(tag)
             self._interpretRecord(self._xline_to_row(line))
             self._log(line, flush)
 
@@ -373,61 +380,64 @@ class Store(object):
 
     def writeWebPage(self, webpage, flush=True):
         """
-        The webpage can be new or an existing item.
+        The webpage can be a new or an existing item.
+
         If webpage.id is less than 0, an new id would be assigned.
         """
         self.lock.acquire()
         try:
             if webpage.id < 0:
                 webpage.id = self.wlib.webpages.acquireId()
-            line = 'w:' + self._serialize_webpage(webpage)
+            line = self._serialize_webpage(webpage)
             self._interpretRecord(self._xline_to_row(line))
+            self._conv_tagid(self.wlib.webpages.getById(webpage.id))
             self._log(line, flush)
 
         finally:
             self.lock.release()
 
 
-    def updateTag(self, id, flags=None, flush=True):
-        """ """
-        self.lock.acquire()
-        try:
-            if not self.wlib.tags.getById(id):
-                raise KeyError, 'Unknown tag id %s' % id
-
-            # constructs fields and line
-            fields = [''] * NUM_COLUMN
-            fields[COLUMNS.index('id')] = 'u:@%d' % id
-            if flags: fields[COLUMNS.index('flags')] = flags
-
-            line = dsv.encode_fields(fields)
-            self._interpretRecord(self._xline_to_row(line))
-            self._log(line, flush)
-
-        finally:
-            self.lock.release()
-
-
-    def updateWebPage(self, id, lastused=None, flush=True):
-        """ """
-        self.lock.acquire()
-        try:
-            if not self.wlib.webpages.getById(id):
-                raise KeyError, 'Unknown webpage id %s' % id
-
-            # constructs fields and line
-            fields = [''] * NUM_COLUMN
-            fields[COLUMNS.index('id')] = 'u:%d' % id
-            if lastused: fields[COLUMNS.index('lastused')] = lastused
-
-            line = dsv.encode_fields(fields)
-            self._interpretRecord(self._xline_to_row(line))
-            self._log(line, flush)
-
-        finally:
-            self.lock.release()
-
-
+###    def updateTag(self, id, flags=None, flush=True):
+###        """
+###        """
+###        self.lock.acquire()
+###        try:
+###            if not self.wlib.tags.getById(id):
+###                raise KeyError, 'Unknown tag id %s' % id
+###
+###            # constructs fields and line
+###            fields = [''] * NUM_COLUMN
+###            fields[COLUMNS.index('id')] = 'u:@%d' % id
+###            if flags: fields[COLUMNS.index('flags')] = flags
+###
+###            line = dsv.encode_fields(fields)
+###            self._interpretRecord(self._xline_to_row(line))
+###            self._log(line, flush)
+###
+###        finally:
+###            self.lock.release()
+###
+###
+###    def updateWebPage(self, id, lastused=None, flush=True):
+###        """ """
+###        self.lock.acquire()
+###        try:
+###            if not self.wlib.webpages.getById(id):
+###                raise KeyError, 'Unknown webpage id %s' % id
+###
+###            # constructs fields and line
+###            fields = [''] * NUM_COLUMN
+###            fields[COLUMNS.index('id')] = 'u:%d' % id
+###            if lastused: fields[COLUMNS.index('lastused')] = lastused
+###
+###            line = dsv.encode_fields(fields)
+###            self._interpretRecord(self._xline_to_row(line))
+###            self._log(line, flush)
+###
+###        finally:
+###            self.lock.release()
+###
+###
     def removeItem(self, item, flush=True):
         """
         Remove the item.
@@ -437,10 +447,9 @@ class Store(object):
         self.lock.acquire()
         try:
             if isinstance(item, weblib.Tag):
-                id = 'r:@%s' % item.id
+                line = 'r:@%s' % item.id
             else:
-                id = 'r:%s' % item.id
-            line = dsv.encode_fields([id] + [''] * (NUM_COLUMN-1))
+                line = 'r:%s' % item.id
             self._interpretRecord(self._xline_to_row(line))
             self._log(line, flush)
 

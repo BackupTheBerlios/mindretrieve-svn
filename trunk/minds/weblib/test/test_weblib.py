@@ -82,7 +82,6 @@ class TestWeblib(unittest.TestCase):
         self.assertEqual(wlib.tags.getById(10).name, 'Tag10')
 
 
-
     def test_write_tag_existing(self):
         wlib = self.store.wlib
         self._make_test_data()
@@ -152,53 +151,53 @@ class TestWeblib(unittest.TestCase):
         self.assertTrue('new page1' in self.buf.getvalue())
         self.assertTrue(wlib.webpages.getById(1).name, 'new tag1')
 
-
-    def test_update_tags(self):
-        wlib = self.store.wlib
-        self._make_test_data()
-
-        # before
-        nt, nw = len(wlib.tags), len(wlib.webpages)
-        self.assertTrue('xxx' not in self.buf.getvalue())
-
-        # update
-        self.store.updateTag(1,flags='XXX')
-
-        # after
-        self._assert_weblib_size(nt, nw)
-        self.assertTrue('XXX' in self.buf.getvalue())
-        self.assertEqual(wlib.tags.getById(1).flags, 'XXX')
-
-        # update not exist
-        self.assertRaises(KeyError, self.store.updateTag, 10, flags='YYY')
-
-        # after
-        self._assert_weblib_size(nt, nw)
-        self.assertTrue('YYY' not in self.buf.getvalue())
-
-
-    def test_update_webpage(self):
-        wlib = self.store.wlib
-        self._make_test_data()
-
-        # before
-        nt, nw = len(wlib.tags), len(wlib.webpages)
-        self.assertTrue('2001' not in self.buf.getvalue())
-
-        # update
-        self.store.updateWebPage(1,lastused='2001')
-
-        # after
-        self._assert_weblib_size(nt, nw)
-        self.assertTrue('2001' in self.buf.getvalue())
-        self.assertEqual(wlib.webpages.getById(1).lastused, '2001')
-
-        # update not exist
-        self.assertRaises(KeyError, self.store.updateWebPage, 10, lastused='2010')
-
-        # after
-        self._assert_weblib_size(nt, nw)
-        self.assertTrue('2010' not in self.buf.getvalue())
+#
+#    def test_update_tags(self):
+#        wlib = self.store.wlib
+#        self._make_test_data()
+#
+#        # before
+#        nt, nw = len(wlib.tags), len(wlib.webpages)
+#        self.assertTrue('xxx' not in self.buf.getvalue())
+#
+#        # update
+#        self.store.updateTag(1,flags='XXX')
+#
+#        # after
+#        self._assert_weblib_size(nt, nw)
+#        self.assertTrue('XXX' in self.buf.getvalue())
+#        self.assertEqual(wlib.tags.getById(1).flags, 'XXX')
+#
+#        # update not exist
+#        self.assertRaises(KeyError, self.store.updateTag, 10, flags='YYY')
+#
+#        # after
+#        self._assert_weblib_size(nt, nw)
+#        self.assertTrue('YYY' not in self.buf.getvalue())
+#
+#
+#    def test_update_webpage(self):
+#        wlib = self.store.wlib
+#        self._make_test_data()
+#
+#        # before
+#        nt, nw = len(wlib.tags), len(wlib.webpages)
+#        self.assertTrue('2001' not in self.buf.getvalue())
+#
+#        # update
+#        self.store.updateWebPage(1,lastused='2001')
+#
+#        # after
+#        self._assert_weblib_size(nt, nw)
+#        self.assertTrue('2001' in self.buf.getvalue())
+#        self.assertEqual(wlib.webpages.getById(1).lastused, '2001')
+#
+#        # update not exist
+#        self.assertRaises(KeyError, self.store.updateWebPage, 10, lastused='2010')
+#
+#        # after
+#        self._assert_weblib_size(nt, nw)
+#        self.assertTrue('2010' not in self.buf.getvalue())
 
 
     def test_remove_tag(self):
@@ -325,7 +324,6 @@ class TestWeblib(unittest.TestCase):
         self.assertTrue(wlib.getTag('tag1'))
         self.assertTrue(wlib.getTag('tag2'))
         self.assertTrue(not wlib.getTag('English'))
-        self.assertEqual(wlib.webpages.getById(1).lastused, '2001')
         self.assertTrue(not wlib.webpages.getById(2))
 
 
@@ -347,8 +345,8 @@ class TestWeblib(unittest.TestCase):
         tag2.name = 'tag2'
         self.store.writeTag(tag2)
 
-        # update webpage
-        self.store.updateWebPage(1, lastused='2001')
+#        # update webpage
+#        self.store.updateWebPage(1, lastused='2001')
 
         # delete webpage
         item2 = wlib.webpages.getById(2)

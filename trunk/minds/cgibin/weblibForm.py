@@ -135,7 +135,7 @@ def doPutResource(wfile, req, bean):
         assert bean.create_tags
         for t in bean.newTags:
             l = weblib.Tag(name=unicode(t))
-            wlib.addTag(l)
+            store.getStore().writeTag(l)
         # reparse after created tags
         bean._parseTags(req)
         assert not bean.newTags
@@ -156,14 +156,13 @@ def doPutResource(wfile, req, bean):
 
     if item.id < 0:
         log.info('Adding WebPage: %s' % unicode(item))
-        wlib.addWebPage(item)
-        wlib.updateWebPage(item)
+        store.getStore().writeWebPage(item)
     else:
-        wlib.updateWebPage(item)
         log.info('Updating WebPage: %s' % unicode(item))
+        store.getStore().writeWebPage(item)
 
     wlib.category.compile()
-    store.save(wlib)
+##    store.save(wlib)
 
     response.redirect(wfile, '/updateParent.html')
 
@@ -173,9 +172,8 @@ def doDeleteResource(wfile, req):
     item = wlib.webpages.getById(req.rid)
     if item:
         log.info('Deleting WebPage %s' % unicode(item))
-        wlib.deleteWebPage(item)
+        store.getStore().removeItem(item)
         wlib.category.compile()
-        store.save(wlib)
 
     response.redirect(wfile, '/updateParent.html')
 
@@ -208,7 +206,7 @@ class FormRenderer(response.CGIRenderer):
         item = bean.item
         wlib = store.getMainBm()
 
-#        node.form_title.content = item.id == -1 and 'Add entry' or 'Edit entry'
+        node.form_title.content = item.id == -1 and 'Add entry' or 'Edit entry'
 
         form = node.form
         id = item.id < 0 and '_' or str(item.id)

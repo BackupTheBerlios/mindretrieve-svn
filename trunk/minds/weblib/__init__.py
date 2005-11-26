@@ -105,7 +105,10 @@ class Tag(object):
 
 class WebLibrary(object):
 
-    def __init__(self):
+    def __init__(self, store=None):
+
+        self.store = store
+
         # default headers
         self.headers = {
             'weblib-version':       '0.5',
@@ -166,6 +169,7 @@ class WebLibrary(object):
 #        minds_lib.store.logWriteItem(self, entry)
 
 
+    # TODO: just put this in the CGI
     def newWebPage(self, name='', url='', description=''):
         """ Create a minimal WebPage for user to fill in.
             @return: a WebPage
@@ -181,6 +185,7 @@ class WebLibrary(object):
         )
 
 
+    # TODO: this is not used right now
     def updateWebPage(self, item):
         """
         The item updated can be new or existing.
@@ -240,19 +245,21 @@ class WebLibrary(object):
 #            print >>sys.stderr, '##deleted docid=%s: %s' % (item.id, n)
 
 
-    def deleteWebPage(self, item):
-        self.webpages.remove(item)
+#    def deleteWebPage(self, item):
+#        self.webpages.remove(item)
 
 
+    # ------------------------------------------------------------------------
+    # Tag methods
+
+# TODO: remove this, it is too novel
     def getTag(self, name):
         return self.tags.getByName(name)
 
 
     def visit(self, item):
-        from minds.weblib import store
         item.lastused = datetime.date.today().isoformat()
-        ## TODO: optimize!!!
-        store.save(self)
+        self.store.writeWebPage(item)
 
 
     def getDefaultTag(self):
@@ -264,16 +271,17 @@ class WebLibrary(object):
             return tag
         # default tag is not previous used; or user has chosen a new default?
         tag = Tag(name=d)
-        self.tags.append(tag)
+        self.store.writeTag(tag)
         self.category.compile()
         return tag
 
 
     def tag_rename(self, tag, newName):
         log.debug(u'tag_rename tag count=%s tag=%s newName=%s', len(self.tags), unicode(tag), newName)
-        oldName = unicode(tag)
-        self.tags.rename(tag, newName)
-        self.category.renameTag(oldName, newName)
+        newTag = tag.__copy__()
+        newTag.name = newName
+        self.store.writeTag(newTag)
+        self.category.renameTag(tag.name, newName)
 
 
     def tag_merge_del(self, tag, new_tag=None):
@@ -298,50 +306,54 @@ class WebLibrary(object):
                 # have only tag, merge tag into newTag
                 item.tags.remove(tag)
                 item.tags.append(new_tag)
+            self.store.writeWebPage(item, flush=False)
+
+        self.store.flush()
 
         # merge or delete, old tag would be removed from tags
-        self.tags.remove(tag)
-        self.category.deleteTag(unicode(tag))
+        self.store.removeTag(tag)
         log.debug('tag_merge_del completed new tag count=%s', len(self.tags))
 
+        # Should we leave the tag in the category for manual clean up?
+        # Automatic collapsing category may not be a good idea.
+        self.category.deleteTag(unicode(tag))
         self.category.compile()
-        # TODO: need to delete it from the category
 
 
     def setCategoryCollapse(self, tid, value):
-        ids = self.getCategoryCollapseList()
+        """ value will toggle the Category Collapse flag 'c' """
+        tag = self.tags.getById(tid)
+        if not tag:
+            log.warn('setCategoryCollapse() tag not found: %s' % tid)
+            return
         if value:
-            if tid not in ids:
-                ids.append(tid)
+            if 'c' not in tag.flags:
+                tag.flags += 'c'
         else:
-            if tid in ids:
-                ids.remove(tid)
-
-        # filter out invalid ids
-        ids = filter(self.tags.getById, ids)
-        ids.sort()
-
-        # TODO: note that CategoryCollapse applies to top level tag only
-        # As user edit the category some tag may no longer at top level.
-        # Thus it becomes dead value as the user can not udpate it.
-        self.headers['category_collapse'] = ','.join(('@%s'%id for id in ids))
+            tag.flags = tag.flags.replace('c','')
+        self.store.writeTag(tag)
 
 
-    def getCategoryCollapseList(self):
-        """ Return list of tag ids configured in category_collapse """
-        category_collapse = self.headers['category_collapse']
-        category_collapse = category_collapse.replace(' ','')
-        if not category_collapse:
-            return [] # otherwise split() would give ['']
-        lst = []
-        for s in category_collapse.split(','):
-            if s.startswith('@'):
-                try:
-                    lst.append(int(s[1:]))
-                except ValueError:
-                    pass
-        lst.sort()
-        return lst
+#    def getCategoryCollapseList(self):
+#        """ Return list of tag ids configured in category_collapse """
+#        category_collapse = self.headers['category_collapse']
+#        category_collapse = category_collapse.replace(' ','')
+#        if not category_collapse:
+#            return [] # otherwise split() would give ['']
+#        lst = []
+#        for s in category_collapse.split(','):
+#            if s.startswith('@'):
+#                try:
+#                    lst.append(int(s[1:]))
+#                except ValueError:
+#                    pass
+#        lst.sort()
+#        return lst
+
+
+    # ------------------------------------------------------------------------
+    # Webpage methods
+
 
 
 # ----------------------------------------------------------------------
@@ -378,12 +390,14 @@ def parseTags(wlib, tag_names):
 
 def create_tags(wlib, names):
     """ Return list of Tags created from the names list. """
+    from minds.weblib import store
+    stor = store.getStore()
     lst = []
     for name in names:
         tag = wlib.getTag(name)
         if not tag:
             tag = Tag(name=name)
-            wlib.addTag(tag)
+            stor.writeTag(tag)
         lst.append(tag)
     return lst
 
@@ -395,6 +409,8 @@ def sortTags(tags):
 
 
 # ----------------------------------------------------------------------
+
+# TODO: put this inside wlib like tag_merge?
 
 def organizeEntries(entries, set_tags, add_tags, remove_tags):
     """
@@ -409,6 +425,7 @@ def organizeEntries(entries, set_tags, add_tags, remove_tags):
         set_tags should be exclusive to add_tags and remove_tags,
         add_tags and remove_tags should have no common elements.
     """
+    stor = store.getStore()
     add_tags = sets.Set(add_tags)
     for item in entries:
         if set_tags:
@@ -418,5 +435,6 @@ def organizeEntries(entries, set_tags, add_tags, remove_tags):
             item.tags = list(tags)
         if remove_tags:
             item.tags = [t for t in item.tags if t not in remove_tags]
-
+        print >>sys.stderr, '##', 'writeitem', repr(item).encode('ascii','replace')
+        stor.writeWebPage(item)
 

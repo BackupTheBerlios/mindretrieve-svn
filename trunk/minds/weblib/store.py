@@ -69,6 +69,10 @@ def reloadMainBm():
 #    wlib_instance.init_index()
     return wlib_instance
 
+def getStore():
+    from minds.weblib import minds_lib
+    return minds_lib.getStore()
+
 
 # ----------------------------------------------------------------------
 

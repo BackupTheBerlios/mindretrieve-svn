@@ -89,7 +89,6 @@ def doTag(wfile, req):
         log.debug('doTag setCategoryCollapse @%s %s' % (req.tid, flag))
 
         wlib.setCategoryCollapse(req.tid, flag)
-        store.save(wlib)
 
         # response for debug only
         wfile.write('content-type: text/plain\r\n')
@@ -115,10 +114,11 @@ class CategoryNode(object):
         self.tagName = unicode(tagOrName)
         if isinstance(tagOrName, weblib.Tag):
             self.id = tagOrName.id
+            self.tag = tagOrName
         else:
             wlib = store.getMainBm()
-            tag = wlib.tags.getByName(tagOrName)
-            self.id = tag and tag.id or -1
+            self.tag = wlib.tags.getByName(tagOrName)
+            self.id = self.tag and self.tag.id or -1
         self.level = 0
         self.comma = False
         self.highlight = False
@@ -224,16 +224,12 @@ def queryTag(wfile, req, select_tag):
 
     # category pane
     categoryList = _buildCategoryList(wlib, select_tag)
-    cc_lst = wlib.getCategoryCollapseList()
     tag = wlib.tags.getByName(select_tag)
-    if tag and tag.id in cc_lst:
-        cc_lst.remove(tag.id)
 
     # webitem pane
     webItems = _query_by_tag(wlib, select_tag)
 
     WeblibRenderer(wfile, req.env, '').output(
-        cc_lst,
         wlib.getDefaultTag(),
         categoryList,
         unicode(select_tag),
@@ -261,10 +257,7 @@ def queryWebLib(wfile, req, tag, querytxt):
 
     # category pane
     categoryList = _buildCategoryList(wlib)
-    cc_lst = wlib.getCategoryCollapseList()
     tag = tags and wlib.getTagByName(tags[-1]) or None
-    if tag and tag.id in cc_lst:
-        cc_lst.remove(tag.id)
 
     # webitem pane
     webItems = []
@@ -279,7 +272,6 @@ def queryWebLib(wfile, req, tag, querytxt):
         webItems.append(WebItemNode(item))
 
     WeblibRenderer(wfile, req.env, querytxt).output(
-        cc_lst,
         wlib.getDefaultTag(),
         categoryList,
         '',
@@ -290,7 +282,6 @@ def queryRoot(wfile, req):
     wlib = store.getMainBm()
 
     # category pane
-    cc_lst = wlib.getCategoryCollapseList()
     currentCategory = ''
     categoryList = _buildCategoryList(wlib)
 
@@ -298,7 +289,6 @@ def queryRoot(wfile, req):
     webItems = map(WebItemNode, query_wlib.queryRoot(wlib))
 
     WeblibRenderer(wfile, req.env, '').output(
-        cc_lst,
         wlib.getDefaultTag(),
         categoryList,
         currentCategory,
@@ -340,14 +330,12 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
     con:footer
     """
     def render(self, node,
-        category_collapse,
         defaultTag,
         categoryList,
         currentCategory,
         webItems,
         ):
         """
-        @param category_collapse - list of tag ids to collapse
         @param defaultTag - a Tag (e.g. inbox)
         @param webItems - list of (WebPage, [tags])
         """
@@ -363,7 +351,7 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
 #            node.rootTag.atts['class'] = 'highlight'
 
         # category
-        node.catList.repeat(self.renderCatItem, categoryList, currentCategory, category_collapse)
+        node.catList.repeat(self.renderCatItem, categoryList, currentCategory)
 
         # ------------------------------------------------------------------------
         # Matching message
@@ -392,20 +380,21 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
         node.web_items.webItem.repeat(self.renderWebItem, enumerate(webItems), headerTemplate)
 
 
-    def renderCatItem(self, node, item, currentCategory, category_collapse):
+    def renderCatItem(self, node, item, currentCategory):
         catNode, subcats = item
-        collapse = catNode.id in category_collapse
+        isCurrent = catNode.tagName.lower() == currentCategory.lower()
+        iscollapse = not isCurrent and catNode.tag and ('c' in catNode.tag.flags)
         node.toggleSwitch.atts['id'] = '@%s' % catNode.id
-        node.toggleSwitch.content = collapse and '+' or '-'
+        node.toggleSwitch.content = iscollapse and '+' or '-'
         node.link.content = catNode.tagName
         if catNode.id > 0:
             node.link.atts['href'] = request.tag_url(catNode.tagName)
-            if catNode.tagName.lower() == currentCategory.lower():
+            if isCurrent:
                 node.atts['class'] = 'highlight'
         else:
             # otherwise it is a pseudo tag
             del node.link.atts['href']
-        node.subcat.atts['class'] =  collapse and 'subcategoriesCollapsed'  or 'subcategories'
+        node.subcat.atts['class'] =  iscollapse and 'subcategoriesCollapsed'  or 'subcategories'
         node.subcat.catItem.repeat(self.renderSubCat, subcats, currentCategory)
 
 
@@ -423,7 +412,7 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
                 node.atts['class'] = 'SubCat2'
             node.link.content = catNode.tagName + (catNode.comma and ',' or '')
             node.link.atts['href'] = request.tag_url(catNode.tagName)
-            if catNode.tagName.lower() == currentCategory.lower():
+            if  catNode.tagName.lower() == currentCategory.lower():
                 node.link.atts['class'] = 'highlight'
 
 

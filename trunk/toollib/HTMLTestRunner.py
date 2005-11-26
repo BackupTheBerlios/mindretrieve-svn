@@ -402,9 +402,11 @@ class HTMLTestRunner:
                 )
                 rows.append(row)
                 if has_output:
+                    uo = o.decode('utf8')   ##??
+                    ue = e.decode('utf8')
                     row = TEST_OUTPUT_TMPL.safe_substitute(
                         id = tid,
-                        output = saxutils.escape(o+e) \
+                        output = saxutils.escape(uo+ue) \
                             .replace("'", '&apos;') \
                             .replace('"', '&quot;') \
                             .replace('\\','\\\\') \
@@ -425,7 +427,7 @@ class HTMLTestRunner:
             fail = str(nfAll),
             error = str(neAll),
         )
-        self.stream.write(report)
+        self.stream.write(report.encode('utf8'))
 
 
 ##############################################################################

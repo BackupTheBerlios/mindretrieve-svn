@@ -84,20 +84,23 @@ class IdNameList(IdList):
         del self._name2item[item.name.lower()]
         super(IdNameList, self).remove(item)
 
-    def rename(self, item, newName):
-        # rename need to takes care of self._name2item
-        lNewName = newName.lower()
-        if not lNewName:
-            raise KeyError('Invalid name "%s"' % lNewName)
-        test_item = self.getByName(lNewName)
-        if test_item and test_item != item:
-            raise KeyError('Duplicated name "%s", fail to rename %s' % (lNewName, unicode(item)))
-        try:
-            lname = item.name.lower()
-            del self._name2item[lname]
-        except ValueError:
-            pass # should not happen
-        item.name = newName
-        self._name2item[lNewName] = item
+# 2005-11-25 Note:
+# To rename a tag, overwrite it with a new Tag object with the new name.
+#
+#    def rename(self, item, newName):
+#        # rename need to takes care of self._name2item
+#        lNewName = newName.lower()
+#        if not lNewName:
+#            raise KeyError('Invalid name "%s"' % lNewName)
+#        test_item = self.getByName(lNewName)
+#        if test_item and test_item != item:
+#            raise KeyError('Duplicated name "%s", fail to rename %s' % (lNewName, unicode(item)))
+#        try:
+#            lname = item.name.lower()
+#            del self._name2item[lname]
+#        except ValueError:
+#            pass # should not happen
+#        item.name = newName
+#        self._name2item[lNewName] = item
 
 

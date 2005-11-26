@@ -44,10 +44,10 @@ body            = column-header BR *((data-line | comment-line | *SP) BR)
 column-header   = column-name *( "|" column-name)
 column-name     = token
 comment-line    = "#" any string
-data-line       = ["w:" | "r:" | "u:"] data-record
+data-line       = ["r:"] data-record
 data-record     = ["@"] id *( "|" field-value)
 BR              = CR | LF | CR LF
-SP              = space character
+SP              = space characters
 
 Note
 * token is defined according to RFC 2616 Section 2.2.
@@ -55,17 +55,18 @@ Note
   CR and LF encoded as "\\", "\|", "\r" and "\n" respectively.
 * There are two kind of data records, a webpage have a numeric id, while
   a tag have a numeric id prefixed by "@".
-* A data-record prefixed with "w:", "u:" or "r:" are change records.
-* A data-record prefixed by "w:" is a write record. It represents a
-  record with new id, or if a record with the same id appears before,
-  it replaces the preceding record.
-* A data-record prefixed by "u:" is an update record. It update fields
-  of a preceding record with the same id. Non-blank fields replace the
-  value of the existing record, while blank fields leave existing
-  value unchanged.
-* A data-record prefixed by "r:" is a remove record. It remove the
-  preceding records with the same id.
-* A data file without any change records is in the snapshot state.
+* A record with the same id can appears multiple times in the data file.
+  The last record overwritten preceding records.
+* A data-record prefixed "r:" denotes the corresponding tag or webpage
+  record is to be removed.
+
+Discussions
+* The way a record is updated ius by appending the entire record to the
+  end of file. It may look like wasteful if there is only a minor
+  update. But the motivation is that the latest version of a record can
+  be found in one place. Alos it is possible to keep only the file
+  position of a record as index in memory.
+* How about change record for headers?
 
 """
 
@@ -74,16 +75,6 @@ Note
 #!#$%&'*+-.0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ\^_`abcdefghijklmnopqrstuvwxyz|~
 #'\s*[\!\#\$\%\&\'\*\+\-\.0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ\\\^\_\`abcdefghijklmnopqrstuvwxyz\~]+\s*:'
 
-
-# Class Diagram
-#
-#
-#    Weblib          Store
-#
-#        <----------->
-#
-
-# ----------------------------------------------------------------------
 
 class Store(object):
 
@@ -102,9 +93,7 @@ class Store(object):
     def reset(self):
         self.close()
         # reset running stat of current file
-        self.num_record = 0                             # <---- TODO: save should update this
-        self.num_wrecord = 0
-        self.num_urecord = 0
+        self.num_wrecord = 0        # <---- TODO: save should update this
         self.num_rrecord = 0
         # reset filename?
 
@@ -131,12 +120,10 @@ class Store(object):
             mode = '_'
         nt = self.wlib and len(self.wlib.tags) or 'None'
         nw = self.wlib and len(self.wlib.webpages) or 'None'
-        return 'Weblib file=%s(%s) #[%s,%s,%s,%s] tags=#%s webpages=#%s' % (
+        return 'Weblib file=%s(%s) #[%s,x%s] tags=#%s webpages=#%s' % (
             self.pathname,
             mode,
-            self.num_record,
             self.num_wrecord,
-            self.num_urecord,
             self.num_rrecord,
             nt,
             nw,
@@ -154,70 +141,75 @@ class Store(object):
         @param pathname - optional, override default pathname
         @param fp - optional, provide a ready make fp inplace of a disk file
         """
-        self.reset()
-
-        if pathname:
-            self.pathname = pathname
-        if fp:
-            use_disk_file = False
-        else:
-            use_disk_file = True
-            fp = file(self.pathname, 'rb')
-
+        self.lock.acquire()
         try:
-            reader = codecs.getreader(self.ENCODING)(fp,'replace')
+            self.reset()
 
-            self.wlib = weblib.WebLibrary(self)
-            wlib = self.wlib
+            if pathname:
+                self.pathname = pathname
+            if fp:
+                use_disk_file = False
+            else:
+                use_disk_file = True
+                fp = file(self.pathname, 'rb')
 
-            # read headers
-            lineno = 0      # 0 based for headers
-            for lineno, line in enumerate(reader):
-                line = line.rstrip()
-                if not line:
-                    break
-                pair = line.split(':',1)
-                if len(pair) != 2:
-                    raise SyntaxError('Header line should contain name and value separate by a colon (line %s)' % lineno)
-                name, value = map(string.strip, pair)
-                # force header name to be lower for now
-                name = name.lower()
-                # borrow dsv.decode_fields() to decode \ and line breaks.
-                value = dsv.decode_fields(value)[0]
-                if name not in wlib.header_names:
-                    wlib.header_names.append(name)
-                wlib.headers[name] = value
+            try:
+                reader = codecs.getreader(self.ENCODING)(fp,'replace')
 
-            # read records
-            lineno += 1     # adjust lineno to next line the reader is going to return
-            lineno += 1     # make it one based
+                self.wlib = weblib.WebLibrary(self)
+                wlib = self.wlib
 
-            # TODO: dsv.parse() not very intuitive, refactor
+                # read headers
+                lineno = 0      # 0 based for headers
+                for lineno, line in enumerate(reader):
+                    line = line.rstrip()
+                    if not line:
+                        break
+                    pair = line.split(':',1)
+                    if len(pair) != 2:
+                        raise SyntaxError('Header line should contain name and value separate by a colon (line %s)' % lineno)
+                    name, value = map(string.strip, pair)
+                    # force header name to be lower for now
+                    name = name.lower()
+                    # borrow dsv.decode_fields() to decode \ and line breaks.
+                    value = dsv.decode_fields(value)[0]
+                    if name not in wlib.header_names:
+                        wlib.header_names.append(name)
+                    wlib.headers[name] = value
 
-            for lineno, row in dsv.parse(reader, lineno):
-                try:
-                    n = self._interpretRecord(row)
-                    #print >>sys.stderr, '###DEBUG',n,str(self)
-                except (KeyError, ValueError, AttributeError), e:
-                    log.warn('Error parsing line %s: %s %s', lineno, str(e.__class__), e)
-                except Exception, e:
-                    log.warn('Error Parsing line %s: %s', lineno, str(e.__class__), e)
-                    raise
+                # read records
+                lineno += 1     # adjust lineno to next line the reader is going to return
+                lineno += 1     # make it one based
+
+                # TODO: dsv.parse() not very intuitive, refactor
+
+                for lineno, row in dsv.parse(reader, lineno):
+                    try:
+                        n = self._interpretRecord(row)
+                        #print >>sys.stderr, '###DEBUG',n,str(self)
+                    except (KeyError, ValueError, AttributeError), e:
+                        log.warn('Error parsing line %s: %s %s', lineno, str(e.__class__), e)
+                    except Exception, e:
+                        log.warn('Error Parsing line %s: %s', lineno, str(e.__class__), e)
+                        raise
+
+            finally:
+                if use_disk_file:
+                    fp.close()
+
+            if not use_disk_file:
+                # seek to EOF
+                fp.seek(0,2)
+                # attach fp to self.writer for appending change records.
+                # I guess this is just for testing and it won't get closed, right?
+                self.writer = codecs.getwriter(self.ENCODING)(fp,'replace')
+
+            # post-processing, convert tagIds to tag
+            map(self._conv_tagid, wlib.webpages)
+            wlib.category.compile()
 
         finally:
-            if use_disk_file:
-                fp.close()
-
-        if not use_disk_file:
-            # seek to EOF
-            fp.seek(0,2)
-            # attach fp to self.writer for appending change records.
-            # I guess this is just for testing and it won't get closed, right?
-            self.writer = codecs.getwriter(self.ENCODING)(fp,'replace')
-
-        # post-processing, convert tagIds to tag
-        map(self._conv_tagid, wlib.webpages)
-        wlib.category.compile()
+            self.lock.release()
 
 
     def _interpretRecord(self, row):
@@ -229,23 +221,15 @@ class Store(object):
         @return (webpage id, tag id, mode) [for unit testing]
         """
 
-        # mode w: write; u: update; r: remove
-        if row.id.startswith('w:'):
-            mode = 'w'
-            row.id = row.id[2:]
-            self.num_wrecord += 1
-        elif row.id.startswith('u:'):
-            mode = 'u'
-            row.id = row.id[2:]
-            self.num_urecord += 1
-        elif row.id.startswith('r:'):
+        # mode w: write; r: remove
+        if row.id.startswith('r:'):
             mode = 'r'
             row.id = row.id[2:]
             self.num_rrecord += 1
         else:
             # default is write
             mode = 'w'
-            self.num_record += 1
+            self.num_wrecord += 1
 
         wlib = self.wlib
 
@@ -258,7 +242,7 @@ class Store(object):
             if mode == 'r':
                 if oldTag:
                     wlib.tags.remove(oldTag)
-            elif mode == 'w':
+            else:
                 if oldTag:
                     wlib.tags.remove(oldTag)
                 tag = weblib.Tag(
@@ -268,12 +252,6 @@ class Store(object):
                     flags       = row.flags,
                 )
                 wlib.tags.append(tag)
-            else:
-                # update tag
-                # note tag is keyed by name, use API to rename
-                if row.name:        wlib.tags.rename(oldTag, row.name)
-                if row.description: oldTag.description = row.description
-                if row.flags:       oldTag.flags       = row.flags
 
             return None, id, mode
 
@@ -290,7 +268,7 @@ class Store(object):
             if mode == 'r':
                 if oldItem:
                     wlib.webpages.remove(oldItem)
-            elif mode == 'w':
+            else:
                 if oldItem:
                     wlib.webpages.remove(oldItem)
                 webpage = weblib.WebPage(
@@ -305,20 +283,9 @@ class Store(object):
                     archived    = row.archived,
                     url         = row.url,
                 )
-                # should convert tagids to tags after reading the whole file
+                # should convert tagids to tags after reading the whole file??
                 webpage.tagIds = tagids
                 wlib.webpages.append(webpage)
-            else:
-                # update tag
-                if row.name       : oldItem.name        = row.name
-                if row.description: oldItem.description = row.description
-                if row.tagids     : oldItem.tagIds      = row.tagids
-                if row.flags      : oldItem.flags       = row.flags
-                if row.modified   : oldItem.modified    = row.modified
-                if row.lastused   : oldItem.lastused    = row.lastused
-                if row.cached     : oldItem.cached      = row.cached
-                if row.archived   : oldItem.archived    = row.archived
-                if row.url        : oldItem.url         = row.url
 
             return id, None, mode
 
@@ -397,47 +364,6 @@ class Store(object):
             self.lock.release()
 
 
-###    def updateTag(self, id, flags=None, flush=True):
-###        """
-###        """
-###        self.lock.acquire()
-###        try:
-###            if not self.wlib.tags.getById(id):
-###                raise KeyError, 'Unknown tag id %s' % id
-###
-###            # constructs fields and line
-###            fields = [''] * NUM_COLUMN
-###            fields[COLUMNS.index('id')] = 'u:@%d' % id
-###            if flags: fields[COLUMNS.index('flags')] = flags
-###
-###            line = dsv.encode_fields(fields)
-###            self._interpretRecord(self._xline_to_row(line))
-###            self._log(line, flush)
-###
-###        finally:
-###            self.lock.release()
-###
-###
-###    def updateWebPage(self, id, lastused=None, flush=True):
-###        """ """
-###        self.lock.acquire()
-###        try:
-###            if not self.wlib.webpages.getById(id):
-###                raise KeyError, 'Unknown webpage id %s' % id
-###
-###            # constructs fields and line
-###            fields = [''] * NUM_COLUMN
-###            fields[COLUMNS.index('id')] = 'u:%d' % id
-###            if lastused: fields[COLUMNS.index('lastused')] = lastused
-###
-###            line = dsv.encode_fields(fields)
-###            self._interpretRecord(self._xline_to_row(line))
-###            self._log(line, flush)
-###
-###        finally:
-###            self.lock.release()
-###
-###
     def removeItem(self, item, flush=True):
         """
         Remove the item.
@@ -498,67 +424,73 @@ class Store(object):
         @param pathname - optional, override default pathname
         @param fp - optional, provide a ready make fp inplace of a disk file
         """
-        self.reset()
-
-        # Save to pathname. Do not replace self.pathname however.
-        if not pathname:
-            pathname = self.pathname
-        if fp:
-            use_temp_file = False
-        else:
-            # First output to a temp file.
-            # Then atomically replace the output file when done.
-            use_temp_file = True
-            tmp_pathname = pathname + '.tmp'
-            fp = file(tmp_pathname, 'wb')
-
+        self.lock.acquire()
         try:
-            writer = codecs.getwriter(self.ENCODING)(fp,'replace')
-            wlib = self.wlib
+            self.reset()
 
-            # write headers
-            headers = wlib.headers.copy()
-            for name in wlib.header_names:
-                if name not in headers:
-                    continue
-                # borrow dsv.encode_fields() to encode \ and line breaks.
-                v = dsv.encode_fields([headers[name]])
-                writer.write('%s: %s\r\n' % (name,v))
-                del headers[name]
+            # Save to pathname. Do not replace self.pathname however.
+            if not pathname:
+                pathname = self.pathname
+            if fp:
+                use_temp_file = False
+            else:
+                # First output to a temp file.
+                # Then atomically replace the output file when done.
+                use_temp_file = True
+                tmp_pathname = pathname + '.tmp'
+                fp = file(tmp_pathname, 'wb')
 
-            # write remaining headers not listed in wlib.header_names
-            for n,v in headers.items():
-                v = dsv.encode_fields([v])
-                writer.write('%s: %s\r\n' % (n,v))
+            try:
+                writer = codecs.getwriter(self.ENCODING)(fp,'replace')
+                wlib = self.wlib
 
-            writer.write('\r\n')
+                # write headers
+                headers = wlib.headers.copy()
+                for name in wlib.header_names:
+                    if name not in headers:
+                        continue
+                    # borrow dsv.encode_fields() to encode \ and line breaks.
+                    v = dsv.encode_fields([headers[name]])
+                    writer.write('%s: %s\r\n' % (name,v))
+                    del headers[name]
 
-            header = dsv.encode_fields(COLUMNS)
-            writer.write(header)
-            writer.write('\n')
+                # write remaining headers not listed in wlib.header_names
+                for n,v in headers.items():
+                    v = dsv.encode_fields([v])
+                    writer.write('%s: %s\r\n' % (n,v))
 
-            for tag in wlib.tags:
-                line = self._serialize_tag(tag)
-                writer.write(line)
+                writer.write('\r\n')
+
+                header = dsv.encode_fields(COLUMNS)
+                writer.write(header)
                 writer.write('\n')
 
-            for item in wlib.webpages:
-                line = self._serialize_webpage(item)
-                writer.write(line)
-                writer.write('\n')
+                for tag in wlib.tags:
+                    line = self._serialize_tag(tag)
+                    writer.write(line)
+                    writer.write('\n')
+
+                for item in wlib.webpages:
+                    line = self._serialize_webpage(item)
+                    writer.write(line)
+                    writer.write('\n')
+
+            finally:
+                if use_temp_file:
+                    fp.close()
+
+            if use_temp_file:
+                try:
+                    # this works atomically in Posix.
+                    os.rename(tmp_pathname, pathname)
+                except OSError:
+                    # delete before rename for Windows. Not atomic.
+                    os.remove(pathname)
+                    os.rename(tmp_pathname, pathname)
 
         finally:
-            if use_temp_file:
-                fp.close()
+            self.lock.release()
 
-        if use_temp_file:
-            try:
-                # this works atomically in Posix.
-                os.rename(tmp_pathname, pathname)
-            except OSError:
-                # delete before rename for Windows. Not atomic.
-                os.remove(pathname)
-                os.rename(tmp_pathname, pathname)
 
 # ------------------------------------------------------------------------
 

@@ -2,6 +2,7 @@
 Define Weblib data type Tag, WebPage and the container WebLibrary.
 """
 
+# TODO: weblib use to be quite standalone container class. However, index need to be careful managed and properly closed. FIND A SYSTEM. use store?
 # TODO: how do I make sure WebPage fields is the right type? e.g. id is int.
 # date fields: modified, cached, accessed
 
@@ -141,48 +142,13 @@ class WebLibrary(object):
         if self.index_reader:   self.index_reader.close()
         if self.index_writer:   self.index_writer.close()
 
-    # TODO: weblib use to be quite standalone container class. However, index need to be careful managed and properly closed. FIND A SYSTEM. use store?
+
     def init_index(self):
         from minds import lucene_logic
         wpath = cfg.getpath('weblibindex')
         self.index_writer = lucene_logic.Writer(wpath)
         self.index_reader = lucene_logic.Reader(wpath)
         self.index_searcher = lucene_logic.Searcher(pathname=wpath)
-
-
-    # TODO: can we phrase this out and force people to use minds_lib??
-#    def addWebPage(self, entry):
-#        if entry.id == -1:
-#            # TODO: HACK HACK HACK
-#            # logWriteItem need a real id, append it now ot get one. It will be overwritten.
-#            self.webpages.append(entry)
-#        from minds.weblib import store
-#        store.store.logWriteItem(self, entry)
-
-    # TODO: can we phrase this out and force people to use minds_lib??
-#    def addTag(self, entry):
-#        if entry.id == -1:
-#            # TODO: HACK HACK HACK
-#            # logWriteItem need a real id, append it now ot get one. It will be overwritten.
-#            self.tags.append(entry)
-#        from minds.weblib import minds_lib
-#        minds_lib.store.logWriteItem(self, entry)
-
-
-    # TODO: just put this in the CGI
-    def newWebPage(self, name='', url='', description=''):
-        """ Create a minimal WebPage for user to fill in.
-            @return: a WebPage
-        """
-        modified = datetime.date.today().isoformat()
-        lastused = modified
-        return WebPage(
-            name        =name,
-            url         =url,
-            description =description,
-            modified    =modified,
-            lastused    =lastused,
-        )
 
 
     # TODO: this is not used right now
@@ -245,22 +211,9 @@ class WebLibrary(object):
 #            print >>sys.stderr, '##deleted docid=%s: %s' % (item.id, n)
 
 
-#    def deleteWebPage(self, item):
-#        self.webpages.remove(item)
-
 
     # ------------------------------------------------------------------------
     # Tag methods
-
-# TODO: remove this, it is too novel
-    def getTag(self, name):
-        return self.tags.getByName(name)
-
-
-    def visit(self, item):
-        item.lastused = datetime.date.today().isoformat()
-        self.store.writeWebPage(item)
-
 
     def getDefaultTag(self):
         d = cfg.get('weblib.tag.default', TAG_DEFAULT)
@@ -334,38 +287,50 @@ class WebLibrary(object):
         self.store.writeTag(tag)
 
 
-#    def getCategoryCollapseList(self):
-#        """ Return list of tag ids configured in category_collapse """
-#        category_collapse = self.headers['category_collapse']
-#        category_collapse = category_collapse.replace(' ','')
-#        if not category_collapse:
-#            return [] # otherwise split() would give ['']
-#        lst = []
-#        for s in category_collapse.split(','):
-#            if s.startswith('@'):
-#                try:
-#                    lst.append(int(s[1:]))
-#                except ValueError:
-#                    pass
-#        lst.sort()
-#        return lst
-
-
     # ------------------------------------------------------------------------
     # Webpage methods
+
+    def visit(self, item):
+        item.lastused = datetime.date.today().isoformat()
+        self.store.writeWebPage(item)
+
+
+    def editTags(self, webpages, set_tags, add_tags, remove_tags):
+        """
+        Edit tags for multiple webpages
+        @param webpages - list of webpage
+        @param set_tags - set each item to tags
+        @param add_tags - add tags to each item
+        @param remove_tags - remove tags from each item
+
+        Caller should ensure ensure the parameters are logical.
+        E.g.
+            set_tags should be exclusive to add_tags and remove_tags,
+            add_tags and remove_tags should have no common elements.
+        """
+        add_tags = sets.Set(add_tags)
+        for item in webpages:
+            if set_tags:
+                item.tags = set_tags[:]
+            if add_tags:
+                tags = add_tags.union(item.tags)
+                item.tags = list(tags)
+            if remove_tags:
+                item.tags = [t for t in item.tags if t not in remove_tags]
+            self.store.writeWebPage(item)
 
 
 
 # ----------------------------------------------------------------------
 
-def parseTag(wlib, name):
+def parseTag(wlib, nameOrId):
     """ Parse tag names or tag id. Return tag or None. """
     # tag id in the format of @ddd?
-    if name.startswith('@') and name[1:].isdigit():
-        id = int(name[1:])
+    if nameOrId.startswith('@') and nameOrId[1:].isdigit():
+        id = int(nameOrId[1:])
         return wlib.tags.getById(id)
     else:
-        return wlib.getTag(name)
+        return wlib.tags.getByName(nameOrId)
 
 
 def parseTags(wlib, tag_names):
@@ -394,7 +359,7 @@ def create_tags(wlib, names):
     stor = store.getStore()
     lst = []
     for name in names:
-        tag = wlib.getTag(name)
+        tag = wlib.tags.getByName(name)
         if not tag:
             tag = Tag(name=name)
             stor.writeTag(tag)
@@ -412,29 +377,4 @@ def sortTags(tags):
 
 # TODO: put this inside wlib like tag_merge?
 
-def organizeEntries(entries, set_tags, add_tags, remove_tags):
-    """
-    Organize tags of for the entries
-    @param entries - list of entries
-    @param set_tags - set each entry to tags
-    @param add_tags - add tags to each entry
-    @param remove_tags - remove tags from each entry
-
-    Caller should ensure ensure the parameters are logical.
-    E.g.
-        set_tags should be exclusive to add_tags and remove_tags,
-        add_tags and remove_tags should have no common elements.
-    """
-    stor = store.getStore()
-    add_tags = sets.Set(add_tags)
-    for item in entries:
-        if set_tags:
-            item.tags = set_tags[:]
-        if add_tags:
-            tags = add_tags.union(item.tags)
-            item.tags = list(tags)
-        if remove_tags:
-            item.tags = [t for t in item.tags if t not in remove_tags]
-        print >>sys.stderr, '##', 'writeitem', repr(item).encode('ascii','replace')
-        stor.writeWebPage(item)
 

@@ -166,8 +166,8 @@ def doPost(wfile, req):
         else:
             remove_tags.append(tag)
 
-    log.debug('organizeEntries %s entries set add %s remove %s.', len(entries), add_tags, remove_tags)
-    weblib.organizeEntries(entries, [], add_tags, remove_tags)
+    log.debug('EditTags for %s entries add(%s) remove(%s).', len(entries), add_tags, remove_tags)
+    wlib.editTags(entries, [], add_tags, remove_tags)
     wlib.category.compile()
 
     response.redirect(wfile, '/updateParent.html')

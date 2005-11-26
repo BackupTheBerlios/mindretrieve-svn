@@ -1,3 +1,4 @@
+import datetime
 import logging
 import os
 import sets
@@ -66,11 +67,15 @@ class Bean(object):
                 matches = query_wlib.find_url(wlib, url)
                 if not matches:
                     # Case 2. this is a new webpage
-                    item = wlib.newWebPage(
+                    today = datetime.date.today().isoformat()
+                    item = weblib.WebPage(
                         name        = req.param('title'),
                         url         = url,
                         description = req.param('description'),
+                        modified    = today,
+                        lastused    = today,
                     )
+
                     if wlib.getDefaultTag():
                         item.tags = [wlib.getDefaultTag()]
                 else:

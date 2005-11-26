@@ -66,7 +66,7 @@ class TestWeblib(unittest.TestCase):
         self.assertTrue('Tag1' in self.buf.getvalue())
 
         self.assertTrue(tag.id >= 0)
-        t = wlib.getTag('tag1')
+        t = wlib.tags.getByName('tag1')
         self.assertTrue(t)
         self.assertTrue(t.id == tag.id)
 
@@ -89,7 +89,7 @@ class TestWeblib(unittest.TestCase):
         # before
         nt, nw = len(wlib.tags), len(wlib.webpages)
         self.assertTrue('new tag1' not in self.buf.getvalue())
-        self.assertTrue(wlib.getTag('def_tag1'))
+        self.assertTrue(wlib.tags.getByName('def_tag1'))
 
         # write
         tag = weblib.Tag(id=1, name='new tag1')
@@ -98,8 +98,8 @@ class TestWeblib(unittest.TestCase):
         # after
         self._assert_weblib_size(nt, nw)
         self.assertTrue('new tag1' in self.buf.getvalue())
-        self.assertTrue(not wlib.getTag('def_tag1'))
-        self.assertTrue(wlib.getTag('new tag1'))
+        self.assertTrue(not wlib.tags.getByName('def_tag1'))
+        self.assertTrue(wlib.tags.getByName('new tag1'))
 
 
     def test_write_webpage_new(self):
@@ -321,9 +321,9 @@ class TestWeblib(unittest.TestCase):
         #print >>sys.stderr, self.store
         wlib = self.store.wlib
         self._assert_weblib_size(7, 4)
-        self.assertTrue(wlib.getTag('tag1'))
-        self.assertTrue(wlib.getTag('tag2'))
-        self.assertTrue(not wlib.getTag('English'))
+        self.assertTrue(wlib.tags.getByName('tag1'))
+        self.assertTrue(wlib.tags.getByName('tag2'))
+        self.assertTrue(not wlib.tags.getByName('English'))
         self.assertTrue(not wlib.webpages.getById(2))
 
 
@@ -340,7 +340,7 @@ class TestWeblib(unittest.TestCase):
         self.store.writeTag(tag1)
 
         # modify tag
-        tag_english = wlib.getTag('English')
+        tag_english = wlib.tags.getByName('English')
         tag2 = tag_english.__copy__()
         tag2.name = 'tag2'
         self.store.writeTag(tag2)

@@ -91,7 +91,7 @@ def load(rstream):
                 except KeyError, e:
                     log.info('line %s - %s', lineno+1, e)
                     # not a problem, just use the existing tag
-                    tag = wlib.getTag(name)
+                    tag = wlib.tags.getByName(name)
 
                 folder_stack.append(tag)
 

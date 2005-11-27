@@ -15,15 +15,20 @@ class AppHTTPRequestHandlerFixture(app_httpserver.AppHTTPRequestHandler):
 
 class TestAppHTTPRequestHandler(unittest.TestCase):
 
-    def test_parse_cgipath(self):
+    def _test_lookup(self, url, expected):
         handler = AppHTTPRequestHandlerFixture()
-        self.assertEqual( handler._parse_cgipath(''),             (''    ,''     ,''   ))
-        self.assertEqual( handler._parse_cgipath('/'),            ('/'   ,''     ,''   ))
-        self.assertEqual( handler._parse_cgipath('/abc'),         ('/abc',''     ,''   ))
-        self.assertEqual( handler._parse_cgipath('/abc/def'),     ('/abc','/def' ,''   ))
-        self.assertEqual( handler._parse_cgipath('/abc?a=b'),     ('/abc',''     ,'a=b'))
-        self.assertEqual( handler._parse_cgipath('/abc/?a=b'),    ('/abc','/'    ,'a=b'))
-        self.assertEqual( handler._parse_cgipath('/abc/def?a=b'), ('/abc','/def' ,'a=b'))
+        self.assertEqual(handler._lookup_cgi(url), expected)
+
+
+    def test_lookup_cgi(self):
+        from minds.cgibin import home
+        from minds.cgibin import config
+        from minds.cgibin import weblibMultiForm
+        self._test_lookup('',                       (home, '/', '', ''))
+        self._test_lookup('/',                      (home, '/', '', ''))
+        self._test_lookup('/config/item?1',         (config, '/config', '/item', '1'))
+        self._test_lookup('/weblib/multiform/100',  (weblibMultiForm, '/weblib/multiform', '/100', ''))
+
 
 
 class TestMisc(unittest.TestCase):

@@ -96,8 +96,9 @@ class AppHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         general format of a cgi path for app_httpserver
           [/SCRIPT_NAME][/PATH_INFO]?[QUERY_STRING]
 
-        Return module, script name, PATH_INFO, QUERY_STRING or None
+        @return module, /SCRIPT_NAME, /PATH_INFO, QUERY_STRING or None
         """
+        if not path: path = '/' # just in case
         for name, mod in cgibin.cgi_registry:
             if not path.startswith(name):
                 continue

@@ -13,7 +13,7 @@ log = logging.getLogger('cgi.tagnam')
 
 
 def main(rfile, wfile, env):
-    wlib = store.getMainBm()
+    wlib = store.getWeblib()
     req = request.Request(rfile, env)
     tags = [weblib.parseTag(wlib, tag_id) for tag_id in req.form.getlist('tags')]
     tags = filter(None, tags)
@@ -26,7 +26,7 @@ def main(rfile, wfile, env):
 
 
 def doShowForm(wfile, req):
-    wlib = store.getMainBm()
+    wlib = store.getWeblib()
     return_url = request.get_return_url(req)
 
     tag_dict = dict([
@@ -53,7 +53,7 @@ def doShowForm(wfile, req):
 
 
 def doPost(wfile, req, tags):
-    wlib = store.getMainBm()
+    wlib = store.getWeblib()
     newName = req.param('newName')
     newTag = weblib.parseTag(wlib, newName)
     log.info('doPost tags %s newName %s newTag %s', ','.join(map(unicode,tags)), newName, newTag)
@@ -75,7 +75,7 @@ def doPost(wfile, req, tags):
 
 
 def doDelete(wfile, req, tags):
-    wlib = store.getMainBm()
+    wlib = store.getWeblib()
     log.info('doDelete tags %s', ','.join(map(unicode,tags)))
 
     for tag in tags:

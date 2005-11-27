@@ -168,7 +168,7 @@ from pprint import pprint
 
 def testShowAll():
     from minds.weblib import store
-    wlib = store.getMainBm()
+    wlib = store.getWeblib()
     for item in wlib.webpages:
         tags = [tag.name for tag in item.tags]
         print '%s (%s)' % (item.name, ','.join(tags))
@@ -205,7 +205,7 @@ def main(argv):
         del argv[:2]
 
     from minds.weblib import store
-    wlib = store.getMainBm()
+    wlib = store.getWeblib()
 
     if tags:
         branches = query_by_tag(wlib, tags)

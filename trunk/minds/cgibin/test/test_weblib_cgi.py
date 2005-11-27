@@ -118,7 +118,7 @@ class TestWeblibCGI(unittest.TestCase):
 
 
   def test_PUT_form_new(self):
-    wlib = store.getMainBm()
+    wlib = store.getWeblib()
     self.assertEqual(len(wlib.webpages),5)
 
     # PUT new form
@@ -132,7 +132,7 @@ class TestWeblibCGI(unittest.TestCase):
 
 
   def test_PUT_form(self):
-    wlib = store.getMainBm()
+    wlib = store.getWeblib()
     self.assertEqual(len(wlib.webpages),5)
     item = wlib.webpages.getById(1)
     self.assertEqual(item.name, 'MindRetrieve - Search Your Personal Web')
@@ -174,7 +174,7 @@ class TestWeblibCGI(unittest.TestCase):
         'location: /updateParent.html',
     ])
 
-    wlib = store.getMainBm()
+    wlib = store.getWeblib()
     item2 = wlib.webpages.getById(2)
     self.assertTrue(120 in [t.id for t in item2.tags])  # inbox
     self.assertTrue(122 in [t.id for t in item2.tags])  # Français
@@ -198,7 +198,7 @@ class TestWeblibCGI(unittest.TestCase):
         'HTTP/1.0 302 Found',
         'location: /weblib/tag_categorize',
     ])
-    wlib = store.getMainBm()
+    wlib = store.getWeblib()
     self.assertEqual(wlib.category.getDescription(), test_data)
 
 

@@ -45,7 +45,7 @@ def _buildEntries(req):
     # build the id list ids.
     id_list = req.param('id_list').split(',')
 
-    wlib = store.getMainBm()
+    wlib = store.getWeblib()
 
     entries = []
     for k in itertools.chain(req.form.keys(), id_list):
@@ -61,7 +61,7 @@ def _buildEntries(req):
 
 def _buildChecklist(req):
     """ @return list of (tag, value) """
-    wlib = store.getMainBm()
+    wlib = store.getWeblib()
     checklist = []          # list of (tag, flag)
     p = re.compile('\@\d+changed')
     for changed_key in req.form:
@@ -133,7 +133,7 @@ def doShowForm(wfile, req, errors=[], checklist=[], new_tags=[]):
 
 
 def doPost(wfile, req):
-    wlib = store.getMainBm()
+    wlib = store.getWeblib()
     entries = _buildEntries(req)
     checklist = _buildChecklist(req)
     errors = []
@@ -174,7 +174,7 @@ def doPost(wfile, req):
 
 
 def doDelete(wfile, req):
-    wlib = store.getMainBm()
+    wlib = store.getWeblib()
     entries = _buildEntries(req)
     for item in entries:
         try:

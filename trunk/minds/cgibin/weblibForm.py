@@ -34,7 +34,7 @@ class Bean(object):
 
 
     def _readForm(self, req):
-        wlib = store.getMainBm()
+        wlib = store.getWeblib()
 
         if 'filled' in req.form:
             # User is submitting form, use the parameters in the query
@@ -91,7 +91,7 @@ class Bean(object):
 
 
     def _parseTags(self, req):
-        wlib = store.getMainBm()
+        wlib = store.getWeblib()
         self.tags = req.param('tags')
         self.item.tags, self.newTags = weblib.parseTags(wlib, self.tags)
 
@@ -130,7 +130,7 @@ def doGetResource(wfile, req, bean):
 
 
 def doPutResource(wfile, req, bean):
-    wlib = store.getMainBm()
+    wlib = store.getWeblib()
 
     if not bean.validate():
         FormRenderer(wfile).output(bean)
@@ -173,7 +173,7 @@ def doPutResource(wfile, req, bean):
 
 
 def doDeleteResource(wfile, req):
-    wlib = store.getMainBm()
+    wlib = store.getWeblib()
     item = wlib.webpages.getById(req.rid)
     if item:
         log.info('Deleting WebPage %s' % unicode(item))
@@ -209,7 +209,7 @@ class FormRenderer(response.CGIRenderer):
     def render(self, node, bean):
 
         item = bean.item
-        wlib = store.getMainBm()
+        wlib = store.getWeblib()
 
         node.form_title.content = item.id == -1 and 'Add entry' or 'Edit entry'
 

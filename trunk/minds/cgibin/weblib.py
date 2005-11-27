@@ -20,7 +20,7 @@ log = logging.getLogger('cgi.weblib')
 
 
 def main(rfile, wfile, env):
-    wlib = store.getMainBm()
+    wlib = store.getWeblib()
 
     req = request.WeblibRequest(rfile, env)
     log.debug('method %s rid %s', req.method, req.rid)
@@ -68,7 +68,7 @@ def main(rfile, wfile, env):
 def doGoResource(wfile, req):
     # the path are really for user's information only.
     # rid alone determines where to go.
-    wlib = store.getMainBm()
+    wlib = store.getWeblib()
     item = wlib.webpages.getById(req.rid)
     if not item:
         wfile.write('404 not found\r\n\r\n%s not found' % rid)
@@ -79,7 +79,7 @@ def doGoResource(wfile, req):
 
 
 def doTag(wfile, req):
-    wlib = store.getMainBm()
+    wlib = store.getWeblib()
 
     # we only do category_collapse setting right now
     if 'category_collapse' in req.form:
@@ -116,7 +116,7 @@ class CategoryNode(object):
             self.id = tagOrName.id
             self.tag = tagOrName
         else:
-            wlib = store.getMainBm()
+            wlib = store.getWeblib()
             self.tag = wlib.tags.getByName(tagOrName)
             self.id = self.tag and self.tag.id or -1
         self.level = 0
@@ -220,7 +220,7 @@ def _query_by_tag(wlib, select_tag):
 
 
 def queryTag(wfile, req, select_tag):
-    wlib = store.getMainBm()
+    wlib = store.getWeblib()
 
     # category pane
     categoryList = _buildCategoryList(wlib, select_tag)
@@ -242,7 +242,7 @@ def queryWebLib(wfile, req, tag, querytxt):
         querytxt = querytxt[:-1]
         go_direct = True
 
-    wlib = store.getMainBm()
+    wlib = store.getWeblib()
     tags, _ = weblib.parseTags(wlib, tag)
 
     # query
@@ -279,7 +279,7 @@ def queryWebLib(wfile, req, tag, querytxt):
 
 
 def queryRoot(wfile, req):
-    wlib = store.getMainBm()
+    wlib = store.getWeblib()
 
     # category pane
     currentCategory = ''

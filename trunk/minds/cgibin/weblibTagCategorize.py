@@ -20,7 +20,7 @@ def main(rfile, wfile, env):
 
 
 def doShowForm(wfile, req):
-    wlib = store.getMainBm()
+    wlib = store.getWeblib()
 
     # build tag_base
     tag_dict = dict([
@@ -56,7 +56,7 @@ def doShowForm(wfile, req):
 
 
 def doPost(wfile, req):
-    wlib = store.getMainBm()
+    wlib = store.getWeblib()
 
     # TODO: parse and check for error?
     text = req.param('category_description')

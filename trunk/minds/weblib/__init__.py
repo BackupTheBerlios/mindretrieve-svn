@@ -517,7 +517,7 @@ def test_tag_tree():
 
 
 def test_DAG():
-    wlib = store.getMainBm()
+    wlib = store.getWeblib()
     root = inferCategory(wlib)
     ## debug
     for v, path in root.dfs():

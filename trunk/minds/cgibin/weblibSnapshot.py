@@ -22,7 +22,7 @@ log = logging.getLogger('cgi.snapsh')
 #   /weblib/$rid/snapshot/get       <---- TODO make this more REST?
 
 def main(wfile, env, method, form, rid, rid_path):
-    wlib = store.getMainBm()
+    wlib = store.getWeblib()
     item = wlib.webpages.getById(rid)
 
     str_rid = rid == -1 and '_' or str(rid)
@@ -46,7 +46,7 @@ def main(wfile, env, method, form, rid, rid_path):
 def doShowSnapshot(wfile, rid, rid_path):
     # the rid_path are really for user's information only.
     # rid alone determines where to go.
-    wlib = store.getMainBm()
+    wlib = store.getWeblib()
     item = wlib.webpages.getById(rid)
     if not item:
         wfile.write('404 not found\r\n\r\n%s not found' % rid)

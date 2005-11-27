@@ -21,7 +21,6 @@ def main(rfile, wfile, env):
 
 def doShowForm(wfile, req):
     wlib = store.getMainBm()
-    return_url = request.get_return_url(req)
 
     # build tag_base
     tag_dict = dict([
@@ -36,10 +35,10 @@ def doShowForm(wfile, req):
     # fill in first webpage in b[3]
     for item in wlib.webpages:
         for tag in item.tags:
-            b = tag_dict[tag]
+            b = tag_dict.get(tag,None)
             if b: # just in case
                 if not b[3]:
-                    b[3] =item.name
+                    b[3] = item.name
 
     tag_base = [(tag.name.lower(), b) for tag,b in tag_dict.items()]
     tag_base.sort()
@@ -53,7 +52,7 @@ def doShowForm(wfile, req):
     un_list.sort()
     uncategorized = [t for l,t in un_list]
 
-    CategorizeRenderer(wfile).output(return_url, [], tag_base, wlib.category.getDescription(), uncategorized)
+    CategorizeRenderer(wfile).output([], tag_base, wlib.category.getDescription(), uncategorized)
 
 
 def doPost(wfile, req):
@@ -63,9 +62,10 @@ def doPost(wfile, req):
     text = req.param('category_description')
     wlib.category.setDescription(text)
     wlib.category.compile()
-    store.save(wlib)
 
-    return_url = request.get_return_url(req)
+    # there is no update of header value. Save the data file.
+    wlib.store.save()
+
     response.redirect(wfile, '/weblib/tag_categorize')
 
 
@@ -90,13 +90,11 @@ class CategorizeRenderer(response.CGIRenderer):
     """ 2005-10-03
     tem:
         con:header
-        con:return_url
         con:category_description
         rep:uncategorized_tag
         con:footer
     """
-    def render(self, node, return_url, errors, tag_base, category_description, uncategorized):
-        node.return_url .atts['value'] = return_url
+    def render(self, node, errors, tag_base, category_description, uncategorized):
         ### TODO: need to encode
         node.tag_base_init.raw = '\n'.join(
             ["tag_base['%s'] = [%s,%s];" % (

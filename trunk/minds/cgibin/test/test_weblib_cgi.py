@@ -3,6 +3,7 @@ import datetime
 import StringIO
 import sys
 import unittest
+import urllib
 
 from minds.safe_config import cfg as testcfg
 from minds import app_httpserver
@@ -13,20 +14,14 @@ from minds.weblib import store
 
 
 testpath = testcfg.getpath('testDoc')
-##weblib_path = testcfg.getpath('weblib')
 
 class TestWeblibCGI(unittest.TestCase):
 
   def setUp(self):
-##    # we're going to overwrite file in weblib_path, make sure it is test.
-##    assert 'test' in weblib_path
     stor = store.getStore()
     testfile_path = testpath/'test_weblib/weblib.dat'
     testdata = file(testfile_path,'rb').read()
     stor.load('*test*data*',StringIO.StringIO(testdata))
-##    testfile_path.copy(weblib_path/store.MINDS_FILENAME)
-##    store.reloadMainBm()
-##    # note: this test has a side effect of overwriting and loading a test weblib.dat
 
 
   def checkPathForPattern(self, path, patterns, no_pattern=None):
@@ -181,10 +176,10 @@ class TestWeblibCGI(unittest.TestCase):
 
     wlib = store.getMainBm()
     item2 = wlib.webpages.getById(2)
-#    self.assertTrue(120 in [t.id for t in item2.tags])  # inbox
+    self.assertTrue(120 in [t.id for t in item2.tags])  # inbox
     self.assertTrue(122 in [t.id for t in item2.tags])  # Français
     item3 = wlib.webpages.getById(3)
-#    self.assertTrue(120 in [t.id for t in item3.tags])  # inbox
+    self.assertTrue(120 in [t.id for t in item3.tags])  # inbox
     self.assertTrue(122 in [t.id for t in item3.tags])  # Français
 
 
@@ -197,8 +192,14 @@ class TestWeblibCGI(unittest.TestCase):
     ])
 
 
-  def test_PUT_tag_categorize(self):
-    self.fail()
+  def test_POST_tag_categorize(self):
+    test_data = 'a\r\n  b  '
+    self.checkPathForPattern('/weblib/tag_categorize?category_description=' + urllib.quote(test_data) + '&method=POST', [
+        'HTTP/1.0 302 Found',
+        'location: /weblib/tag_categorize',
+    ])
+    wlib = store.getMainBm()
+    self.assertEqual(wlib.category.getDescription(), test_data)
 
 
   # ------------------------------------------------------------------------
@@ -210,7 +211,7 @@ class TestWeblibCGI(unittest.TestCase):
     ])
 
 
-  def test_PUT_tag_naming(self):
+  def test_POST_tag_naming(self):
     self.fail()
 
 

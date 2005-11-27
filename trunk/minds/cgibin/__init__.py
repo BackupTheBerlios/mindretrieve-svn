@@ -11,7 +11,6 @@ import search
 import snoop
 import weblib
 import weblibMultiForm
-import weblibEntryOrg
 import weblibTagCategorize
 import weblibTagNaming
 
@@ -28,7 +27,6 @@ cgi_registry = [
   ('/library'              , library),
   ('/search'               , search),
   ('/snoop'                , snoop),
-  ('/weblib/entryOrg'      , weblibEntryOrg),
   ('/weblib/tag_categorize', weblibTagCategorize),
   ('/weblib/tag_naming'    , weblibTagNaming),
   ('/weblib/multiform'     , weblibMultiForm),

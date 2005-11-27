@@ -264,7 +264,7 @@ class WebLibrary(object):
         self.store.flush()
 
         # merge or delete, old tag would be removed from tags
-        self.store.removeTag(tag)
+        self.store.removeItem(tag)
         log.debug('tag_merge_del completed new tag count=%s', len(self.tags))
 
         # Should we leave the tag in the category for manual clean up?

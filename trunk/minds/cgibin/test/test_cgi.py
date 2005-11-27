@@ -1,5 +1,5 @@
 import datetime
-import os, sys
+import sys
 import unittest
 
 from minds import app_httpserver

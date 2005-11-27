@@ -41,8 +41,8 @@ def doShowForm(wfile, req):
     # fill in first webpage in b[3]
     for item in wlib.webpages:
         for tag in item.tags:
-            b = tag_dict[tag]
-            if b: # just in case
+            b = tag_dict.get(tag,None)
+            if b: # should always work
                 if not b[3]:
                     b[3] =item.name
 
@@ -69,7 +69,6 @@ def doPost(wfile, req, tags):
             wlib.tag_merge_del(tag, newTag)
 
     wlib.category.compile()
-    store.save(wlib)
 
     return_url = request.get_return_url(req)
     response.redirect(wfile, '/weblib/tag_naming?return_url=' + return_url)
@@ -83,7 +82,6 @@ def doDelete(wfile, req, tags):
         wlib.tag_merge_del(tag)
 
     wlib.category.compile()
-    store.save(wlib)
 
     return_url = request.get_return_url(req)
     response.redirect(wfile, '/weblib/tag_naming?return_url=' + return_url)

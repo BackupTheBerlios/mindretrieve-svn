@@ -6,7 +6,7 @@ import unittest
 
 from minds.safe_config import cfg as testcfg
 from minds import weblib
-from minds.weblib import minds_lib
+from minds.weblib import store
 
 testpath = testcfg.getpath('testDoc')
 
@@ -16,7 +16,7 @@ class TestWeblib(unittest.TestCase):
     TESTFILE_PATH = testpath/'test_weblib/weblib.dat'
 
     def setUp(self):
-        self.store = minds_lib.Store()
+        self.store = store.Store()
         self.buf = StringIO.StringIO()
         self.store.load('*test*buffer*', self.buf)
 

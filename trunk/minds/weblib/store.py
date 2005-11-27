@@ -506,7 +506,8 @@ def getStore():
 def getWeblib():
     return getStore().wlib
 
-
+def getMainBm():
+    return getWeblib()
 
 # ------------------------------------------------------------------------
 # command line testing

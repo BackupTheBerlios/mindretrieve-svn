@@ -11,7 +11,7 @@ from minds.weblib import store
 testpath = testcfg.getpath('testDoc')
 
 
-class TestWeblib(unittest.TestCase):
+class TestStore(unittest.TestCase):
 
     TESTFILE_PATH = testpath/'test_weblib/weblib.dat'
 
@@ -37,6 +37,12 @@ class TestWeblib(unittest.TestCase):
         store.writeWebPage(weblib.WebPage(name='def_page3'))
         self.assertEqual(wlib.webpages.getById(1).name, 'def_page1')
         self.assertEqual((3, 3), (len(wlib.tags), len(wlib.webpages)))
+
+
+    def _load_TESTFILE(self):
+        self.TESTTEXT = file(self.TESTFILE_PATH,'rb').read()
+        self.buf = StringIO.StringIO(self.TESTTEXT)
+        self.store.load('*test*weblib*', self.buf)
 
 
     def _assert_weblib_size(self, nt, nw):
@@ -151,54 +157,6 @@ class TestWeblib(unittest.TestCase):
         self.assertTrue('new page1' in self.buf.getvalue())
         self.assertTrue(wlib.webpages.getById(1).name, 'new tag1')
 
-#
-#    def test_update_tags(self):
-#        wlib = self.store.wlib
-#        self._make_test_data()
-#
-#        # before
-#        nt, nw = len(wlib.tags), len(wlib.webpages)
-#        self.assertTrue('xxx' not in self.buf.getvalue())
-#
-#        # update
-#        self.store.updateTag(1,flags='XXX')
-#
-#        # after
-#        self._assert_weblib_size(nt, nw)
-#        self.assertTrue('XXX' in self.buf.getvalue())
-#        self.assertEqual(wlib.tags.getById(1).flags, 'XXX')
-#
-#        # update not exist
-#        self.assertRaises(KeyError, self.store.updateTag, 10, flags='YYY')
-#
-#        # after
-#        self._assert_weblib_size(nt, nw)
-#        self.assertTrue('YYY' not in self.buf.getvalue())
-#
-#
-#    def test_update_webpage(self):
-#        wlib = self.store.wlib
-#        self._make_test_data()
-#
-#        # before
-#        nt, nw = len(wlib.tags), len(wlib.webpages)
-#        self.assertTrue('2001' not in self.buf.getvalue())
-#
-#        # update
-#        self.store.updateWebPage(1,lastused='2001')
-#
-#        # after
-#        self._assert_weblib_size(nt, nw)
-#        self.assertTrue('2001' in self.buf.getvalue())
-#        self.assertEqual(wlib.webpages.getById(1).lastused, '2001')
-#
-#        # update not exist
-#        self.assertRaises(KeyError, self.store.updateWebPage, 10, lastused='2010')
-#
-#        # after
-#        self._assert_weblib_size(nt, nw)
-#        self.assertTrue('2010' not in self.buf.getvalue())
-
 
     def test_remove_tag(self):
         wlib = self.store.wlib
@@ -238,12 +196,6 @@ class TestWeblib(unittest.TestCase):
         self.store.load('empty file', StringIO.StringIO(''))
         wlib = self.store.wlib
         self._assert_weblib_size(0,0)
-
-
-    def _load_TESTFILE(self):
-        self.TESTTEXT = file(self.TESTFILE_PATH,'rb').read()
-        self.buf = StringIO.StringIO(self.TESTTEXT)
-        self.store.load('*test*weblib*', self.buf)
 
 
     def test_load(self):
@@ -345,9 +297,6 @@ class TestWeblib(unittest.TestCase):
         tag2.name = 'tag2'
         self.store.writeTag(tag2)
 
-#        # update webpage
-#        self.store.updateWebPage(1, lastused='2001')
-
         # delete webpage
         item2 = wlib.webpages.getById(2)
         self.store.removeItem(item2)
@@ -377,10 +326,6 @@ class TestWeblib(unittest.TestCase):
         self.store.load('*snapshot*buffer*', StringIO.StringIO(snapshot_data))
         self.assertTrue(self.store.wlib is not old_weblib)  # a new wlib is really loaded :)
         self._check_changed()
-
-
-#    def test_default_tag(self):
-#        self.fail()
 
 
 if __name__ == '__main__':

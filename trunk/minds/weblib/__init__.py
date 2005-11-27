@@ -18,14 +18,17 @@ import urlparse
 
 from minds.config import cfg
 from minds.util import dsv
-from minds.weblib import util
+from minds.weblib import graph
 from minds.weblib import mhtml
+from minds.weblib import util
 from minds import distillML
 from minds import distillparse
 
 log = logging.getLogger('weblib')
 TAG_DEFAULT = 'inbox'
 
+
+# ------------------------------------------------------------------------
 
 class WebPage(object):
 
@@ -66,6 +69,8 @@ class WebPage(object):
         return u'%s (%s) %s' % (self.name, ', '.join(map(unicode,self.tags)), self.url)
 
 
+# ------------------------------------------------------------------------
+
 class Tag(object):
 
     def __init__(self, id=-1, name='', description='', flags=''):
@@ -104,6 +109,99 @@ class Tag(object):
         return unicode(self)
 
 
+# ------------------------------------------------------------------------
+
+class Category(object):
+
+    def __init__(self, wlib):
+        self.wlib = wlib
+        self.root = graph.Node('',[])
+        self.uncategorized = []
+
+
+    def getDescription(self):
+        return self.wlib.headers['category_description']
+
+
+    def setDescription(self, description):
+        self.wlib.headers['category_description'] = description
+
+
+    def renameTag(self, tag0, tag1):
+        text= self.getDescription()
+        edited, count = graph.edit_text_tree_rename(text, tag0, tag1)
+        if count > 0:
+            self.setDescription(edited)
+
+
+    def deleteTag(self, tag0):
+        text = self.getDescription()
+        edited, count = graph.edit_text_tree_delete(text, tag0)
+        if count > 0:
+            self.setDescription(edited)
+
+
+    # TODO: move to util and add test? though it is not used now.
+    def knock_off(S, D):
+        """
+        An efficient method to remove items from S that also appear in D.
+        Both S and D should be sorted in decreasing order.
+        Removed items are simply set to None.
+        """
+        i = 0
+        j = 0
+        while i < len(S) and j < len(D):
+            s, d = S[i], D[j]
+            ssize, dsize = s[0], d[0]   # ssize and dsize represents the total order of s and d
+            result = cmp(ssize,dsize)
+            if result == 0:
+                S[i] = None
+                i += 1
+                j += 1
+            elif result > 0:
+                i += 1
+            else:
+                j += 1
+
+
+    def compile(self):
+        """
+        Build root and uncategorized from category_description
+        and current set of Tags
+        """
+
+        # TODO: should countTag in category? clean up.
+        self._countTag()
+
+        text = self.getDescription()
+        self.root = graph.parse_text_tree(text)
+
+        categorized = sets.Set()
+        for node, p in self.root.dfs():
+            tag = self.wlib.tags.getByName(node.data)
+            if tag:
+                # convert string to node
+                # TODO: should we not do this? because there is still going to be some non-tag string?
+#                node.data = tag
+                categorized.add(tag)
+
+        # build uncategorized
+        self.uncategorized = [tag for tag in self.wlib.tags if tag not in categorized]
+        self.uncategorized = sortTags(self.uncategorized)
+
+
+    def _countTag(self):
+        # construct tag statistics
+        for tag in self.wlib.tags:
+            tag.num_item = 0
+
+        for item in self.wlib.webpages:
+            for tag in item.tags:
+                tag.num_item += 1
+
+
+# ------------------------------------------------------------------------
+
 class WebLibrary(object):
 
     def __init__(self, store=None):
@@ -127,8 +225,7 @@ class WebLibrary(object):
         self.webpages = util.IdList()
         self.tags = util.IdNameList()
 
-        import category
-        self.category = category.Category(self)
+        self.category = Category(self)
 
         self.index_writer = None
         self.index_reader = None
@@ -373,8 +470,78 @@ def sortTags(tags):
     return [pair[1] for pair in sorted(lst)]
 
 
-# ----------------------------------------------------------------------
+#-----------------------------------------------------------------------
 
-# TODO: put this inside wlib like tag_merge?
+TEST_DATA0 = """
+mindretrieve
+    search
+    python
+    web design
+    css
+travel
+    italy
+    san francisco
+        real estate
+"""
+
+TEST_DATA = """
+San Francisco
+    food
+    travel
+        italy
+money
+    account
+    real estate
+real estate
+    listing
+    San Francisco
+        agents
+travel
+    italy
+        food
+"""
 
 
+def test_tag_tree():
+    print '\ntree0---'
+    root0 = graph.parse_text_tree(TEST_DATA0)
+    root0.dump()
+
+    print '\ntree1---'
+    root0 = graph.parse_text_tree(TEST_DATA)
+    root0.dump()
+
+    graph.merge_DAG(g0,g)
+    print '\nmerged---'
+    root0.dump()
+
+
+def test_DAG():
+    wlib = store.getMainBm()
+    root = inferCategory(wlib)
+    ## debug
+    for v, path in root.dfs():
+        if not v:
+            continue    # skip the root node
+        print '..' * len(path) + unicode(v) + ' %s' % v.torder + ' %s' % path
+
+
+def test_find_branches():
+    root = graph.parse_text_tree(TEST_DATA)
+    branches = graph.find_branches(root, 'San Francisco')
+    print '\nSan Francisco branches---'
+    print >>sys.stderr, branches
+    graph.Node('',branches).dump()
+
+
+def main(argv):
+    test_find_branches()
+    #test_tag_tree()
+    #test_DAG()
+
+
+if __name__ =='__main__':
+    import codecs
+    sys.stdout = codecs.getwriter('utf-8')(sys.stdout,'replace')
+    sys.stderr = codecs.getwriter('utf-8')(sys.stderr,'replace')
+    main(sys.argv)

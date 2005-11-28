@@ -18,40 +18,13 @@ class TestWeblib(unittest.TestCase):
 
     def setUp(self):
         self.store = store.Store()
-        self.buf = StringIO.StringIO()
-        self.store.load('*test*buffer*', self.buf)
-
-
-    def tearDown(self):
-        pass
-
-
-    def _make_test_data(self):
-        store = self.store
-        wlib = store.wlib
-        store.writeTag(weblib.Tag(name='def_tag1'))
-        store.writeTag(weblib.Tag(name='def_tag2'))
-        store.writeTag(weblib.Tag(name='def_tag3'))
-        self.assertEqual(wlib.tags.getById(1).name, 'def_tag1')
-        store.writeWebPage(weblib.WebPage(name='def_page1'))
-        store.writeWebPage(weblib.WebPage(name='def_page2'))
-        store.writeWebPage(weblib.WebPage(name='def_page3'))
-        self.assertEqual(wlib.webpages.getById(1).name, 'def_page1')
-        self.assertEqual((3, 3), (len(wlib.tags), len(wlib.webpages)))
-
-
-    def _load_TESTFILE(self):
         self.TESTTEXT = file(self.TESTFILE_PATH,'rb').read()
-        self.buf = StringIO.StringIO(self.TESTTEXT)
-        self.store.load('*test*weblib*', self.buf)
-
-
-    def _assert_weblib_size(self, nt, nw):
-        self.assertEqual(len(self.store.wlib.tags), nt)
-        self.assertEqual(len(self.store.wlib.webpages), nw)
+        self.store.load('*test*weblib*', StringIO.StringIO(self.TESTTEXT))
 
 
     def test_default_tag(self):
+        # start from empty wlib
+        self.store.load('*test*buffer*', StringIO.StringIO())
         wlib = self.store.wlib
 
         # brand new wlib, no tag exists
@@ -70,7 +43,6 @@ class TestWeblib(unittest.TestCase):
 
 
     def test_tag_rename(self):
-        self._load_TESTFILE()
         wlib = self.store.wlib
 
         # originally
@@ -87,7 +59,6 @@ class TestWeblib(unittest.TestCase):
 
 
     def test_tag_merge_del(self):
-        self._load_TESTFILE()
         wlib = self.store.wlib
 
         # before
@@ -136,7 +107,6 @@ class TestWeblib(unittest.TestCase):
 
 
     def test_setCategoryCollapse(self):
-        self._load_TESTFILE()
         wlib = self.store.wlib
 
         tid = wlib.tags.getByName('English').id
@@ -152,7 +122,6 @@ class TestWeblib(unittest.TestCase):
 
 
     def test_visit(self):
-        self._load_TESTFILE()
         wlib = self.store.wlib
 
         today = datetime.date.today().isoformat()
@@ -169,7 +138,6 @@ class TestWeblib(unittest.TestCase):
 
 
     def test_editTags(self):
-        self._load_TESTFILE()
         wlib = self.store.wlib
 
         itag = wlib.tags.getByName('inbox')

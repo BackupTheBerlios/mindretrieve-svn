@@ -19,6 +19,7 @@ class IdList(object):
         self._lastId = 0
         self._lst = []
         self._id2item = {}
+        self.change_count = 0
 
     def acquireId(self):
         self._lastId += 1
@@ -37,6 +38,8 @@ class IdList(object):
 
         self._lst.append(item)
         self._id2item[item.id] = item
+        self.change_count += 1
+
 
     def getById(self, id):
         """ @return item or None if not found """
@@ -46,6 +49,7 @@ class IdList(object):
         """ raise KeyError if item is not in the list """
         try:
             self._lst.remove(item)
+            self.change_count += 1
         except ValueError, e:
             raise KeyError(e)     # make it an IndexError
         del self._id2item[item.id]
@@ -54,7 +58,25 @@ class IdList(object):
         return len(self._lst)
 
     def __iter__(self):
-        return iter(self._lst)
+        return FailFastIterator(self)
+
+
+class FailFastIterator(object):
+    """
+    Iterator of IdList. FailFastIterator raise an exception if
+    the content of the container is changed during iteration.
+    """
+
+    def __init__(self, container):
+        self.container = container
+        self.init_count = container.change_count
+        self.it = iter(container._lst)
+
+    def next(self):
+        if self.init_count != self.container.change_count:
+            raise RuntimeError('Unable to iterate. Container has been modified')
+        return self.it.next()
+
 
 
 class IdNameList(IdList):

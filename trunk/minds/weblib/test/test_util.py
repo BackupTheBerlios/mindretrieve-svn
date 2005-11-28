@@ -116,6 +116,41 @@ class TestIdList(unittest.TestCase):
         self.assertEqual(len(self.lst), 2)
 
 
+    def test_failfast(self):
+        item1 = TestItem()
+        item2 = TestItem()
+        item3 = TestItem()
+        self.lst.append(item1)
+        self.lst.append(item2)
+        self.lst.append(item3)
+
+        # fine for simple iteration
+        for item in self.lst:
+            pass
+
+        # fail fast if append during iteration
+        try:
+            for item in self.lst:
+                if len(self.lst) < 10:
+                    self.lst.append(TestItem())
+        except RuntimeError:
+            # fail after first iteration
+            self.assertEqual(item, item1)
+        else:
+            self.fail('Fail fast expected.')
+
+        # fail fast if remove during iteration
+        try:
+            for item in self.lst:
+                self.lst.remove(item)
+        except RuntimeError:
+            # fail after first iteration
+            self.assertEqual(item, item1)
+        else:
+            self.fail('Fail fast expected.')
+
+
+
 class TestIdNameList(TestIdList):
 
     def setUp(self):
@@ -215,7 +250,6 @@ class TestIdNameList(TestIdList):
 
     def test_remove(self):
         super(TestIdNameList,self).test_remove()
-
 
 
 if __name__ =='__main__':

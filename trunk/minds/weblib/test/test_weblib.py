@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import datetime
 import sets
 import StringIO
 import sys
@@ -132,6 +133,67 @@ class TestWeblib(unittest.TestCase):
         self.assertEqual(len(item.tags), 0)
         self.assertEqual(len(wlib.tags), 3)
         self.assertTrue(u'Français' not in wlib.category.getDescription())
+
+
+    def test_setCategoryCollapse(self):
+        self._load_TESTFILE()
+        wlib = self.store.wlib
+
+        tid = wlib.tags.getByName('English').id
+        isCC = lambda: 'c' in wlib.tags.getByName('English').flags
+
+        self.assertTrue(not isCC())
+
+        wlib.setCategoryCollapse(tid, True)
+        self.assertTrue(isCC())
+
+        wlib.setCategoryCollapse(tid, False)
+        self.assertTrue(not isCC())
+
+
+    def test_visit(self):
+        self._load_TESTFILE()
+        wlib = self.store.wlib
+
+        today = datetime.date.today().isoformat()
+        # before
+        item = wlib.webpages.getById(5)
+        self.assertTrue(item.lastused < today)  # test data supposed to have a date in the past
+
+        # visit
+        item = wlib.visit(item)
+
+        # after
+        item = wlib.webpages.getById(5)
+        self.assertTrue(item.lastused >= today)
+
+
+    def test_editTags(self):
+        self._load_TESTFILE()
+        wlib = self.store.wlib
+
+        itag = wlib.tags.getByName('inbox')
+        ktag = wlib.tags.getByName('Kremlin')
+
+        # before
+        for id in range(2,6):
+            page = wlib.webpages.getById(id)
+            self.assertTrue(itag not in page.tags)
+            self.assertTrue(ktag in page.tags)
+
+        # editTags
+        webpages = [wlib.webpages.getById(id) for id in range(2,6)]
+        wlib.editTags(webpages, [], [itag], [ktag])
+
+        # after
+        for id in range(2,6):
+            page = wlib.webpages.getById(id)
+            self.assertTrue(itag in page.tags)
+            self.assertTrue(ktag not in page.tags)
+
+
+    def test_compile(self):
+        self.fail('need test')
 
 
 if __name__ == '__main__':

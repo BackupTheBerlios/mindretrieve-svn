@@ -218,7 +218,7 @@ class Store(object):
         Create, updated or remove WebPage or Tag records.
 
         @raise ValueError or KeyError for parsing problem
-        @return (webpage id, tag id, mode) [for unit testing]
+        @return - the item created or removed
         """
 
         # mode w: write; r: remove
@@ -242,6 +242,7 @@ class Store(object):
             if mode == 'r':
                 if oldTag:
                     wlib.tags.remove(oldTag)
+                return oldTag
             else:
                 if oldTag:
                     wlib.tags.remove(oldTag)
@@ -252,8 +253,7 @@ class Store(object):
                     flags       = row.flags,
                 )
                 wlib.tags.append(tag)
-
-            return None, id, mode
+                return tag
 
         else:
             id = int(row.id)
@@ -268,6 +268,7 @@ class Store(object):
             if mode == 'r':
                 if oldItem:
                     wlib.webpages.remove(oldItem)
+                return oldItem
             else:
                 if oldItem:
                     wlib.webpages.remove(oldItem)
@@ -286,8 +287,7 @@ class Store(object):
                 # should convert tagids to tags after reading the whole file??
                 webpage.tagIds = tagids
                 wlib.webpages.append(webpage)
-
-            return id, None, mode
+                return webpage
 
 
     def _conv_tagid(self, item):
@@ -324,22 +324,32 @@ class Store(object):
     def writeTag(self, tag, flush=True):
         """
         The tag can be a new or an existing tag.
-
         If tag.id is less than 0, a new id would be assigned.
+
+        @param tag - the tag to be written. By design this item would
+            be invalidated after this call. Use the new instance returned
+            instead if necessary.
+
+        @return an new instance of the tag written.
 
         Note: Special instruction to rename a tag
         ----------------------------------------------------------------
         Tags are indexed by name. We need the oldTag intact in order to
-        update the index. In order to rename a tag, clone the tag and
-        assign it a new name. Then call writeTag().
+        update the index. To rename a tag, clone the it and assign it a
+        new name. Then call writeTag() with the new instance.
         """
         self.lock.acquire()
         try:
             if tag.id < 0:
                 tag.id = self.wlib.tags.acquireId()
             line = self._serialize_tag(tag)
-            self._interpretRecord(self._xline_to_row(line))
+            newTag = self._interpretRecord(self._xline_to_row(line))
             self._log(line, flush)
+
+            # shed input tag
+            tag.__dict__.clear()    # TODO: this would only raise AttributeError for caller. Make better error message?
+
+            return newTag
 
         finally:
             self.lock.release()
@@ -348,17 +358,27 @@ class Store(object):
     def writeWebPage(self, webpage, flush=True):
         """
         The webpage can be a new or an existing item.
-
         If webpage.id is less than 0, an new id would be assigned.
+
+        @param webpage - the webpage to be written. By design this item
+            would be invalidated after this call. Use the new instance
+            returned instead if necessary.
+
+        @return an new instance of the webpage written.
         """
         self.lock.acquire()
         try:
             if webpage.id < 0:
                 webpage.id = self.wlib.webpages.acquireId()
             line = self._serialize_webpage(webpage)
-            self._interpretRecord(self._xline_to_row(line))
-            self._conv_tagid(self.wlib.webpages.getById(webpage.id))
+            newItem = self._interpretRecord(self._xline_to_row(line))
+            self._conv_tagid(self.wlib.webpages.getById(newItem.id))
             self._log(line, flush)
+
+            # shed the input webpage
+            webpage.__dict__.clear()    # TODO: this would only raise AttributeError for caller. Make better error message?
+
+            return newItem
 
         finally:
             self.lock.release()
@@ -397,7 +417,18 @@ class Store(object):
 
     def _serialize_tag(self, tag):
         id = '@%d' % tag.id
-        return dsv.encode_fields([id, tag.name] + [''] * (NUM_COLUMN-2))
+        return dsv.encode_fields([
+            id,
+            tag.name,
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            tag.flags,
+            '',
+        ])
 
 
     def _serialize_webpage(self, item):

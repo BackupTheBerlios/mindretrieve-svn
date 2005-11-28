@@ -74,7 +74,7 @@ def doGoResource(wfile, req):
         wfile.write('404 not found\r\n\r\n%s not found' % rid)
         return
 
-    wlib.visit(item)
+    item = wlib.visit(item)
     response.redirect(wfile, item.url)
 
 

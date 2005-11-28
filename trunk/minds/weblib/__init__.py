@@ -320,10 +320,10 @@ class WebLibrary(object):
         if tag:
             return tag
         # default tag is not previous used; or user has chosen a new default?
-        tag = Tag(name=d)
-        self.store.writeTag(tag)
+        self.store.writeTag(Tag(name=d))
         self.category.compile()
-        return tag
+        # query default tag again
+        return self.tags.getByName(d)
 
 
     def tag_rename(self, tag, newName):
@@ -340,7 +340,10 @@ class WebLibrary(object):
         @param tag - tag to be altered
         @param new_tag - tag to merge with, or None to delete tag.
         """
-        log.debug(u'tag_merge_del tag count=%s tag=%s new_tag=%s', len(self.tags), unicode(tag), new_tag)
+        log.debug(u'tag_merge_del %s-->%s #tag=%s', unicode(tag), new_tag, len(self.tags))
+
+        # collect changed items in updated
+        updated = []
 
         # remove the use of tag from webpages
         for item in self.webpages:
@@ -356,13 +359,17 @@ class WebLibrary(object):
                 # have only tag, merge tag into newTag
                 item.tags.remove(tag)
                 item.tags.append(new_tag)
+            updated.append(item)
+
+        # note: store.writeWebPage udpate wlib.webpages.
+        # can't call it while iterating webpages.
+        for item in updated:
             self.store.writeWebPage(item, flush=False)
 
-        self.store.flush()
+        # merge or delete, old tag would be removed either case
+        self.store.removeItem(tag, flush=True)
 
-        # merge or delete, old tag would be removed from tags
-        self.store.removeItem(tag)
-        log.debug('tag_merge_del completed new tag count=%s', len(self.tags))
+        log.debug('tag_merge_del completed. Webpages updated=%s #tag=%s', len(updated), len(self.tags))
 
         # Should we leave the tag in the category for manual clean up?
         # Automatic collapsing category may not be a good idea.
@@ -389,7 +396,7 @@ class WebLibrary(object):
 
     def visit(self, item):
         item.lastused = datetime.date.today().isoformat()
-        self.store.writeWebPage(item)
+        return self.store.writeWebPage(item)
 
 
     def editTags(self, webpages, set_tags, add_tags, remove_tags):
@@ -449,7 +456,7 @@ def parseTags(wlib, tag_names):
     tags.sort()
     return tags, unknown
 
-
+# this is only used in weblibMultiForm.doPost. Move it there.
 def create_tags(wlib, names):
     """ Return list of Tags created from the names list. """
     from minds.weblib import store

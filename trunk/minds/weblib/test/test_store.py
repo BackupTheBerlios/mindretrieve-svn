@@ -65,23 +65,23 @@ class TestStore(unittest.TestCase):
         # write
         tag = weblib.Tag(name='Tag1')
         self.assertTrue(tag.id == -1)
-        self.store.writeTag(tag)
+        newTag = self.store.writeTag(tag)
 
         # after
         self._assert_weblib_size(nt+1, nw)
         self.assertTrue('Tag1' in self.buf.getvalue())
 
-        self.assertTrue(tag.id >= 0)
+        self.assertTrue(newTag.id >= 0)
         t = wlib.tags.getByName('tag1')
         self.assertTrue(t)
-        self.assertTrue(t.id == tag.id)
+        self.assertTrue(t.id == newTag.id)
 
         # before
         self.assertTrue(not wlib.tags.getById(10))
 
         # write webpage with new id assigned
         tag = weblib.Tag(id=10, name='Tag10')
-        self.store.writeTag(tag)
+        newTag = self.store.writeTag(tag)
 
         # verify
         self._assert_weblib_size(nt+2, nw)
@@ -117,22 +117,22 @@ class TestStore(unittest.TestCase):
         self.assertTrue('Page1' not in self.buf.getvalue())
 
         # write
-        item = weblib.WebPage(name='Page1')
-        self.assertTrue(item.id == -1)
-        self.store.writeWebPage(item)
+        page = weblib.WebPage(name='Page1')
+        self.assertTrue(page.id == -1)
+        newPage = self.store.writeWebPage(page)
 
         # after
         self._assert_weblib_size(nt, nw+1)
         self.assertTrue('Page1' in self.buf.getvalue())
-        self.assertTrue(item.id >= 0)
-        self.assertTrue(wlib.webpages.getById(item.id))
+        self.assertTrue(newPage.id >= 0)
+        self.assertTrue(wlib.webpages.getById(newPage.id))
 
         # before
         self.assertTrue(not wlib.webpages.getById(10))
 
         # write webpage with new id assigned
-        item = weblib.WebPage(id=10, name='Page10')
-        self.store.writeWebPage(item)
+        page = weblib.WebPage(id=10, name='Page10')
+        newPage = self.store.writeWebPage(page)
 
         # verify
         self._assert_weblib_size(nt, nw+2)

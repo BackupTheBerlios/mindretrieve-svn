@@ -328,10 +328,12 @@ class WebLibrary(object):
 
     def tag_rename(self, tag, newName):
         log.debug(u'tag_rename tag count=%s tag=%s newName=%s', len(self.tags), unicode(tag), newName)
+        oldName = tag.name
         newTag = tag.__copy__()
         newTag.name = newName
         self.store.writeTag(newTag)
-        self.category.renameTag(tag.name, newName)
+        self.category.renameTag(oldName, newName)
+        self.category.compile()
 
 
     def tag_merge_del(self, tag, new_tag=None):
@@ -341,6 +343,8 @@ class WebLibrary(object):
         @param new_tag - tag to merge with, or None to delete tag.
         """
         log.debug(u'tag_merge_del %s-->%s #tag=%s', unicode(tag), new_tag, len(self.tags))
+        assert tag in self.tags
+        assert not new_tag or new_tag in self.tags
 
         # collect changed items in updated
         updated = []
@@ -412,6 +416,9 @@ class WebLibrary(object):
             set_tags should be exclusive to add_tags and remove_tags,
             add_tags and remove_tags should have no common elements.
         """
+        assert not [tag for tag in set_tags if tag not in self.tags]
+        assert not [tag for tag in add_tags if tag not in self.tags]
+        assert not [tag for tag in remove_tags if tag not in self.tags]
         add_tags = sets.Set(add_tags)
         for item in webpages:
             if set_tags:
@@ -422,7 +429,6 @@ class WebLibrary(object):
             if remove_tags:
                 item.tags = [t for t in item.tags if t not in remove_tags]
             self.store.writeWebPage(item)
-
 
 
 # ----------------------------------------------------------------------

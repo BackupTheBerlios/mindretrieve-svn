@@ -9,6 +9,7 @@ from xml.sax import saxutils
 from minds.config import cfg
 from minds.cgibin import weblibSnapshot
 from minds.cgibin import weblibForm
+from minds.cgibin import weblibTagForm
 from minds.cgibin.util import request
 from minds.cgibin.util import response
 from minds import weblib
@@ -23,7 +24,7 @@ def main(rfile, wfile, env):
     wlib = store.getWeblib()
 
     req = request.WeblibRequest(rfile, env)
-    log.debug('method %s rid %s', req.method, req.rid)
+    log.debug('method %s rid %s tid %s', req.method, req.rid, req.tid)
 
     if req.rid:
         path = req.path
@@ -39,7 +40,7 @@ def main(rfile, wfile, env):
             weblibForm.main(wfile, req)
 
     elif req.tid:
-        doTag(wfile, req)
+        weblibTagForm.main(wfile, req)
 
     else:
         # query
@@ -76,29 +77,6 @@ def doGoResource(wfile, req):
 
     item = wlib.visit(item)
     response.redirect(wfile, item.url)
-
-
-def doTag(wfile, req):
-    wlib = store.getWeblib()
-
-    # we only do category_collapse setting right now
-    if 'category_collapse' in req.form:
-        cc = req.param('category_collapse')
-        # suppose to do this only for POST
-        flag = cc.lower() == 'on'
-        log.debug('doTag setCategoryCollapse @%s %s' % (req.tid, flag))
-
-        wlib.setCategoryCollapse(req.tid, flag)
-
-        # response for debug only
-        wfile.write('content-type: text/plain\r\n')
-        wfile.write('cache-control: no-cache\r\n')
-        wfile.write('\r\n')
-        wfile.write('setCategoryCollapse @%s %s' % (req.tid, flag))
-
-    else:
-        # not supported
-        response.redirect(wfile, request.WEBLIB_URL)
 
 
 # ------------------------------------------------------------------------
@@ -230,9 +208,10 @@ def queryTag(wfile, req, select_tag):
     webItems = _query_by_tag(wlib, select_tag)
 
     WeblibRenderer(wfile, req.env, '').output(
+        wlib.tags,
         wlib.getDefaultTag(),
         categoryList,
-        unicode(select_tag),
+        unicode(select_tag).lower(),
         webItems)
 
 
@@ -251,7 +230,7 @@ def queryWebLib(wfile, req, tag, querytxt):
     # quick jump?
     if go_direct and result:
         top_item = result[0][0]
-        wlib.visit(top_item)
+        top_item = wlib.visit(top_item)
         response.redirect(wfile, top_item.url)
         return
 
@@ -272,6 +251,7 @@ def queryWebLib(wfile, req, tag, querytxt):
         webItems.append(WebItemNode(item))
 
     WeblibRenderer(wfile, req.env, querytxt).output(
+        wlib.tags,
         wlib.getDefaultTag(),
         categoryList,
         '',
@@ -282,16 +262,16 @@ def queryRoot(wfile, req):
     wlib = store.getWeblib()
 
     # category pane
-    currentCategory = ''
     categoryList = _buildCategoryList(wlib)
 
     # webitem pane
     webItems = map(WebItemNode, query_wlib.queryRoot(wlib))
 
     WeblibRenderer(wfile, req.env, '').output(
+        wlib.tags,
         wlib.getDefaultTag(),
         categoryList,
-        currentCategory,
+        '',
         webItems)
 
 
@@ -330,28 +310,38 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
     con:footer
     """
     def render(self, node,
+        tags,
         defaultTag,
         categoryList,
-        currentCategory,
+        lTagSelected,
         webItems,
         ):
         """
+        @param tags - list of all tags
         @param defaultTag - a Tag (e.g. inbox)
+        @param lTagSelected - name of selected tag (in lower case)
         @param webItems - list of (WebPage, [tags])
         """
+
+        # ------------------------------------------------------------------------
+        # tag list
+        lst = [(tag.name.lower(), tag.name, tag.id) for tag in tags]
+        lst = [(name,id) for _,name,id in sorted(lst)]
+        node.tagList.tag.repeat(self.renderTag, lst, lTagSelected)
+
 
         # ------------------------------------------------------------------------
         # default Tag
         node.defaultTag.atts['href'] = request.tag_url([defaultTag])
         node.defaultTag.content = unicode(defaultTag)
-        if defaultTag.match(currentCategory):
+        if defaultTag.match(lTagSelected):
             node.defaultTag.atts['class'] = 'highlight'
 # Actually need to make sure it is not doing search
-#        if not currentCategory:
+#        if not lTagSelected:
 #            node.rootTag.atts['class'] = 'highlight'
 
         # category
-        node.catList.repeat(self.renderCatItem, categoryList, currentCategory)
+        node.catList.repeat(self.renderCatItem, categoryList, lTagSelected)
 
         # ------------------------------------------------------------------------
         # Matching message
@@ -380,9 +370,17 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
         node.web_items.webItem.repeat(self.renderWebItem, enumerate(webItems), headerTemplate)
 
 
-    def renderCatItem(self, node, item, currentCategory):
+    def renderTag(self, node, item, lTagSelected):
+        name, id = item
+        node.atts['value'] = '@%s' % id
+        if name.lower() == lTagSelected:
+            node.atts['selected'] = '1'
+        node.content = name
+
+
+    def renderCatItem(self, node, item, lTagSelected):
         catNode, subcats = item
-        isCurrent = catNode.tagName.lower() == currentCategory.lower()
+        isCurrent = catNode.tagName.lower() == lTagSelected
         iscollapse = not isCurrent and catNode.tag and ('c' in catNode.tag.flags)
         node.toggleSwitch.atts['id'] = '@%s' % catNode.id
         node.toggleSwitch.content = iscollapse and '+' or '-'
@@ -395,10 +393,10 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
             # otherwise it is a pseudo tag
             del node.link.atts['href']
         node.subcat.atts['class'] =  iscollapse and 'subcategoriesCollapsed'  or 'subcategories'
-        node.subcat.catItem.repeat(self.renderSubCat, subcats, currentCategory)
+        node.subcat.catItem.repeat(self.renderSubCat, subcats, lTagSelected)
 
 
-    def renderSubCat(self, node, catNode, currentCategory):
+    def renderSubCat(self, node, catNode, lTagSelected):
         if catNode == CategoryNode.BEGIN_HIGHLIGHT:
             node.omittags()
             node.link.omittags()
@@ -412,7 +410,7 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
                 node.atts['class'] = 'SubCat2'
             node.link.content = catNode.tagName + (catNode.comma and ',' or '')
             node.link.atts['href'] = request.tag_url(catNode.tagName)
-            if  catNode.tagName.lower() == currentCategory.lower():
+            if  catNode.tagName.lower() == lTagSelected:
                 node.link.atts['class'] = 'highlight'
 
 

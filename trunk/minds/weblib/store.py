@@ -70,6 +70,30 @@ Discussions
 
 """
 
+""" 2005-11-29 Discussion on the _interpretRecord() protocol
+
+When an item is updated, instead of updating it in memory, the
+writeXXX() method should be used. A change record is generated. Then
+_interpretRecord() would build a new item from the change record and
+assign it into wlib. The purpose of doing this is to force load() and
+in-memory update to use the same code path. So that it minimize the
+change that wlib reloaded would be different from the current wlib.
+
+Several issue arised with this protocol.
+
+* This is unintuitive to callers. wlib is open for in-memory update after all.
+
+* The caller need to aware that the record it passes to writeXXX() is
+essentially shredded after the call. It should query wlib to retrieve
+the newly created record. This is again unintuitive, especially for
+operations that requires a series of write.
+
+* The webpage objects hold references to tag objects. If a tag is
+rebuild, the references would be invalidated!
+
+Is this protocol too problematic to use in practice?
+"""
+
 # TODO: header name definitionRFC 2616 2.
 # The specification of header name observe the definition of token in RFC 2616 2.2 except the character '|' is not allowed.
 #!#$%&'*+-.0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ\^_`abcdefghijklmnopqrstuvwxyz|~
@@ -244,16 +268,27 @@ class Store(object):
                     wlib.tags.remove(oldTag)
                 return oldTag
             else:
+# old logic say delete old tag and append a new version of tag.
+# This causes problem that references in webpage objects are invalidated.
+#
+#                if oldTag:
+#                    wlib.tags.remove(oldTag)
                 if oldTag:
-                    wlib.tags.remove(oldTag)
-                tag = weblib.Tag(
-                    id          = id,
-                    name        = row.name,
-                    description = row.description,
-                    flags       = row.flags,
-                )
-                wlib.tags.append(tag)
-                return tag
+                    # update object in-memory
+                    if oldTag.name != row.name:
+                        wlib.tags.rename(oldTag, row.name)
+                    oldTag.description  = row.description
+                    oldTag.flags        = row.flags
+                    return oldTag
+                else:
+                    tag = weblib.Tag(
+                        id          = id,
+                        name        = row.name,
+                        description = row.description,
+                        flags       = row.flags,
+                    )
+                    wlib.tags.append(tag)
+                    return tag
 
         else:
             id = int(row.id)
@@ -346,8 +381,9 @@ class Store(object):
             newTag = self._interpretRecord(self._xline_to_row(line))
             self._log(line, flush)
 
-            # shed input tag
-            tag.__dict__.clear()    # TODO: this would only raise AttributeError for caller. Make better error message?
+            # shred input tag
+            if tag not in self.wlib.tags:   # this check make it even more hackish
+                tag.__dict__.clear()        # TODO: this would only raise AttributeError for caller. Make better error message?
 
             return newTag
 
@@ -375,7 +411,7 @@ class Store(object):
             self._conv_tagid(self.wlib.webpages.getById(newItem.id))
             self._log(line, flush)
 
-            # shed the input webpage
+            # shred the input webpage
             webpage.__dict__.clear()    # TODO: this would only raise AttributeError for caller. Make better error message?
 
             return newItem

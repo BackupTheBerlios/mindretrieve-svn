@@ -402,8 +402,8 @@ class HTMLTestRunner:
                 )
                 rows.append(row)
                 if has_output:
-                    uo = o.decode('utf8')   ##??
-                    ue = e.decode('utf8')
+                    uo = o.decode('latin-1','replace')   ##??
+                    ue = e.decode('latin-1','replace')
                     row = TEST_OUTPUT_TMPL.safe_substitute(
                         id = tid,
                         output = saxutils.escape(uo+ue) \

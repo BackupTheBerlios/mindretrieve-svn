@@ -1,4 +1,4 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3c.org/TR/html4/loose.dtd">
+            <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3c.org/TR/html4/loose.dtd">
 <html>
 <head>
 <title>MindRetrieve - Configuration</title>
@@ -13,10 +13,22 @@
      Category Pane
      ------------------------------------------------------------------------
   */
+  #tagList              {
+    background-color:#ccc;
+    margin:0;
+    padding:0;
+  }
+  #tagList form         {
+    margin:0;
+  }
+  #tagList select       {
+    width=10em;
+    margin:0.5ex;
+  }
   #categorytPane        {
     width: 16em;
-    padding: 0.2cm;
-    border: thin solid #777;
+    paddingx: 0.2cm;
+    border: 1px solid #777;
   }
   #categorytPane p     {
     padding: 0.2cm;
@@ -87,11 +99,6 @@
   }
   #categorytPane .SubCat2 a   {
     color: #777;
-  }
-
-
-  #organizeButton {
-    font-size: 85%;
   }
 
 
@@ -194,6 +201,46 @@ function webitemKeypressEvent(e) {
     window.status = 'keyCode=' + e.keyCode;
 }
 */
+
+function openWeblibForm(url) {
+    h = window.innerHeight * 0.6;
+    w = window.innerWidth * 0.8;
+    s = 'width=' + w + ',height=' + h;
+    win = window.open(url, 'weblibForm', s);
+    win.focus();
+}
+
+function openWeblibFormFull(url) {
+    win = window.open(url, 'weblibForm');
+    win.focus();
+}
+
+function onTagListSelectChanged(e) {
+    var form = document.getElementById('tagListForm');
+    var id = form.elements['tagListSelect'].value;
+    form.action = '/weblib/' + id;
+}
+
+
+function editTag() {
+    openWeblibForm()
+    var form = document.getElementById('tagListForm');
+    form.elements['method'].value = 'GET';
+    form.target = 'weblibForm';
+    form.submit();
+}
+
+
+function deleteTag() {
+    if (!confirm('Remove the tag and its references?'))
+        return;
+    var form = document.getElementById('tagListForm');
+    form.elements['method'].value = 'DELETE';
+    form.target = 'asyncFrame'
+    form.submit();
+}
+
+
 function toggleSubCatEvent(e) {
     result = toggleSubCat(this);
     // notify server of the new setting via the asyncForm
@@ -250,19 +297,6 @@ function setWebitemRow(checkbox) {
     }
     throw new Error('Cannot not find a parent <tr>: ' + checkbox);
 
-}
-
-function openWeblibForm(url) {
-    h = window.innerHeight * 0.6;
-    w = window.innerWidth * 0.8;
-    s = 'width=' + w + ',height=' + h;
-    win = window.open(url, 'weblibForm', s);
-    win.focus();
-}
-
-function openWeblibFormFull(url) {
-    win = window.open(url, 'weblibForm');
-    win.focus();
 }
 
 function selectAll(cb) {
@@ -335,6 +369,12 @@ function onupdate() {
 }
 
 function onload(e) {
+    // attach tag selected event handler
+    var elem = document.getElementById('tagListSelect');
+    elem.addEventListener('change', onTagListSelectChanged, false);
+    // init value
+    onTagListSelectChanged(null);
+
     // attach toggleSubCat event handler
     var catPane = document.getElementById('categorytPane');
     var aElems = catPane.getElementsByTagName('a');
@@ -376,11 +416,33 @@ window.addEventListener('load', onload, false);
 
 <!--==categoryPane========================================================================-->
 <td id='categorytPane'>
+
+<!-- tag pull down -->
+<div node='con:tagList' id='tagList'>
+    <form id='tagListForm' method='GET' action='/weblib/@%id'>
+    <input type='hidden' name='method' value='GET' />
+    <select id='tagListSelect'>
+        <option node='rep:tag' value='@%id'>tag 1</option>
+        <option node='rep:tag' value='@%id'>tag 2</option>
+        <option node='rep:tag' value='@%id' selected='1'>tag 3</option>
+    </select>
+    <a href='javascript:void(0);' class='itemSmallLink' title='Edit'
+        onclick='editTag();'>
+        <img src='img/edit_icon.gif' />
+    </a>
+    <a href='javascript:void(0);' class='itemSmallLink' title='Delete'
+        onclick='deleteTag();'>
+        <img src='img/delete_icon.gif' />
+    </a>
+    <a href='javascript:void(0)' class='itemSmallLink' title='Categorize'
+        onclick='javascript:openWeblibFormFull("/weblib/tag_categorize");'>
+        <img src='img/category.gif' />
+    </a>
+    </form>
+</div>
+
 <ul>
   <ul>
-    <span style='float: right'>
-    <input id='organizeButton' type='button' value='Organize' onclick='javascript:openWeblibFormFull("/weblib/tag_naming");' />
-    </span>
     <span class='SubCat1'><a node='con:rootTag' href='/weblib?tag='>/</a></span><span class='MainCat'><a node='con:defaultTag' href='/weblib?tag='>inbox</a></span>
   </ul>
   <ul node='rep:catList'>
@@ -445,8 +507,8 @@ window.addEventListener('load', onload, false);
   <tr class='libTableHeader'>
     <td><input id='checkAll_top' type='checkbox' onclick='selectAll("checkAll_top");'></td>
     <td colspan='4' align='right'>
-       <input type='button' value='Edit' onclick='organizeSelected();' />
-       <input type='button' value='Delete'  onclick='deleteSelected();' />
+       <input type='button' value='Edit Selected' onclick='organizeSelected();' />
+       <input type='button' value='Delete Selected'  onclick='deleteSelected();' />
     </td>
   </tr>
 
@@ -542,8 +604,8 @@ window.addEventListener('load', onload, false);
   <tr class='libTableFooter'>
     <td><input id='checkAll_bottom' type='checkbox' onclick='selectAll("checkAll_bottom")'></td>
     <td colspan='4' align='right'>
-       <input type='button' value='Edit' onclick='organizeSelected();' />
-       <input type='button' value='Delete'  onclick='deleteSelected();' />
+       <input type='button' value='Edit Selected' onclick='organizeSelected();' />
+       <input type='button' value='Delete Selected'  onclick='deleteSelected();' />
     </td>
   </tr>
 

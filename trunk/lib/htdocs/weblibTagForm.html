@@ -5,6 +5,9 @@
 <link rel="stylesheet" href="/main.css" type="text/css">
 <style>
   .error_message { color:red }
+  #edit_form {
+    margin-top: 2ex;
+  }
   .date_field   {
     padding-left: 0.5em;
     padding-right: 0.5em;
@@ -59,7 +62,7 @@ window.addEventListener('load', onload, false);
 <form node='con:form' id='edit_form' method='GET' action='/weblib/@$id'>
     <input type='hidden' name='method' value='POST' />
     <input type='hidden' name='filled' value='1' />
-    <table cellspacing='5'>
+    <table cellspacing='10'>
     <tr node='con:error'>
         <td colspan='2'><span node='con:message' class='error_message'>Please correct the error.</span></td>
     </tr>

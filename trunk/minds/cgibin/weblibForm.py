@@ -169,7 +169,7 @@ def doPutResource(wfile, req, bean):
     wlib.category.compile()
 ##    store.save(wlib)
 
-    response.redirect(wfile, '/updateParent.html')
+    response.redirect(wfile, '/updateParent')
 
 
 def doDeleteResource(wfile, req):
@@ -180,7 +180,7 @@ def doDeleteResource(wfile, req):
         store.getStore().removeItem(item)
         wlib.category.compile()
 
-    response.redirect(wfile, '/updateParent.html')
+    response.redirect(wfile, '/updateParent')
 
 
 # ----------------------------------------------------------------------

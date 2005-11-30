@@ -1,5 +1,8 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3c.org/TR/html4/loose.dtd">
 <html>
+<script node='con:url'>
+var url = '';
+</script>
 <script>
 // ------------------------------------------------------------------------
 // the purpose of this script is to call parent's onupdate() method
@@ -10,7 +13,7 @@ p = window.opener;
 if (p) {
     try {
         if ('onupdate' in p)
-            p.onupdate();
+            p.onupdate(url);
     }
     finally {
         window.close()
@@ -21,7 +24,7 @@ p = window.parent;
 // this an (hidden) iframe? Call parent.onupdate().
 if (p) {
     if ('onupdate' in p) {
-        p.onupdate();
+        p.onupdate(url);
     }
 }
 

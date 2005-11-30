@@ -125,7 +125,7 @@ class TestWeblibForm(TestCGIBase):
     # PUT new form
     self.checkPathForPattern("/weblib/_?method=put&filled=1&url=http%3A%2F%2Fwww.mindretrieve.net%2F&title=Test%20Title", [
         'HTTP/1.0 302 Found',
-        'location: /updateParent.html',
+        'location: /updateParent',
     ])
 
     # one item has added
@@ -141,7 +141,7 @@ class TestWeblibForm(TestCGIBase):
     # PUT form
     self.checkPathForPattern("/weblib/1?method=put&filled=1&url=http%3A%2F%2Fwww.mindretrieve.net%2F&title=Test%20Title", [
         'HTTP/1.0 302 Found',
-        'location: /updateParent.html',
+        'location: /updateParent',
     ])
 
     # one item has changed
@@ -171,7 +171,7 @@ class TestWeblibMultiForm(TestCGIBase):
             ])
     self.checkPathForPattern(url, [
         'HTTP/1.0 302 Found',
-        'location: /updateParent.html',
+        'location: /updateParent',
     ])
 
     wlib = store.getWeblib()
@@ -234,7 +234,7 @@ class TestTagForm(TestCGIBase):
 
     self.checkPathForPattern("/weblib/@124/form?method=POST&filled=1&name=Buckingham", [
         'HTTP/1.0 302 Found',
-        'location: /updateParent.html',
+        'location: /updateParent',
     ])
 
     # after
@@ -259,7 +259,7 @@ class TestTagForm(TestCGIBase):
 
     self.checkPathForPattern("/weblib/@124/form?method=POST&filled=1&name=KREMLIN", [
         'HTTP/1.0 302 Found',
-        'location: /updateParent.html',
+        'location: /updateParent',
     ])
 
     # after
@@ -281,7 +281,7 @@ class TestTagForm(TestCGIBase):
 
     self.checkPathForPattern("/weblib/@124/form?method=POST&filled=1&name=inbox", [
         'HTTP/1.0 302 Found',
-        'location: /updateParent.html',
+        'location: /updateParent',
     ])
 
     # after

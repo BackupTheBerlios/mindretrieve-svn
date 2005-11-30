@@ -81,10 +81,12 @@ def doPostResource(wfile, base_tag, form_tag):
     merge_tag = wlib.tags.getByName(newName)
     if merge_tag and merge_tag.id != base_tag.id:
         wlib.tag_merge_del(base_tag, merge_tag)     # merge with existing tag
+        new_id = merge_tag.id
     else:
         wlib.tag_rename(base_tag, newName)          # just a rename (or change of capitalization)
+        new_id = base_tag.id
 
-    response.redirect(wfile, '/updateParent.html')
+    response.redirect(wfile, '/updateParent?url=' + urllib.quote('/weblib?tag=@%s' % new_id))
 
 
 def doPostCategoryCollapse(wfile, req):
@@ -110,7 +112,7 @@ def doDeleteResource(wfile, base_tag):
     wlib.tag_merge_del(base_tag, None)
     wlib.category.compile()
 
-    response.redirect(wfile, '/updateParent.html')
+    response.redirect(wfile, '/updateParent?url=/weblib')
 
 
 # ----------------------------------------------------------------------

@@ -170,7 +170,7 @@ def doPost(wfile, req):
     wlib.editTags(entries, [], add_tags, remove_tags)
     wlib.category.compile()
 
-    response.redirect(wfile, '/updateParent.html')
+    response.redirect(wfile, '/updateParent')
 
 
 def doDelete(wfile, req):
@@ -183,7 +183,7 @@ def doDelete(wfile, req):
         except:
             log.exception('Unable to delete: %s', unicode(item))
 ##    store.save(wlib)
-    response.redirect(wfile, '/updateParent.html')
+    response.redirect(wfile, '/updateParent')
 
 
 # ----------------------------------------------------------------------

@@ -45,7 +45,7 @@ function refreshParent() {
     if (p) {
         try {
             if ('onupdate' in p)
-                p.onupdate();
+                p.onupdate('');
         }
         catch (e) {}
     }

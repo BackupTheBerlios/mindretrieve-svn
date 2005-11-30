@@ -183,9 +183,9 @@ def _n_dfs(root, nlist=None):
     nlist.pop()
 
 
-def _query_by_tag(wlib, select_tag):
+def _query_by_tag(wlib, tagName):
     webItems = []
-    branches = query_wlib.query_by_tag(wlib, select_tag)
+    branches = query_wlib.query_by_tag(wlib, tagName)
     for node, nlist in _n_dfs(branches):
         name, result = node.data
         tag = wlib.tags.getByName(name)
@@ -197,21 +197,29 @@ def _query_by_tag(wlib, select_tag):
     return webItems
 
 
-def queryTag(wfile, req, select_tag):
+def queryTag(wfile, req, nameOrId):
     wlib = store.getWeblib()
 
+    tag = weblib.parseTag(wlib, nameOrId)
+    tagName = tag and tag.name or ''
+
+    # Note: URL is expected to have valid tag parameter. If it turns up
+    # nothing, one possibility is user has entered an invalid URL
+    # manually. In that case the query below should turn out empty
+    # result. We choose not go for the alternative or redirecting user
+    # to / or inbox because it seems even more confusing.
+
     # category pane
-    categoryList = _buildCategoryList(wlib, select_tag)
-    tag = wlib.tags.getByName(select_tag)
+    categoryList = _buildCategoryList(wlib, tagName)
 
     # webitem pane
-    webItems = _query_by_tag(wlib, select_tag)
+    webItems = _query_by_tag(wlib, tagName)
 
     WeblibRenderer(wfile, req.env, '').output(
         wlib.tags,
+        tag,
         wlib.getDefaultTag(),
         categoryList,
-        unicode(select_tag).lower(),
         webItems)
 
 
@@ -252,9 +260,9 @@ def queryWebLib(wfile, req, tag, querytxt):
 
     WeblibRenderer(wfile, req.env, querytxt).output(
         wlib.tags,
+        None,
         wlib.getDefaultTag(),
         categoryList,
-        '',
         webItems)
 
 
@@ -269,9 +277,9 @@ def queryRoot(wfile, req):
 
     WeblibRenderer(wfile, req.env, '').output(
         wlib.tags,
+        None,
         wlib.getDefaultTag(),
         categoryList,
-        '',
         webItems)
 
 
@@ -311,37 +319,41 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
     """
     def render(self, node,
         tags,
+        selectedTag,
         defaultTag,
         categoryList,
-        lTagSelected,
         webItems,
         ):
         """
         @param tags - list of all tags
+        @param selectedTag - tag selected or None
         @param defaultTag - a Tag (e.g. inbox)
-        @param lTagSelected - name of selected tag (in lower case)
         @param webItems - list of (WebPage, [tags])
         """
+
+        lSelectedTagName = selectedTag and selectedTag.name.lower() or ''
 
         # ------------------------------------------------------------------------
         # tag list
         lst = [(tag.name.lower(), tag.name, tag.id) for tag in tags]
         lst = [(name,id) for _,name,id in sorted(lst)]
-        node.tagList.tag.repeat(self.renderTag, lst, lTagSelected)
+        lst = [('',None)] + lst
+        node.tagListForm.atts['action'] = selectedTag and '/weblib/@%s' % selectedTag.id or ''
+        node.tagListForm.tag.repeat(self.renderTag, lst, lSelectedTagName)
 
 
         # ------------------------------------------------------------------------
         # default Tag
         node.defaultTag.atts['href'] = request.tag_url([defaultTag])
         node.defaultTag.content = unicode(defaultTag)
-        if defaultTag.match(lTagSelected):
+        if defaultTag.match(selectedTag):
             node.defaultTag.atts['class'] = 'highlight'
 # Actually need to make sure it is not doing search
 #        if not lTagSelected:
 #            node.rootTag.atts['class'] = 'highlight'
 
         # category
-        node.catList.repeat(self.renderCatItem, categoryList, lTagSelected)
+        node.catList.repeat(self.renderCatItem, categoryList, lSelectedTagName)
 
         # ------------------------------------------------------------------------
         # Matching message
@@ -370,17 +382,17 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
         node.web_items.webItem.repeat(self.renderWebItem, enumerate(webItems), headerTemplate)
 
 
-    def renderTag(self, node, item, lTagSelected):
+    def renderTag(self, node, item, lSelectedTagName):
         name, id = item
-        node.atts['value'] = '@%s' % id
-        if name.lower() == lTagSelected:
+        node.atts['value'] = id and '@%s' % id or ''
+        if name.lower() == lSelectedTagName:
             node.atts['selected'] = '1'
         node.content = name
 
 
-    def renderCatItem(self, node, item, lTagSelected):
+    def renderCatItem(self, node, item, lSelectedTagName):
         catNode, subcats = item
-        isCurrent = catNode.tagName.lower() == lTagSelected
+        isCurrent = catNode.tagName.lower() == lSelectedTagName
         iscollapse = not isCurrent and catNode.tag and ('c' in catNode.tag.flags)
         node.toggleSwitch.atts['id'] = '@%s' % catNode.id
         node.toggleSwitch.content = iscollapse and '+' or '-'
@@ -393,10 +405,10 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
             # otherwise it is a pseudo tag
             del node.link.atts['href']
         node.subcat.atts['class'] =  iscollapse and 'subcategoriesCollapsed'  or 'subcategories'
-        node.subcat.catItem.repeat(self.renderSubCat, subcats, lTagSelected)
+        node.subcat.catItem.repeat(self.renderSubCat, subcats, lSelectedTagName)
 
 
-    def renderSubCat(self, node, catNode, lTagSelected):
+    def renderSubCat(self, node, catNode, lSelectedTagName):
         if catNode == CategoryNode.BEGIN_HIGHLIGHT:
             node.omittags()
             node.link.omittags()
@@ -410,7 +422,7 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
                 node.atts['class'] = 'SubCat2'
             node.link.content = catNode.tagName + (catNode.comma and ',' or '')
             node.link.atts['href'] = request.tag_url(catNode.tagName)
-            if  catNode.tagName.lower() == lTagSelected:
+            if  catNode.tagName.lower() == lSelectedTagName:
                 node.link.atts['class'] = 'highlight'
 
 

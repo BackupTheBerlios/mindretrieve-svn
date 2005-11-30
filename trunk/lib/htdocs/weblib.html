@@ -1,4 +1,4 @@
-            <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3c.org/TR/html4/loose.dtd">
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3c.org/TR/html4/loose.dtd">
 <html>
 <head>
 <title>MindRetrieve - Configuration</title>
@@ -22,7 +22,8 @@
     margin:0;
   }
   #tagList select       {
-    width=10em;
+    font-size:95%;
+    width: 11em;
     margin:0.5ex;
   }
   #categorytPane        {
@@ -218,13 +219,18 @@ function openWeblibFormFull(url) {
 function onTagListSelectChanged(e) {
     var form = document.getElementById('tagListForm');
     var id = form.elements['tagListSelect'].value;
-    form.action = '/weblib/' + id;
+    window.location = '/weblib?tag=' + id;
 }
 
 
 function editTag() {
-    openWeblibForm()
     var form = document.getElementById('tagListForm');
+    var id = form.elements['tagListSelect'].value;
+    if (!id) {
+        alert('Please select a tag to edit');
+        return;
+    }
+    openWeblibForm()
     form.elements['method'].value = 'GET';
     form.target = 'weblibForm';
     form.submit();
@@ -232,9 +238,14 @@ function editTag() {
 
 
 function deleteTag() {
+    var form = document.getElementById('tagListForm');
+    var id = form.elements['tagListSelect'].value;
+    if (!id) {
+        alert('Please select a tag to delete');
+        return;
+    }
     if (!confirm('Remove the tag and its references?'))
         return;
-    var form = document.getElementById('tagListForm');
     form.elements['method'].value = 'DELETE';
     form.target = 'asyncFrame'
     form.submit();
@@ -364,16 +375,18 @@ function countSelected() {
 }
 
 // event fire by child window
-function onupdate() {
-    window.location.reload();
+function onupdate(url) {
+    if (!url) {
+        window.location.reload();
+    } else {
+        window.location = url;
+    }
 }
 
 function onload(e) {
     // attach tag selected event handler
     var elem = document.getElementById('tagListSelect');
     elem.addEventListener('change', onTagListSelectChanged, false);
-    // init value
-    onTagListSelectChanged(null);
 
     // attach toggleSubCat event handler
     var catPane = document.getElementById('categorytPane');
@@ -418,14 +431,19 @@ window.addEventListener('load', onload, false);
 <td id='categorytPane'>
 
 <!-- tag pull down -->
-<div node='con:tagList' id='tagList'>
-    <form id='tagListForm' method='GET' action='/weblib/@%id'>
+<div id='tagList'>
+  <form node='con:tagListForm' id='tagListForm' method='GET' action='/weblib/@%id'>
     <input type='hidden' name='method' value='GET' />
+    <table border='0' cellspacing='0' cellpadding='0' style='width:100%; '>
+    <tr>
+    <td>
     <select id='tagListSelect'>
         <option node='rep:tag' value='@%id'>tag 1</option>
         <option node='rep:tag' value='@%id'>tag 2</option>
         <option node='rep:tag' value='@%id' selected='1'>tag 3</option>
     </select>
+    </td>
+    <td>
     <a href='javascript:void(0);' class='itemSmallLink' title='Edit'
         onclick='editTag();'>
         <img src='img/edit_icon.gif' />
@@ -438,7 +456,9 @@ window.addEventListener('load', onload, false);
         onclick='javascript:openWeblibFormFull("/weblib/tag_categorize");'>
         <img src='img/category.gif' />
     </a>
-    </form>
+    </td></tr>
+    </table>
+  </form>
 </div>
 
 <ul>

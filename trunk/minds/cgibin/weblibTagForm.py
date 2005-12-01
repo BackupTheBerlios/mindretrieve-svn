@@ -14,6 +14,8 @@ from minds.weblib import store
 
 log = logging.getLogger('cgi.tagFrm')
 
+ILLEGAL_CHARACTERS = '@<>'
+
 
 def _buildTags(req):
     """
@@ -75,8 +77,11 @@ def doPostResource(wfile, base_tag, form_tag):
     newName = form_tag.name.strip()
     if not newName:
         errors = ['Please enter a name']
-        FormRenderer(wfile).output(errors, form_tag)
-        return
+    for c in ILLEGAL_CHARACTERS:
+        if c in newName:
+            errors = ['These characters are not allowed in tag name: ' + ILLEGAL_CHARACTERS]
+            FormRenderer(wfile).output(errors, form_tag)
+            return
 
     merge_tag = wlib.tags.getByName(newName)
     if merge_tag and merge_tag.id != base_tag.id:

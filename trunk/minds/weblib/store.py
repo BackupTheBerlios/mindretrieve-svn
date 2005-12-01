@@ -1,4 +1,82 @@
-"""Usage: minds_lib.py input_file output_file
+"""Usage: store.py input_file output_file
+"""
+
+"""
+MindRetrieve Weblib Data File Specification Version 0.5
+
+MindRetrieve weblib data is an UTF-8 encoded text file (no other
+encoding is supported as this time). The overall format is a block of
+headers followed by a blank line and then the body similar to email and
+HTTP messages. Each line of the body part represents a webpage or tag
+item. Update to the weblib is appended as change reords to the end of
+the file. The entire weblib can be represented by a single file.
+
+file            = headers BR body
+headers         = *(header BR)
+header          = field-name ":" [ field-value ]
+field-name      = token
+field-value     = DSV encoded value
+body            = column-header BR *((data-line | comment-line | *SP) BR)
+column-header   = column-name *( "|" column-name)
+column-name     = token
+comment-line    = "#" any string
+data-line       = [change-prefix] (data-record | header)
+change-prefix   = '[' YYYY-MM-DD SP HH:MM:SS ']' SP ['r' | 'u' | 'h'] '!'
+data-record     = ["@"] id *( "|" field-value)
+BR              = CR | LF | CR LF
+SP              = space characters
+
+
+Note
+
+* token is defined according to RFC 2616 Section 2.2.
+
+* DSV encoded value is an unicode string with the characters "\", "|",
+  CR and LF encoded as "\\", "\|", "\r" and "\n" respectively.
+
+* There are two kind of data records, a webpage has a numeric id, while
+  a tag has a numeric id prefixed by "@".
+
+//* A record with the same id can appears multiple times in the data file.
+//  The last record overwritten preceding records.
+
+* A data-record preceded by a change-prefix denote update to the file.
+
+* A record prefixed by "[ISO8601 time] r!" is a remove record. The item
+  with the corresponding id is to be removed.
+
+* A record prefixed by "[ISO8601 time] u!" is an update record. The item
+  with the corresponding id is to be replaced.
+
+* A record with by "[ISO8601 time] h!" is an header update record. The
+  header value is to be updated. There is no remove header record. A
+  header value can be set to empty string however.
+
+* The last line should always ended with BR. If the last line is not
+  terminated with BR it is considered a corrupted record and must be
+  discarded. Moreover never append change record to a corrupted record
+  because the line break would be misplaced.
+
+* The encoding header is defined for future extension only. Only UTF-8
+  encoding is supported right now.
+
+
+Discussions
+
+[2005-12-01] This file is oringinal designed as a DSV file start with a
+header line. New elements like change records have been introduced. The
+extension is a stretch to the DSV design.
+
+[2005-12-01] The way a record is updated is by appending the entire
+record to the end of file. It may look like wasteful if there is only a
+minor update. But the motivation is that the latest version of a record
+can be found in one place. Thus it is possible to keep only the file
+position of a record as index in memory.
+
+[2005-12-01] The timestamp of the change record is in local time zone.
+It is not guarantee to be in increasing order since users can change
+time zone or reset their clock.
+
 """
 
 import codecs
@@ -30,45 +108,6 @@ COLUMNS = [
 ]
 NUM_COLUMN = len(COLUMNS)
 
-"""
-Minds weblib file specification
-
-..designed..RFC2822...The weblib file is an UTF8 encoded text file.
-
-file            = headers BR body
-headers         = *(header BR)
-header          = field-name ":" [ field-value ]
-field-name      = token
-field-value     = DSV encoded value
-body            = column-header BR *((data-line | comment-line | *SP) BR)
-column-header   = column-name *( "|" column-name)
-column-name     = token
-comment-line    = "#" any string
-data-line       = ["r:"] data-record
-data-record     = ["@"] id *( "|" field-value)
-BR              = CR | LF | CR LF
-SP              = space characters
-
-Note
-* token is defined according to RFC 2616 Section 2.2.
-* DSV encoded value is an unicode string with the characters "\", "|",
-  CR and LF encoded as "\\", "\|", "\r" and "\n" respectively.
-* There are two kind of data records, a webpage have a numeric id, while
-  a tag have a numeric id prefixed by "@".
-* A record with the same id can appears multiple times in the data file.
-  The last record overwritten preceding records.
-* A data-record prefixed "r:" denotes the corresponding tag or webpage
-  record is to be removed.
-
-Discussions
-* The way a record is updated ius by appending the entire record to the
-  end of file. It may look like wasteful if there is only a minor
-  update. But the motivation is that the latest version of a record can
-  be found in one place. Alos it is possible to keep only the file
-  position of a record as index in memory.
-* How about change record for headers?
-
-"""
 
 """ 2005-11-29 Discussion on the _interpretRecord() protocol
 
@@ -81,7 +120,8 @@ change that wlib reloaded would be different from the current wlib.
 
 Several issue arised with this protocol.
 
-* This is unintuitive to callers. wlib is open for in-memory update after all.
+* This is unintuitive to callers. wlib is open for in-memory update
+  after all.
 
 * The caller need to aware that the record it passes to writeXXX() is
 essentially shredded after the call. It should query wlib to retrieve

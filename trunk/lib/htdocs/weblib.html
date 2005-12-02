@@ -225,7 +225,8 @@ function onTagListSelectChanged(e) {
 
 function editTag() {
     var form = document.getElementById('tagListForm');
-    var id = form.elements['tagListSelect'].value;
+    var sel = form.elements['tagListSelect'];
+    var id = sel.value;
     if (!id) {
         alert('Please select a tag to edit');
         return;
@@ -239,12 +240,15 @@ function editTag() {
 
 function deleteTag() {
     var form = document.getElementById('tagListForm');
-    var id = form.elements['tagListSelect'].value;
+    var sel = form.elements['tagListSelect'];
+    var id = sel.value;
     if (!id) {
         alert('Please select a tag to delete');
         return;
     }
-    if (!confirm('Remove the tag and its references?'))
+    var opt = sel.options[sel.selectedIndex];
+    var tagName = opt.text
+    if (!confirm('Remove the "' + tagName + '" and its references?'))
         return;
     form.elements['method'].value = 'DELETE';
     form.target = 'asyncFrame'

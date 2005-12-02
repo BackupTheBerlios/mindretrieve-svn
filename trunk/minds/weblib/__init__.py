@@ -124,7 +124,7 @@ class Category(object):
 
 
     def setDescription(self, description):
-        self.wlib.headers['category_description'] = description
+        self.wlib.store.writeHeader('category_description', description)
 
 
     def renameTag(self, tag0, tag1):
@@ -202,25 +202,23 @@ class Category(object):
 
 # ------------------------------------------------------------------------
 
+# 2005-12-02 note: index code below is not working
+
 class WebLibrary(object):
 
-    def __init__(self, store=None):
+    def __init__(self, store):
 
         self.store = store
 
+        # headers
+        self.headers = {}
+        self.header_names = []      # ordered list of keys of self.headers
+
         # default headers
-        self.headers = {
-            'weblib-version':       '0.5',
-            'encoding':             'utf8',
-            'category_description': '',
-        }
-        # Should contain the keys of self.headers.
-        # Use to maintain header order when persist to disk.
-        self.header_names = [
-            'weblib-version',
-            'encoding',
-            'category_description',
-        ]
+        from minds.weblib import store as store_module
+        self.setHeader('weblib-version', store_module.VERSION)
+        self.setHeader('encoding', 'utf8')
+        self.setHeader('category_description','')
 
         self.webpages = util.IdList()
         self.tags = util.IdNameList()
@@ -307,6 +305,15 @@ class WebLibrary(object):
 #            n = self.index_reader.deleteDocuments(term)  # IndexReader.delete(Term)?
 #            print >>sys.stderr, '##deleted docid=%s: %s' % (item.id, n)
 
+
+
+    # ------------------------------------------------------------------------
+    # Header methods
+
+    def setHeader(self, name, value):
+        if name not in self.header_names:
+            self.header_names.append(name)
+        self.headers[name] = value
 
 
     # ------------------------------------------------------------------------

@@ -2,13 +2,13 @@
 """
 
 """
-MindRetrieve Weblib Data File Specification Version 0.5
+MindRetrieve Weblib Data File Specification Version 0.6
 
 MindRetrieve weblib data is an UTF-8 encoded text file (no other
 encoding is supported as this time). The overall format is a block of
 headers followed by a blank line and then the body similar to email and
 HTTP messages. Each line of the body part represents a webpage or tag
-item. Update to the weblib is appended as change reords to the end of
+item. Update to the weblib is appended as change records to the end of
 the file. The entire weblib can be represented by a single file.
 
 file            = headers BR body
@@ -48,7 +48,7 @@ Note
 * A record prefixed by "[ISO8601 time] u!" is an update record. The item
   with the corresponding id is to be replaced.
 
-* A record with by "[ISO8601 time] h!" is an header update record. The
+* A record prefixed by "[ISO8601 time] h!" is an header update record. The
   header value is to be updated. There is no remove header record. A
   header value can be set to empty string however.
 
@@ -80,8 +80,10 @@ time zone or reset their clock.
 """
 
 import codecs
+import datetime
 import logging
 import os
+import re
 import string
 import sys
 import threading
@@ -93,7 +95,7 @@ from minds.util import dsv
 
 log = logging.getLogger('wlib.store')
 
-
+VERSION = '0.6'
 COLUMNS = [
 'id',           # 00
 'name',         # 01
@@ -138,6 +140,31 @@ Is this protocol too problematic to use in practice?
 # The specification of header name observe the definition of token in RFC 2616 2.2 except the character '|' is not allowed.
 #!#$%&'*+-.0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ\^_`abcdefghijklmnopqrstuvwxyz|~
 #'\s*[\!\#\$\%\&\'\*\+\-\.0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ\\\^\_\`abcdefghijklmnopqrstuvwxyz\~]+\s*:'
+
+
+TIMESTAMP_FORMAT = 'YYYY-MM-DD HH:MM:SS'
+
+def _getTimeStamp():
+    """ Format:  """
+    now = datetime.datetime.today()
+    return now.isoformat(' ')[:len(TIMESTAMP_FORMAT)]
+
+
+def _parseTimeStamp(s):
+    if len(s) != len(TIMESTAMP_FORMAT):
+        raise ValueError('Invalid timestamp length: "%s"' % s)
+    if (s[4],s[7],s[13],s[16]) != ('-','-',':',':'):
+        raise ValueError('Invalid timestamp separators: "%s"' % s)
+    try:
+        Y = s[0:4]
+        M = s[5:7]
+        D = s[8:10]
+        h = s[11:13]
+        m = s[14:16]
+        d = s[17:19]
+        return datetime.datetime(int(Y),int(M),int(D),int(h),int(m),int(d))
+    except Exception, e:
+        raise ValueError('Invalid timestamp - "%s": %s' % (s, str(e)))
 
 
 class Store(object):
@@ -219,42 +246,50 @@ class Store(object):
 
             try:
                 reader = codecs.getreader(self.ENCODING)(fp,'replace')
+                linereader = enumerate(reader)
 
                 self.wlib = weblib.WebLibrary(self)
                 wlib = self.wlib
 
-                # read headers
-                lineno = 0      # 0 based for headers
-                for lineno, line in enumerate(reader):
+                # parse headers
+                for lineno, line in linereader:
                     line = line.rstrip()
-                    if not line:
+                    if not line: # end of headers?
                         break
-                    pair = line.split(':',1)
-                    if len(pair) != 2:
-                        raise SyntaxError('Header line should contain name and value separate by a colon (line %s)' % lineno)
-                    name, value = map(string.strip, pair)
-                    # force header name to be lower for now
-                    name = name.lower()
-                    # borrow dsv.decode_fields() to decode \ and line breaks.
-                    value = dsv.decode_fields(value)[0]
-                    if name not in wlib.header_names:
-                        wlib.header_names.append(name)
-                    wlib.headers[name] = value
+                    self._interpretHeaderRecord(line)
+###                    pair = line.split(':',1)
+###                    if len(pair) != 2:
+###                        raise SyntaxError('Header line should contain name and value separate by a colon (line %s)' % lineno+1)
+###                    name, value = map(string.strip, pair)
+###                    # force header name to be lower for now
+###                    name = name.lower()
+###                    # borrow dsv.decode_fields() to decode \ and line breaks.
+###                    value = dsv.decode_fields(value)[0]
+###                    wlib.setHeader(name,value)
 
-                # read records
-                lineno += 1     # adjust lineno to next line the reader is going to return
-                lineno += 1     # make it one based
+                # parse row header
+                row_headers = {}
+                for lineno, line in linereader:
+                    line = line.rstrip()
+                    if not line or line.startswith('#'):
+                        continue
+                    row_headers = dsv.parse_header(lineno+1, line)
+                    indexes = range(len(row_headers))
+                    row_headers = dict(zip(row_headers, indexes))
+                    break
 
-                # TODO: dsv.parse() not very intuitive, refactor
-
-                for lineno, row in dsv.parse(reader, lineno):
+                # data-records
+                for lineno, line in linereader:
+                    line = line.rstrip()
+                    if not line or line.startswith('#'):
+                        continue
                     try:
-                        n = self._interpretRecord(row)
+                        n = self._interpretRecord(line, row_headers)
                         #print >>sys.stderr, '###DEBUG',n,str(self)
                     except (KeyError, ValueError, AttributeError), e:
-                        log.warn('Error parsing line %s: %s %s', lineno, str(e.__class__), e)
+                        log.warn('Error parsing line %s: %s %s', lineno+1, str(e.__class__), e)
                     except Exception, e:
-                        log.warn('Error Parsing line %s: %s', lineno, str(e.__class__), e)
+                        log.warn('Error Parsing line %s: %s %s', lineno+1, str(e.__class__), e)
                         raise
 
             finally:
@@ -276,7 +311,10 @@ class Store(object):
             self.lock.release()
 
 
-    def _interpretRecord(self, row):
+    CHANGE_TEMPLATE = '[1234-06-18 12:34:56] u!'
+    CHANGE_PREFIX = re.compile('\[([\d:\- ]{19})\] (\w)!')
+
+    def _interpretRecord(self, line, row_headers):
         """
         Interpret the parsed record 'row'.
         Create, updated or remove WebPage or Tag records.
@@ -284,85 +322,107 @@ class Store(object):
         @raise ValueError or KeyError for parsing problem
         @return - the item created or removed
         """
+        mode = 'u'
+        m = self.CHANGE_PREFIX.match(line)
+        if m:
+            timestamp = _parseTimeStamp(m.group(1))
+            mode = m.group(2)
+            line =  line[len(self.CHANGE_TEMPLATE):]
 
-        # mode w: write; r: remove
-        if row.id.startswith('r:'):
-            mode = 'r'
-            row.id = row.id[2:]
-            self.num_rrecord += 1
+        if mode == 'h':
+            self._interpretHeaderRecord(line)
+
         else:
-            # default is write
-            mode = 'w'
-            self.num_wrecord += 1
+            fields = dsv.decode_fields(line)
+            fields = map(string.strip, fields)
+            row = dsv.RowObject(row_headers,fields)
 
+            # TODO: field validation
+            if row.id.startswith('@'):
+                return self._interpretTagRecord(mode, row)
+            else:
+                return self._interpretWebPageRecord(mode, row)
+
+
+    def _interpretHeaderRecord(self, line):
+        pair = line.split(':',1)
+        if len(pair) != 2:
+            raise SyntaxError('Invalid header (format=name: value) - "%s"' % line)
+        name = pair[0].strip().lower()
+        value = pair[1].strip()
+        # borrow dsv.decode_fields() to decode \ and line breaks.
+        value = dsv.decode_fields(value)[0]
+        self.wlib.setHeader(name,value)
+
+
+    def _interpretTagRecord(self, mode, row):
         wlib = self.wlib
 
-        # TODO: field validation
-        if row.id.startswith('@'):
-            id = int(row.id[1:])
+        id = int(row.id[1:])
+        oldTag = wlib.tags.getById(id)
 
-            oldTag = wlib.tags.getById(id)
-
-            if mode == 'r':
-                if oldTag:
-                    wlib.tags.remove(oldTag)
+        if mode == 'r':
+            if oldTag:
+                wlib.tags.remove(oldTag)
+            return oldTag
+        else:
+    # old logic say delete old tag and append a new version of tag.
+    # This causes problem that references in webpage objects are invalidated.
+    #
+    #                if oldTag:
+    #                    wlib.tags.remove(oldTag)
+            if oldTag:
+                # update object in-memory
+                if oldTag.name != row.name:
+                    wlib.tags.rename(oldTag, row.name)
+                oldTag.description  = row.description
+                oldTag.flags        = row.flags
                 return oldTag
             else:
-# old logic say delete old tag and append a new version of tag.
-# This causes problem that references in webpage objects are invalidated.
-#
-#                if oldTag:
-#                    wlib.tags.remove(oldTag)
-                if oldTag:
-                    # update object in-memory
-                    if oldTag.name != row.name:
-                        wlib.tags.rename(oldTag, row.name)
-                    oldTag.description  = row.description
-                    oldTag.flags        = row.flags
-                    return oldTag
-                else:
-                    tag = weblib.Tag(
-                        id          = id,
-                        name        = row.name,
-                        description = row.description,
-                        flags       = row.flags,
-                    )
-                    wlib.tags.append(tag)
-                    return tag
-
-        else:
-            id = int(row.id)
-            if row.tagids:
-                s = row.tagids.replace('@','')
-                tagids = [int(tid) for tid in s.split(',')]
-            else:
-                tagids = []
-
-            oldItem = wlib.webpages.getById(id)
-
-            if mode == 'r':
-                if oldItem:
-                    wlib.webpages.remove(oldItem)
-                return oldItem
-            else:
-                if oldItem:
-                    wlib.webpages.remove(oldItem)
-                webpage = weblib.WebPage(
+                tag = weblib.Tag(
                     id          = id,
                     name        = row.name,
                     description = row.description,
-                    tags        = [],
                     flags       = row.flags,
-                    modified    = row.modified,
-                    lastused    = row.lastused,
-                    cached      = row.cached,
-                    archived    = row.archived,
-                    url         = row.url,
                 )
-                # should convert tagids to tags after reading the whole file??
-                webpage.tagIds = tagids
-                wlib.webpages.append(webpage)
-                return webpage
+                wlib.tags.append(tag)
+                return tag
+
+
+    def _interpretWebPageRecord(self, mode, row):
+        wlib = self.wlib
+        id = int(row.id)
+        if row.tagids:
+            s = row.tagids.replace('@','')
+            tagids = [int(tid) for tid in s.split(',')]
+        else:
+            tagids = []
+
+        oldItem = wlib.webpages.getById(id)
+
+        if mode == 'r':
+            if oldItem:
+                wlib.webpages.remove(oldItem)
+            return oldItem
+        else:
+            if oldItem:
+                wlib.webpages.remove(oldItem)
+            webpage = weblib.WebPage(
+                id          = id,
+                name        = row.name,
+                description = row.description,
+                tags        = [],
+                flags       = row.flags,
+                modified    = row.modified,
+                lastused    = row.lastused,
+                cached      = row.cached,
+                archived    = row.archived,
+                url         = row.url,
+            )
+            # should convert tagids to tags after reading the whole file??
+            webpage.tagIds = tagids
+            wlib.webpages.append(webpage)
+            return webpage
 
 
     def _conv_tagid(self, item):
@@ -381,10 +441,10 @@ class Store(object):
     # this module has not sufficiently deal with the column header in the data file and
     # the fact that it may different from the hardcoded COLUMN order of this version.
     _xheaders = dict(zip(map(string.lower, COLUMNS), range(len(COLUMNS))))
-    def _xline_to_row(self, line):
-        fields = dsv.decode_fields(line)
-        fields = map(string.strip, fields)
-        return dsv.RowObject(self._xheaders,fields)
+#    def _xline_to_row(self, line):
+#        fields = dsv.decode_fields(line)
+#        fields = map(string.strip, fields)
+#        return dsv.RowObject(self._xheaders,fields)
 
 
     def _log(self, line, flush):
@@ -394,6 +454,19 @@ class Store(object):
         writer.write('\n')
         if flush:
             writer.flush()
+
+
+    def writeHeader(self, name, value, flush=True):
+        """
+        """
+        self.lock.acquire()
+        try:
+            line = '[%s] h!%s' % (_getTimeStamp(), self._serialize_header(name, value))
+            self._interpretRecord(line, self._xheaders)
+            self._log(line, flush)
+
+        finally:
+            self.lock.release()
 
 
     def writeTag(self, tag, flush=True):
@@ -417,8 +490,8 @@ class Store(object):
         try:
             if tag.id < 0:
                 tag.id = self.wlib.tags.acquireId()
-            line = self._serialize_tag(tag)
-            newTag = self._interpretRecord(self._xline_to_row(line))
+            line = '[%s] u!%s' % (_getTimeStamp(), self._serialize_tag(tag))
+            newTag = self._interpretRecord(line, self._xheaders)
             self._log(line, flush)
 
             # shred input tag
@@ -446,8 +519,8 @@ class Store(object):
         try:
             if webpage.id < 0:
                 webpage.id = self.wlib.webpages.acquireId()
-            line = self._serialize_webpage(webpage)
-            newItem = self._interpretRecord(self._xline_to_row(line))
+            line = '[%s] u!%s' % (_getTimeStamp(), self._serialize_webpage(webpage))
+            newItem = self._interpretRecord(line, self._xheaders)
             self._conv_tagid(self.wlib.webpages.getById(newItem.id))
             self._log(line, flush)
 
@@ -469,10 +542,10 @@ class Store(object):
         self.lock.acquire()
         try:
             if isinstance(item, weblib.Tag):
-                line = 'r:@%s' % item.id
+                line = '[%s] r!@%s' % (_getTimeStamp(), item.id)
             else:
-                line = 'r:%s' % item.id
-            self._interpretRecord(self._xline_to_row(line))
+                line = '[%s] r!%s' % (_getTimeStamp(), item.id)
+            self._interpretRecord(line, self._xheaders)
             self._log(line, flush)
 
         finally:
@@ -490,6 +563,10 @@ class Store(object):
 
     # ------------------------------------------------------------------------
     # save
+
+    def _serialize_header(self, name, value):
+        return '%s: %s' % (name,dsv.encode_fields([value]))
+
 
     def _serialize_tag(self, tag):
         id = '@%d' % tag.id
@@ -545,24 +622,30 @@ class Store(object):
                 # Then atomically replace the output file when done.
                 use_temp_file = True
                 tmp_pathname = pathname + '.tmp'
+                backup_pathname = pathname + '.~'
                 fp = file(tmp_pathname, 'wb')
 
             try:
                 writer = codecs.getwriter(self.ENCODING)(fp,'replace')
                 wlib = self.wlib
 
+                # udpate timestamp
+                wlib.setHeader('weblib-version', VERSION)
+                wlib.setHeader('date', _getTimeStamp())
+
                 # write headers
-                headers = wlib.headers.copy()
+                _headers = wlib.headers.copy()
                 for name in wlib.header_names:
-                    if name not in headers:
+                    if name not in _headers:
                         continue
                     # borrow dsv.encode_fields() to encode \ and line breaks.
-                    v = dsv.encode_fields([headers[name]])
-                    writer.write('%s: %s\r\n' % (name,v))
-                    del headers[name]
+                    v = dsv.encode_fields([])
+                    writer.write(self._serialize_header(name,_headers[name]))
+                    writer.write('\r\n')
+                    del _headers[name]
 
                 # write remaining headers not listed in wlib.header_names
-                for n,v in headers.items():
+                for n,v in _headers.items():
                     v = dsv.encode_fields([v])
                     writer.write('%s: %s\r\n' % (n,v))
 
@@ -570,17 +653,19 @@ class Store(object):
 
                 header = dsv.encode_fields(COLUMNS)
                 writer.write(header)
-                writer.write('\n')
+                writer.write('\r\n')
 
-                for tag in wlib.tags:
+                tags = [(tag.id, tag) for tag in wlib.tags]
+                for id, tag in sorted(tags):
                     line = self._serialize_tag(tag)
                     writer.write(line)
-                    writer.write('\n')
+                    writer.write('\r\n')
 
-                for item in wlib.webpages:
-                    line = self._serialize_webpage(item)
+                webpages = [(page.id, page) for page in wlib.webpages]
+                for id, page in sorted(webpages):
+                    line = self._serialize_webpage(page)
                     writer.write(line)
-                    writer.write('\n')
+                    writer.write('\r\n')
 
             finally:
                 if use_temp_file:
@@ -588,11 +673,13 @@ class Store(object):
 
             if use_temp_file:
                 try:
-                    # this works atomically in Posix.
+                    # In posix, rename atomically replace old file with new
+                    os.rename(pathname, backup_pathname)
                     os.rename(tmp_pathname, pathname)
                 except OSError:
-                    # delete before rename for Windows. Not atomic.
-                    os.remove(pathname)
+                    # For Windows, delete before rename. Not atomic.
+                    os.remove(backup_pathname)
+                    os.rename(pathname, backup_pathname)
                     os.rename(tmp_pathname, pathname)
 
         finally:

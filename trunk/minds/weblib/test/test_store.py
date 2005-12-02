@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import datetime
 import sets
 import StringIO
 import sys
@@ -52,6 +53,25 @@ class TestStore(unittest.TestCase):
 
     def test_init(self):
         self._assert_weblib_size(0, 0)
+
+
+    def test_write_header(self):
+        wlib = self.store.wlib
+        self._make_test_data()
+
+        # before
+        self.assertEqual(wlib.headers['encoding'], 'utf8')
+        self.assertEqual(wlib.headers.get('test','?'), '?')
+        nt, nw = len(wlib.tags), len(wlib.webpages)
+
+        # write
+        self.store.writeHeader('encoding', 'new')
+        self.store.writeHeader('test', '123')
+
+        # after
+        self.assertEqual(wlib.headers['encoding'], 'new')
+        self.assertEqual(wlib.headers.get('test','?'), '123')
+        self._assert_weblib_size(nt, nw)
 
 
     def test_write_tag_new(self):
@@ -154,8 +174,8 @@ class TestStore(unittest.TestCase):
 
         # after
         self._assert_weblib_size(nt, nw)
-        self.assertTrue('new page1' in self.buf.getvalue())
         self.assertTrue(wlib.webpages.getById(1).name, 'new tag1')
+        self.assertTrue('new page1' in self.buf.getvalue())
 
 
     def test_remove_tag(self):
@@ -164,15 +184,15 @@ class TestStore(unittest.TestCase):
 
         # before
         nt, nw = len(wlib.tags), len(wlib.webpages)
-        self.assertTrue('r:@1' not in self.buf.getvalue())
+        self.assertTrue('r!@1' not in self.buf.getvalue())
 
         # remove
         self.store.removeItem(wlib.tags.getById(1))
 
         # after
         self._assert_weblib_size(nt-1, nw)
-        self.assertTrue('r:@1' in self.buf.getvalue())
         self.assertEqual(wlib.tags.getById(1), None)
+        self.assertTrue('r!@1' in self.buf.getvalue())
 
 
     def test_remove_webpage(self):
@@ -181,14 +201,14 @@ class TestStore(unittest.TestCase):
 
         # before
         nt, nw = len(wlib.tags), len(wlib.webpages)
-        self.assertTrue('r:1' not in self.buf.getvalue())
+        self.assertTrue('r!1' not in self.buf.getvalue())
 
         # remove
         self.store.removeItem(wlib.webpages.getById(1))
 
         # after
         self._assert_weblib_size(nt, nw-1)
-        self.assertTrue('r:1' in self.buf.getvalue())
+        self.assertTrue('r!1' in self.buf.getvalue())
         self.assertEqual(wlib.webpages.getById(1), None)
 
 
@@ -256,9 +276,15 @@ class TestStore(unittest.TestCase):
         #print >>sys.stderr, output.getvalue()
 
         fp0 = StringIO.StringIO(self.TESTTEXT)
+        iter0 = enumerate(fp0)
         output.seek(0)
-        for lineno, line0 in enumerate(fp0):
+        for lineno, line0 in iter0:
+            while line0.startswith('date:'):
+                lineno, line0 = iter0.next()        # don't match date header
             line1 = output.next()
+            while line1.startswith('date:'):
+                line1 = output.next()               # don't match date header
+
             # compare it line by line so error is easier to spot
             line0 = line0.rstrip()
             line1 = line1.rstrip()
@@ -267,12 +293,16 @@ class TestStore(unittest.TestCase):
                 line1.encode('string_escape'),
             ))
 
+        # output is drained
+        self.assertRaises(StopIteration, output.next)
+
 
     def _check_changed(self):
         # verify the changes made in test_change_n_save()
         #print >>sys.stderr, self.store
         wlib = self.store.wlib
         self._assert_weblib_size(7, 4)
+        self.assertEqual(wlib.headers['category_description'], 'test description')
         self.assertTrue(wlib.tags.getByName('tag1'))
         self.assertTrue(wlib.tags.getByName('tag2'))
         self.assertTrue(not wlib.tags.getByName('English'))
@@ -286,6 +316,9 @@ class TestStore(unittest.TestCase):
         self._load_TESTFILE()
         self._assert_weblib_size(6, 5)
         wlib = self.store.wlib
+
+        # change header
+        self.store.writeHeader('category_description', 'test description')
 
         # add tag
         tag1 = weblib.Tag(name='tag1')
@@ -326,6 +359,24 @@ class TestStore(unittest.TestCase):
         self.store.load('*snapshot*buffer*', StringIO.StringIO(snapshot_data))
         self.assertTrue(self.store.wlib is not old_weblib)  # a new wlib is really loaded :)
         self._check_changed()
+
+
+    def test_timestamp(self):
+        ts = store._getTimeStamp()
+        self.assertTrue(len(ts) == len('1234-06-18 12:34:56'))
+        d = store._parseTimeStamp(ts)
+        self.assertTrue(d <= datetime.datetime.now())
+
+
+    def test_invalid_timestamp(self):
+        dt = store._parseTimeStamp('1234-06-18 12:34:56')
+        self.assertEqual(dt, datetime.datetime(1234,6,18,12,34,56))
+
+        self.assertRaises( ValueError, store._parseTimeStamp, '')
+        self.assertRaises( ValueError, store._parseTimeStamp, '1234-06-18 12:34:56Z')
+        self.assertRaises( ValueError, store._parseTimeStamp, '1234/06/18 12:34:56')
+        self.assertRaises( ValueError, store._parseTimeStamp, 'abcd-06-18 12:34:56')
+        self.assertRaises( ValueError, store._parseTimeStamp, '9999-99-99 99:99:99')
 
 
 if __name__ == '__main__':

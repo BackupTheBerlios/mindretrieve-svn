@@ -88,6 +88,27 @@ class WeblibRequest(Request):
             self.path = resources[1]
 
 
+    def __str__(self):
+        # build string representation of param list
+        plst = []
+        for k in self.form.keys():
+            v = self.form.getfirst(k,'')
+            try:
+                v = v.decode(self.encoding)
+            except UnicodeDecodeError:
+                v = v.encode('string_escape').decode('ascii')
+            plst.append(u'%s=%s' % (k,v))
+        params = ','.join(plst)
+
+        return 'method %s rid=%s tid=%s path=%s param (%s)' % (
+            self.method,
+            self.rid,
+            self.tid,
+            self.env.get('PATH_INFO', ''),
+            params,
+        )
+
+
 def get_return_url(req):
     """ Find what URL to go to when this form is closed? """
     r = req.param('return_url')

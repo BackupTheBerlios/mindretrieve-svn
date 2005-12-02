@@ -33,25 +33,25 @@ class RowObject(object):
         return str(self.fields)
 
 
-def parse(reader, start_line=1, HEADER_ROW=True, STRIP=True):
-    """ This is the main function to open a DSV file.
-        It generates lineno and a RowObject for each record.
-    """
-
-    # map header name to 0 based column index
-    headers = {}
-    for lineno, line in enumerate(reader):
-        line = line.rstrip()
-        if not line or line.startswith('#'):
-            continue
-        if HEADER_ROW and not headers:
-            headers = parse_header(lineno+1, line)
-            headers = dict(zip(headers, range(len(headers))))
-        else:
-            fields = decode_fields(line)
-            if STRIP:
-                fields = map(string.strip, fields)
-            yield lineno+start_line, RowObject(headers,fields)
+#def parse(reader, start_line=1, HEADER_ROW=True, STRIP=True):
+#    """ This is the main function to open a DSV file.
+#        It generates lineno and a RowObject for each record.
+#    """
+#
+#    # map header name to 0 based column index
+#    headers = {}
+#    for lineno, line in enumerate(reader):
+#        line = line.rstrip()
+#        if not line or line.startswith('#'):
+#            continue
+#        if HEADER_ROW and not headers:
+#            headers = parse_header(lineno+1, line)
+#            headers = dict(zip(headers, range(len(headers))))
+#        else:
+#            fields = decode_fields(line)
+#            if STRIP:
+#                fields = map(string.strip, fields)
+#            yield lineno+start_line, RowObject(headers,fields)
 
 
 def parse_header(lineno, s):

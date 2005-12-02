@@ -1,0 +1,31 @@
+#import cgi
+import logging
+import sys
+#from xml.sax import saxutils
+
+from minds.config import cfg
+from minds.cgibin.util import request
+from minds.cgibin.util import response
+#from minds import weblib
+#from minds.weblib import store
+
+log = logging.getLogger('cgi.update')
+
+def main(rfile, wfile, env):
+    req = request.Request(rfile, env)
+    url = req.param('url')
+    UpdateParentRenderer(wfile).output(url)
+
+
+# ------------------------------------------------------------------------
+
+class UpdateParentRenderer(response.CGIRenderer):
+    TEMPLATE_FILE = 'updateParent.html'
+    """
+    """
+    def render(self, node, url=''):
+        node.url.raw = 'var url="%s";' % url
+
+
+if __name__ == "__main__":
+    main(sys.stdin, sys.stdout, os.environ)

@@ -32,7 +32,7 @@
 var tag_base= new Array;
 
 function openHome() {
-    w=window.open("/weblib","mindretrieve");
+    var w=window.open("/weblib","mindretrieve");
     w.focus();
     window.close();
 }
@@ -41,7 +41,7 @@ function refreshParent() {
     // Refresh parent after update.
     // Strictly speaking we should only refresh right after udpate, not
     // everytime this is loaded. Right now it is coded for simplicity only.
-    p = window.opener;
+    var p = window.opener;
     if (p) {
         try {
             if ('onupdate' in p)
@@ -53,10 +53,10 @@ function refreshParent() {
 
 function setHeight() {
     // set category proportion to the window size.
-    height = Math.max((window.innerHeight-50)*0.6, 100);
-    cd_stylex = document.getElementById('category_description').style;
+    var height = Math.max((window.innerHeight-50)*0.6, 100);
+    var cd_stylex = document.getElementById('category_description').style;
     cd_stylex.height = height;
-    uc_stylex = document.getElementById('uncategorized').style;
+    var uc_stylex = document.getElementById('uncategorized').style;
     uc_stylex.height = height;
 }
 
@@ -69,14 +69,14 @@ function uncategorized_changed(e) {
     if (selbox.selectedIndex < 0) {
         tags_changed('');
     }
-    tag = selbox.value;
+    var tag = selbox.value;
     tag = remove_parenthesis(tag);
     tags_changed(tag);
 }
 
 
 function category_keyup(e) {
-    r = find_current()
+    var r = find_current()
     tags_changed(r[3]);
 }
 
@@ -84,7 +84,7 @@ function addTag() {
     var selbox = document.getElementById('uncategorized');
     if (selbox.selectedIndex < 0)
         return;
-    tag = selbox.value;
+    var tag = selbox.value;
     tag = remove_parenthesis(tag);
     insert_tag(tag);
     selbox.options[selbox.selectedIndex] = null;
@@ -93,26 +93,27 @@ function addTag() {
 
 // find current line and return [this_line, next_line, indent, tag]
 function find_current() {
-    txtbox = document.getElementById('category_description');
-    start = Math.max(txtbox.selectionStart,0);
-    v = txtbox.value;
+    var txtbox = document.getElementById('category_description');
+    var start = Math.max(txtbox.selectionStart,0);
+    var v = txtbox.value;
 
-    this_line = v.substring(0,start).lastIndexOf('\n')+1;
-    next_line = v.indexOf('\n', start)+1;
+    var this_line = v.substring(0,start).lastIndexOf('\n')+1;
+    var next_line = v.indexOf('\n', start)+1;
     if (next_line == 0) {
         next_line = v.length;
     }
 
-    line = v.substring(this_line,next_line);
-    indent = String(line.match(/ */));
-    tag = line.replace(/\s*$/,'').replace(/^\s*/,'');
+    var line = v.substring(this_line,next_line);
+    var indent = String(line.match(/ */));
+    var tag = line.replace(/\s*$/,'').replace(/^\s*/,'');
 
     return [this_line, next_line, indent, tag];
 }
 
 function insert_tag(tag) {
-    txtbox = document.getElementById('category_description');
-    v = txtbox.value;
+    var txtbox = document.getElementById('category_description');
+    var start = Math.max(txtbox.selectionStart,0);
+    var v = txtbox.value;
 
     // Find check for a special case
     // if cursor on a blank line, follow last line's indent
@@ -125,13 +126,13 @@ function insert_tag(tag) {
         txtbox.setSelectionRange(start-2,start-2);
     }
 
-    r = find_current();
-    next_line = r[1];
-    indent = r[2];
-    insert_txt = indent + tag + '\n';
+    var r = find_current();
+    var next_line = r[1];
+    var indent = r[2];
+    var insert_txt = indent + tag + '\n';
 
     txtbox.value = v.substring(0,next_line) + insert_txt + v.substring(next_line);
-    next_pos = next_line + indent.length;
+    var next_pos = next_line + indent.length;
     txtbox.setSelectionRange(next_pos,next_pos);
 }
 
@@ -177,6 +178,7 @@ function addListeners(e) {
 function onload(e) {
     refreshParent();
     addListeners();
+    tags_changed('');
 }
 
 window.addEventListener('load', onload, false);
@@ -206,13 +208,6 @@ tag_base['tag3'] = [5 ,'webpage3'];
 </form>
 </div>
 
-<!-- TAB HEADER -->
-<div class='tabHeader'>
-&nbsp;
-<span class='inactiveTab'><a href='/weblib/tag_naming'>Tag Name</a></span>
-<span class='activeTab'><a href='/weblib/tag_categorize'>Categorize</a></span>
-</div>
-
 <!-- main content -->
 <form method='post' action='/weblib/tag_categorize'>
 
@@ -220,15 +215,54 @@ tag_base['tag3'] = [5 ,'webpage3'];
 <tr>
 
 
+<!-- uncategorized column -->
+<td style='width:20%' valign='top'>
+<h3>Tags</h3>
+<select id='uncategorized' size='20'>
+<option node='rep:uncategorized_tag'>tag1 (0)</option>
+<option node='rep:uncategorized_tag'>tag2 (10)</option>
+<option node='rep:uncategorized_tag'>tag3 (5)</option>
+</select>
+<input class='btn' type='button' onclick='addTag();' value='Add' />
+</td>
+
+
+<!-- filler column -->
+<td style='width:2%' ></td>
+
+
+<!-- editing column -->
+<td valign='top'>
+<h3>Categories</h3>
+<textarea node='con:category_description' id='category_description' name='category_description'>
+tag1
+  tag2
+    tag21
+    tag22
+  tag3
+</textarea>
+<br />
+<!-- action buttons -->
+<input class='btn' type='submit' name='action' value='Save' />
+&nbsp;
+<input class='btn' type='button' name='action' value='Close' onclick='javascript:window.close()' />
+</td>
+
+
+<!-- filler column --><!--
+<td style='width:3%' ></td>
+-->
+
 <!-- instruction column -->
 <td style='width:20%' valign='top'>
-<p>Categorize the tags by editing them in the space in the center.</p>
+<h3>&nbsp;</h3>
+
+<p>Build a category of tags by editing them in the space in the center.</p>
 
 <p>Put each tag on a separate line. Insert spaces in front of a tag
-to make it a subcategory. Subcategory themselves can more levels of
-subcategories.
-Tags maybe used multiple times.
-Blank lines can be added for clarity.</p>
+to make it a subcategory. Insert more spaces for second or deeper
+levels of subcategories. A tag maybe used as many times as needed.
+Blank lines maybe used for clarity.</p>
 
 <p>For example:</p>
 <pre id='instruction_example'>food
@@ -243,52 +277,20 @@ travel
   train
   airplane</pre>
 
-<p>Tags that are not yet categorized are listed on the right. Add them to the category as you see fit.
-</p>
 </td>
 
 
-<!-- filler column -->
-<td style='width:3%' ></td>
-
-
-<!-- editing column -->
-<td valign='top'>
-<h3>Tag Categories</h3>
-<textarea node='con:category_description' id='category_description' name='category_description'>
-tag1
-  tag2
-    tag21
-    tag22
-  tag3
-</textarea>
-<br />
-<!-- action buttons -->
-<input class='btn' type='submit' name='action' value='Update' />
-&nbsp;
-<input class='btn' type='button' name='action' value='Close' onclick='javascript:window.close()' />
-</td>
-
-
-<!-- uncategorized column -->
-<td style='width:20%' valign='top'>
-<h3>Tags to be categorized</h3>
-<select id='uncategorized' size='20'>
-<option node='rep:uncategorized_tag'>tag1 (0)</option>
-<option node='rep:uncategorized_tag'>tag2 (10)</option>
-<option node='rep:uncategorized_tag'>tag3 (5)</option>
-</select>
-<input class='btn' type='button' onclick='addTag();' value='Add' />
-</td>
 
 </tr>
 
 
 <tr>
-<td colspan='2'>
+<!--
+<td colspan='1'>
 </td>
-<td colspan='2'>
+-->
 <!-- hint area -->
+<td colspan='5'>
 <p>
 <span style='font-weight: bold;'><a id='hint_tag' href='#'>some tag</a></span>
 <span id='hint_count'>(2)</span>

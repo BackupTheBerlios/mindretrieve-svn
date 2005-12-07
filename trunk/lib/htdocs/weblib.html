@@ -212,7 +212,7 @@ function openWeblibForm(url) {
 }
 
 function openWeblibFormFull(url) {
-    win = window.open(url, 'weblibForm');
+    win = window.open(url, 'weblibFormFull');
     win.focus();
 }
 
@@ -259,11 +259,11 @@ function deleteTag() {
 function toggleSubCatEvent(e) {
     result = toggleSubCat(this);
     // notify server of the new setting via the asyncForm
-    var asyncForm = document.getElementById('asyncForm');
-    asyncForm.action = '/weblib/' + result[0];
-    var input_cc = document.getElementById('asyncForm.category_collapse');
-    input_cc.value = result[1];
-    asyncForm.submit();
+    var form = document.getElementById('asyncForm');
+    form.action = '/weblib/' + result[0];
+    form.elements['method'].value = 'POST';
+    form.elements['category_collapse'].value = result[1];
+    form.submit();
 }
 
 // return [switchElem.id, collapse('on'/'off')]
@@ -645,7 +645,8 @@ window.addEventListener('load', onload, false);
 
 <!-- hidden asyncForm -->
 <form id='asyncForm' action='#' target='asyncFrame' >
-<input id='asyncForm.category_collapse' type='textbox' name='category_collapse' />
+<input type='hidden' name='method' value='GET' />
+<input type='textbox' name='category_collapse' />
 <iframe name='asyncFrame' src='' scrolling='no' ></iframe>
 </form>
 

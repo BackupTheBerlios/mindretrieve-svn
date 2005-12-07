@@ -160,8 +160,42 @@ class TestWeblib(unittest.TestCase):
             self.assertTrue(ktag not in page.tags)
 
 
-    def test_compile(self):
-        self.fail('need test')
+    def test_category_setdescription(self):
+        wlib = self.store.wlib
+
+        # before
+        self.assertEqual(len(wlib.tags), 6)
+
+        # replace Kremlin with Buckingham
+        wlib.category.setDescription(u"""
+        Buckingham
+          Русский
+          Français
+          日本語
+          English
+        """  )
+
+        # after
+        self.assertEqual(len(wlib.tags), 7)
+        self.assertTrue(wlib.tags.getByName('Buckingham'))      # created new tag
+
+        cat_tags = [node.data for node,_ in wlib.category.root.dfs() if node.data]
+        for tag in cat_tags:
+            self.assertTrue(tag in wlib.tags)                   # these are all real tags
+
+        self.assertEqual([tag.name for tag in cat_tags], [
+            u'Buckingham',
+            u'Русский',
+            u'Français',
+            u'日本語',
+            u'English',
+        ])
+
+        uncat_tags = wlib.category.getUncategorized()
+        self.assertEqual([tag.name for tag in uncat_tags], [
+            u'inbox',
+            u'Kremlin'
+        ])
 
 
 if __name__ == '__main__':

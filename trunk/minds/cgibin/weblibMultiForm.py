@@ -177,7 +177,6 @@ def doPost(wfile, req):
 
     log.debug('EditTags for %s entries add(%s) remove(%s).', len(entries), add_tags, remove_tags)
     wlib.editTags(entries, [], add_tags, remove_tags)
-    wlib.category.compile()
 
     response.redirect(wfile, '/updateParent')
 

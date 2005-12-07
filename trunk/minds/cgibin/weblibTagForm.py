@@ -115,7 +115,6 @@ def doDeleteResource(wfile, base_tag):
 
     log.info('Deleting Tag %s' % unicode(base_tag))
     wlib.tag_merge_del(base_tag, None)
-    wlib.category.compile()
 
     response.redirect(wfile, '/updateParent?url=/weblib')
 

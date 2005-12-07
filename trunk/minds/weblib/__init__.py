@@ -113,17 +113,19 @@ class Category(object):
 
     def __init__(self, wlib):
         self.wlib = wlib
-        self.root = graph.Node(None,[])     # tree of tags
-        self._uncategorized = None
+        # root of tree of tags
+        # note: the root is always an pseudo empty node (usually not visible)
+        self.root = graph.Node(None,[])
 
-    # TODO: ----> find use of uncategorized
+
     def getUncategorized(self):
-        if self._uncategorized == None:
-            _categorized = [node.data for node, _ in self.root.dfs() if node.data]   # list of tags
-            _categorized = sets.Set(_categorized)
-            _uncategorized = [tag for tag in self.wlib.tags if tag not in _categorized]
-            self._uncategorized = sortTags(_uncategorized)
-        return self._uncategorized
+        """
+        Return list of uncategorized tags in name order.
+        """
+        tags = sets.Set(self.wlib.tags)
+        categorized_tags = [node.data for node, _ in self.root.dfs() if node.data]
+        uncategorized = tags.difference(categorized_tags)
+        return sortTags(uncategorized)
 
 
     def getDescription(self):
@@ -131,9 +133,6 @@ class Category(object):
 
 
     def setDescription(self, description):
-        """
-        Note: Call compile after finish making changes to the Category.
-        """
         # quick and dirty way to clean up for ILLEGAL_CHARACTERS
         for c in Tag.ILLEGAL_CHARACTERS:
             description = description.replace(c,'?')
@@ -144,7 +143,7 @@ class Category(object):
         # However, so far only edit and delete of individual tag is
         # used [2005-12-07].
         # TODO: clean up
-        self.compile(description)
+        self._compile(description)
         self.wlib.store.writeHeader('category_description', description)
 
 
@@ -162,10 +161,12 @@ class Category(object):
             self.setDescription(edited)
 
 
-    def compile(self, description=None):
+    def _compile(self, description=None):
         """
         Build root from category_description
         """
+        # the description is here because sometimes we need to call
+        # _compile() before changing the description header
         if description == None:
             description = self.getDescription()
 
@@ -182,9 +183,6 @@ class Category(object):
                 tag = self.wlib.store.writeTag(tag)
                 log.debug(u'Add tag from category: %s' % unicode(tag))
             node.data = tag
-
-        # invalidate uncategorized
-        self._uncategorized = None
 
 
     # TODO: _countTag is only used in weblibTagCategorize?
@@ -326,10 +324,7 @@ class WebLibrary(object):
         if tag:
             return tag
         # default tag is not previous used; or user has chosen a new default?
-        self.store.writeTag(Tag(name=d))
-        self.category.compile()
-        # query default tag again
-        return self.tags.getByName(d)
+        return self.store.writeTag(Tag(name=d))
 
 
     def tag_rename(self, tag, newName):
@@ -339,7 +334,6 @@ class WebLibrary(object):
         newTag.name = newName
         self.store.writeTag(newTag)
         self.category.renameTag(oldName, newName)
-        self.category.compile()
 
 
     def tag_merge_del(self, tag, new_tag=None):
@@ -384,7 +378,6 @@ class WebLibrary(object):
         # Should we leave the tag in the category for manual clean up?
         # Automatic collapsing category may not be a good idea.
         self.category.deleteTag(unicode(tag))
-        self.category.compile()
 
 
     def setCategoryCollapse(self, tid, value):

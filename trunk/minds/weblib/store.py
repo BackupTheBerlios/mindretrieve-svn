@@ -296,7 +296,7 @@ class Store(object):
 
             # post-processing, convert tagIds to tag
             map(self._conv_tagid, wlib.webpages)
-            wlib.category.compile()
+            wlib.category._compile()
 
         finally:
             self.lock.release()

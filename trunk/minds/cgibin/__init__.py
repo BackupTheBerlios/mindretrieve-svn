@@ -13,7 +13,6 @@ import updateParent
 import weblib
 import weblibMultiForm
 import weblibTagCategorize
-import weblibTagNaming
 
 # list of tuple of (script_name, module)
 cgi_registry = [
@@ -30,7 +29,6 @@ cgi_registry = [
   ('/snoop'                , snoop),
   ('/updateParent'         , updateParent),
   ('/weblib/tag_categorize', weblibTagCategorize),
-  ('/weblib/tag_naming'    , weblibTagNaming),
   ('/weblib/multiform'     , weblibMultiForm),
   ('/weblib'               , weblib),
   ('/'                     , home),

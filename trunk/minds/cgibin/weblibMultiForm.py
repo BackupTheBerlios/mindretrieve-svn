@@ -132,6 +132,18 @@ def doShowForm(wfile, req, errors=[], checklist=[], new_tags=[]):
         )
 
 
+def _create_tags(wlib, names):
+    """ Return list of Tags created from the names list. """
+    lst = []
+    for name in names:
+        tag = wlib.tags.getByName(name)
+        if not tag:
+            tag = weblib.Tag(name=name)
+            tag = wlib.store.writeTag(tag)
+        lst.append(tag)
+    return lst
+
+
 def doPost(wfile, req):
     wlib = store.getWeblib()
     entries = _buildEntries(req)
@@ -142,12 +154,9 @@ def doPost(wfile, req):
     add_tags = req.param('add_tags')
     add_tags, unknown = weblib.parseTags(wlib, add_tags)
 
-    print >>sys.stderr, checklist
-    print >>sys.stderr, add_tags, unknown
-
     # any new tags?
     if unknown and req.param('create_tags'):
-        add_tags.extend(weblib.create_tags(wlib,unknown))
+        add_tags.extend(_create_tags(wlib,unknown))
         unknown = []
 
     if unknown:

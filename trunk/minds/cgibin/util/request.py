@@ -109,15 +109,6 @@ class WeblibRequest(Request):
         )
 
 
-def get_return_url(req):
-    """ Find what URL to go to when this form is closed? """
-    r = req.param('return_url')
-    if r: return r
-    r = req.env.get('HTTP_REFERER','')
-    if r: return r
-    return WEBLIB_URL
-
-
 def weblib_url():
     return '%s' % WEBLIB_URL
 

@@ -8,6 +8,28 @@ def diff(a,b):
     return d
 
 
+def knock_off(S, D):
+    """
+    An efficient method to remove items from S that also appear in D.
+    Both S and D should be sorted in decreasing order.
+    Removed items are simply set to None.
+    """
+    i = 0
+    j = 0
+    while i < len(S) and j < len(D):
+        s, d = S[i], D[j]
+        ssize, dsize = s[0], d[0]   # ssize and dsize represents the total order of s and d
+        result = cmp(ssize,dsize)
+        if result == 0:
+            S[i] = None
+            i += 1
+            j += 1
+        elif result > 0:
+            i += 1
+        else:
+            j += 1
+
+
 
 #-----------------------------------------------------------------------
 # Id keyed list

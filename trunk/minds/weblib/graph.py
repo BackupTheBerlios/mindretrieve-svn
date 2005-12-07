@@ -387,49 +387,31 @@ def _trim_children_and_output(align_column, children, output):
 #            raise CycleError(path[i:]+[v])
 #        except ValueError:
 #            pass
-#
-#
-#def dfs_node(root):
-#    yield root
-#    for child in root[1]:
-#        for x in dfs_node(child): yield x
-#
-#
-#def dfs(root,level=0):
-#    """ Walk a tree in DFS order, yielding (node,level). """
-#    yield root[0], level
-#    for child in root[1]:
-#        for x in dfs(child,level+1): yield x
-#
-#def dfsp(root, path=None):
-#    """ yield (vertex, path to vertex) """
-#
-#    # create the initial path stack
-#    # note: don't put this as the default parameter
-#    if path is None:
-#        path = []
-#    else:
-#        yield root[0], path
-#
-#    path.append(root[0])
-#    for child in root[1]:
-#        for x in dfsp(child,path): yield x
-#    path.pop()
-#
-#
 
-def find_branches(root, name):
+def find_branches(category_root, tag):
+    """
+    Build a tree with tag as the root node. Gather directory children
+    all over the category under this tree.
+
+    Note: The result tree share objects reference with the category
+    tree. Do not modify the tree.
+    """
+    assert tag
     result = []
-    find_branches1(root, name.lower(), result)
-    return Node(name,result)
+    _find_branches1(category_root, tag, result)
+    return Node(tag,result)
 
 
-def find_branches1(root, lname, result):
-    for child in root.children:
-        if unicode(child).lower() == lname:
+def _find_branches1(node, tag, result):
+    """
+    Walk node in dfs order. Whenever tag is found, add its children to
+    result and stop traversing down.
+    """
+    for child in node.children:
+        if child.data == tag:
             result.extend(child.children)
         else:
-            find_branches1(child, lname, result)
+            _find_branches1(child, tag, result)
 
 
 # ------------------------------------------------------------------------

@@ -227,5 +227,45 @@ e
 """,4))
 
 
+
+class TestUtils(unittest.TestCase):
+
+    def test_find_branches(self):
+        DATA = """
+        C1
+            C11
+            XYZ
+                C121
+                C122
+            C13
+        XYZ
+            C21
+                C211
+        C3
+            XYZ
+            C1
+
+        """
+        tree = graph.parse_text_tree(DATA)
+
+        # find non-exist branches
+        # current implementation think it is better to return ['NOT EXIST'] than []
+        branches = graph.find_branches(tree, 'NOT EXIST')
+        children = [node.data for node,_ in branches.dfs()]
+        self.assertEqual(children, ['NOT EXIST'])
+
+        # find XYZ and its children
+        branches = graph.find_branches(tree, 'XYZ')
+        children = [node.data for node,_ in branches.dfs()]
+        self.assertEqual(children, [
+            'XYZ',
+            'C121',
+            'C122',
+            'C21',
+            'C211',
+        ])
+
+
+
 if __name__ =='__main__':
     unittest.main()

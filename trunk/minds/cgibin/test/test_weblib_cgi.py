@@ -162,9 +162,45 @@ class TestWeblibMultiForm(TestCGIBase):
     ])
 
 
-  def test_POST(self):
-    url = ''.join(['/weblib/multiform?id_list=2%2C3',
-            '&%40122=on&%40122changed=1',       # Français add
+  def test_POST_add(self):
+    wlib = store.getWeblib()
+
+    # before
+    self.assertEqual(len(wlib.webpages.getById(2).tags), 2) # Kremlin, Русский
+    self.assertEqual(len(wlib.webpages.getById(3).tags), 2) # Kremlin, Français
+
+    url = ''.join(['/weblib/multiform',
+            '?id_list=2%2C3',                   # 2 - Russian, 3 - French
+            '&%40122=on&%40122changed=1',       # add Français
+            '&%40121=on&%40121changed=',        # Русский unchanged
+            '&add_tags=inbox',                  # add inbox
+            '&method=POST',
+            ])
+    self.checkPathForPattern(url, [
+        'HTTP/1.0 302 Found',
+        'location: /updateParent',
+    ])
+
+    # after
+    item = wlib.webpages.getById(2)
+    tagIds = sorted([t.id for t in item.tags])
+    self.assertEqual(tagIds, [120,121,122,124])     # inbox, Русский, Français, Kremlin
+
+    item = wlib.webpages.getById(3)
+    tagIds = sorted([t.id for t in item.tags])
+    self.assertEqual(tagIds, [120,122,124])         # inbox, Français, Kremlin
+
+
+  def test_POST_remove(self):
+    wlib = store.getWeblib()
+
+    # before
+    self.assertEqual(len(wlib.webpages.getById(2).tags), 2) # Kremlin, Русский
+    self.assertEqual(len(wlib.webpages.getById(3).tags), 2) # Kremlin, Français
+
+    url = ''.join(['/weblib/multiform',
+            '?id_list=2%2C3',                   # 2 - Russian, 3 - French
+            '&%40122=&%40122changed=1',         # remove Français
             '&%40121=on&%40121changed=',        # Русский unchanged
             '&add_tags=inbox',
             '&method=POST',
@@ -174,26 +210,61 @@ class TestWeblibMultiForm(TestCGIBase):
         'location: /updateParent',
     ])
 
-    wlib = store.getWeblib()
-    item2 = wlib.webpages.getById(2)
-    self.assertTrue(120 in [t.id for t in item2.tags])  # inbox
-    self.assertTrue(122 in [t.id for t in item2.tags])  # Français
-    item3 = wlib.webpages.getById(3)
-    self.assertTrue(120 in [t.id for t in item3.tags])  # inbox
-    self.assertTrue(122 in [t.id for t in item3.tags])  # Français
+    # after
+    item = wlib.webpages.getById(2)
+    tagIds = sorted([t.id for t in item.tags])
+    self.assertEqual(tagIds, [120,121,124])     # inbox, Русский, Kremlin
 
+    item = wlib.webpages.getById(3)
+    tagIds = sorted([t.id for t in item.tags])
+    self.assertEqual(tagIds, [120,124])         # inbox, Kremlin
+
+
+  def test_POST_add_new_tag(self):
+    wlib = store.getWeblib()
+
+    # before
+    self.assertEqual(len(wlib.webpages.getById(2).tags), 2) # Kremlin, Русский
+    self.assertEqual(len(wlib.webpages.getById(3).tags), 2) # Kremlin, Français
+
+    url = ''.join(['/weblib/multiform',
+            '?id_list=2%2C3',                   # 2 - Russian, 3 - French
+            '&%40122=on&%40122changed=1',       # add Français
+            '&%40121=on&%40121changed=',        # Русский unchanged
+            '&add_tags=aNewTag',
+            '&method=POST',
+            '&create_tags=1',
+            ])
+    self.checkPathForPattern(url, [
+        'HTTP/1.0 302 Found',
+        'location: /updateParent',
+    ])
+
+    # after
+    newTag = wlib.tags.getByName('aNewTag')
+    self.assertTrue(newTag)
+    self.assertTrue(newTag.id > 124)            # new tag should have a higher id
+
+    # after
+    item = wlib.webpages.getById(2)
+    tagIds = sorted([t.id for t in item.tags])
+    self.assertEqual(tagIds, [121,122,124,newTag.id]) # Русский, Français, Kremlin, aNewTag
+
+    item = wlib.webpages.getById(3)
+    tagIds = sorted([t.id for t in item.tags])
+    self.assertEqual(tagIds, [122,124,newTag.id])     # Français, Kremlin, aNewTag
 
 
 class TestWeblibTagCategorize(TestCGIBase):
 
   def test_GET(self):
     self.checkPathForPattern("/weblib/tag_categorize", [
-        '<html>', 'Tag Categories', '</html>',
+        '<html>', 'Categorize tags', '</html>',
     ])
 
 
   def test_POST(self):
-    test_data = 'a\r\n  b  '
+    test_data = 'a\r\n  b'
     self.checkPathForPattern('/weblib/tag_categorize?category_description=' + urllib.quote(test_data) + '&method=POST', [
         'HTTP/1.0 302 Found',
         'location: /weblib/tag_categorize',

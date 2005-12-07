@@ -302,7 +302,7 @@ class TestStore(unittest.TestCase):
         #print >>sys.stderr, self.store
         wlib = self.store.wlib
         self._assert_weblib_size(7, 4)
-        self.assertEqual(wlib.headers['category_description'], 'test description')
+        self.assertEqual(wlib.headers['category_description'], 'Kremlin')
         self.assertTrue(wlib.tags.getByName('tag1'))
         self.assertTrue(wlib.tags.getByName('tag2'))
         self.assertTrue(not wlib.tags.getByName('English'))
@@ -318,7 +318,7 @@ class TestStore(unittest.TestCase):
         wlib = self.store.wlib
 
         # change header
-        self.store.writeHeader('category_description', 'test description')
+        self.store.writeHeader('category_description', 'Kremlin')
 
         # add tag
         tag1 = weblib.Tag(name='tag1')

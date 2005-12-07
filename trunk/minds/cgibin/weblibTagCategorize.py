@@ -23,6 +23,7 @@ def doShowForm(wfile, req):
     wlib = store.getWeblib()
 
     # build tag_base
+    wlib.category._countTag()
     tag_dict = dict([
                     (tag, ['@%s' % tag.id,
                            tag.name,
@@ -45,10 +46,11 @@ def doShowForm(wfile, req):
     tag_base = [b for name,b in tag_base]
 
     # find uncategorized
+    uncategorized = wlib.category.getUncategorized()
     un_list = [(
                 unicode(tag).lower(),
                 u'%s (%s)' % (unicode(tag), tag.num_item),
-               ) for tag in wlib.category.uncategorized]
+               ) for tag in uncategorized]
     un_list.sort()
     uncategorized = [t for l,t in un_list]
 
@@ -61,11 +63,6 @@ def doPost(wfile, req):
     # TODO: parse and check for error?
     text = req.param('category_description')
     wlib.category.setDescription(text)
-    wlib.category.compile()
-
-    # there is no update of header value. Save the data file.
-    # TODO: it is not necessary to save as there are update records. but right now we want to find a wait
-    wlib.store.save()
 
     response.redirect(wfile, '/weblib/tag_categorize')
 
@@ -95,7 +92,7 @@ class CategorizeRenderer(response.CGIRenderer):
         rep:uncategorized_tag
         con:footer
     """
-    def render(self, node, errors, tag_base, category_description, uncategorized):
+    def render(self, node, errors, tag_base, category_description, uncategorized_tags):
         ### TODO: need to encode
         node.tag_base_init.raw = '\n'.join(
             ["tag_base['%s'] = [%s,%s];" % (
@@ -105,11 +102,11 @@ class CategorizeRenderer(response.CGIRenderer):
                 ) for b in tag_base]
             )
         node.category_description.content = category_description
-        node.uncategorized_tag.repeat(self.render_uncategorized_tag, uncategorized)
+        node.uncategorized_tag.repeat(self.render_uncategorized_tag, uncategorized_tags)
 
 
-    def render_uncategorized_tag(self, node, item):
-        node.content = unicode(item)
+    def render_uncategorized_tag(self, node, tag):
+        node.content = unicode(tag)
 
 
 if __name__ == "__main__":

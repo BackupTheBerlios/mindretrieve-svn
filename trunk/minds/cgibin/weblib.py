@@ -159,8 +159,9 @@ def _buildCategoryList(wlib, selectTag=''):
                 continue
             n.comma = True
 
-    if wlib.category.uncategorized:
-        subcats = [CategoryNode(t) for t in wlib.category.uncategorized]
+    uncategorized = wlib.category.getUncategorized()
+    if uncategorized:
+        subcats = [CategoryNode(t) for t in uncategorized]
         for subcat in subcats[:-1]:
             subcat.comma = True
         categoryList.append((CategoryNode('TAG'), subcats))
@@ -182,9 +183,9 @@ def _n_dfs(root, nlist=None):
     nlist.pop()
 
 
-def _query_by_tag(wlib, tagName):
+def _query_by_tag(wlib, tag):
     webItems = []
-    positions = query_wlib.query_by_tag(wlib, tagName)
+    positions = query_wlib.query_by_tag(wlib, tag)
     for pos in positions:
         tagNode = WebItemTagNode(pos.tag)
         tagNode.prefix = pos.prefix
@@ -210,7 +211,10 @@ def queryTag(wfile, req, nameOrId):
     categoryList = _buildCategoryList(wlib, tagName)
 
     # webitem pane
-    webItems = _query_by_tag(wlib, tagName)
+    if tag:
+        webItems = _query_by_tag(wlib, tag)
+    else:
+        webItems = []
 
     WeblibRenderer(wfile, req.env, '').output(
         wlib.tags,

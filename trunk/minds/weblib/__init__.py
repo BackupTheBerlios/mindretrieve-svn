@@ -73,6 +73,8 @@ class WebPage(object):
 
 class Tag(object):
 
+    ILLEGAL_CHARACTERS = '@<>#'
+
     def __init__(self, id=-1, name='', description='', flags=''):
 
         if not name:
@@ -111,8 +113,17 @@ class Category(object):
 
     def __init__(self, wlib):
         self.wlib = wlib
-        self.root = graph.Node('',[])
-        self.uncategorized = []
+        self.root = graph.Node(None,[])     # tree of tags
+        self._uncategorized = None
+
+    # TODO: ----> find use of uncategorized
+    def getUncategorized(self):
+        if self._uncategorized == None:
+            _categorized = [node.data for node, _ in self.root.dfs() if node.data]   # list of tags
+            _categorized = sets.Set(_categorized)
+            _uncategorized = [tag for tag in self.wlib.tags if tag not in _categorized]
+            self._uncategorized = sortTags(_uncategorized)
+        return self._uncategorized
 
 
     def getDescription(self):
@@ -120,6 +131,20 @@ class Category(object):
 
 
     def setDescription(self, description):
+        """
+        Note: Call compile after finish making changes to the Category.
+        """
+        # quick and dirty way to clean up for ILLEGAL_CHARACTERS
+        for c in Tag.ILLEGAL_CHARACTERS:
+            description = description.replace(c,'?')
+
+        # TODO: Note that setDescription() is called by renameTag() and
+        # deleteTag() for each tag. It does compile() and write to disk.
+        # This would be inefficient if we are editing a series of tags.
+        # However, so far only edit and delete of individual tag is
+        # used [2005-12-07].
+        # TODO: clean up
+        self.compile(description)
         self.wlib.store.writeHeader('category_description', description)
 
 
@@ -137,55 +162,33 @@ class Category(object):
             self.setDescription(edited)
 
 
-    # TODO: move to util and add test? though it is not used now.
-    def knock_off(S, D):
+    def compile(self, description=None):
         """
-        An efficient method to remove items from S that also appear in D.
-        Both S and D should be sorted in decreasing order.
-        Removed items are simply set to None.
+        Build root from category_description
         """
-        i = 0
-        j = 0
-        while i < len(S) and j < len(D):
-            s, d = S[i], D[j]
-            ssize, dsize = s[0], d[0]   # ssize and dsize represents the total order of s and d
-            result = cmp(ssize,dsize)
-            if result == 0:
-                S[i] = None
-                i += 1
-                j += 1
-            elif result > 0:
-                i += 1
-            else:
-                j += 1
+        if description == None:
+            description = self.getDescription()
 
+        self.root = graph.parse_text_tree(description)
 
-    def compile(self):
-        """
-        Build root and uncategorized from category_description
-        and current set of Tags
-        """
-
-        # TODO: should countTag in category? clean up.
-        self._countTag()
-
-        text = self.getDescription()
-        self.root = graph.parse_text_tree(text)
-
-        categorized = sets.Set()
+        # walk the parsed tree
+        # - create new tags
+        # - convert string to tag
         for node, p in self.root.dfs():
-            tag = self.wlib.tags.getByName(node.data)
-            if tag:
-                # convert string to node
-                # TODO: should we not do this? because there is still going to be some non-tag string?
-#                node.data = tag
-                categorized.add(tag)
+            name = node.data
+            tag = self.wlib.tags.getByName(name)
+            if (not tag) and name:
+                tag = Tag(name=name)
+                tag = self.wlib.store.writeTag(tag)
+                log.debug(u'Add tag from category: %s' % unicode(tag))
+            node.data = tag
 
-        # build uncategorized
-        self.uncategorized = [tag for tag in self.wlib.tags if tag not in categorized]
-        self.uncategorized = sortTags(self.uncategorized)
+        # invalidate uncategorized
+        self._uncategorized = None
 
 
+    # TODO: _countTag is only used in weblibTagCategorize?
+    # TOOD: cleanup?
     def _countTag(self):
         # construct tag statistics
         for tag in self.wlib.tags:
@@ -464,20 +467,6 @@ def parseTags(wlib, tag_names):
             unknown.append(name)
     tags.sort()
     return tags, unknown
-
-# this is only used in weblibMultiForm.doPost. Move it there.
-def create_tags(wlib, names):
-    """ Return list of Tags created from the names list. """
-    from minds.weblib import store
-    stor = store.getStore()
-    lst = []
-    for name in names:
-        tag = wlib.tags.getByName(name)
-        if not tag:
-            tag = Tag(name=name)
-            stor.writeTag(tag)
-        lst.append(tag)
-    return lst
 
 
 def sortTags(tags):

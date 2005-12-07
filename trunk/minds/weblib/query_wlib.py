@@ -140,13 +140,11 @@ class Position(graph.Node):
     # Position are nodes that make up a tag tree
     # positions is a linear list in dfs order
 
-    def __init__(self, name):
-        graph.Node.__init__(self, name)         # data is redundant?
-        wlib = store.getWeblib()
+    def __init__(self, tag):
+        graph.Node.__init__(self, tag)          # data is redundant?
         self.prefix = ''
-        self.name = name
-        self.tag = wlib.tags.getByName(name)    # maybe None
-        self.parent_path = []                   # path as [Position]
+        self.tag = tag                          # maybe None
+        self.parent_path = []                   # path is [Position]
         self.items = []                         # list of Spots
                                                 # Spot is tuple of (pos_rel, itags, webpage)
 
@@ -165,7 +163,7 @@ def query_by_tag(wlib, tag):
     @return - list of Position with items filled.
     """
 
-    branches = graph.find_branches(wlib.category.root, unicode(tag))
+    branches = graph.find_branches(wlib.category.root, tag)
 
     positions = []
     tag_set = sets.Set()    # all tags
@@ -202,9 +200,6 @@ def query_by_tag(wlib, tag):
     pos_rbfs = [pos for pos,_ in root_pos.bfs()]
     pos_rbfs.reverse()
 
-    #print '###DEBUG rbfs'
-    #pprint (pos_rbfs)
-
     for page in wlib.webpages:
         # basic filtering
         rtags = []  # relevant tags
@@ -216,6 +211,8 @@ def query_by_tag(wlib, tag):
                 itags.append(tag)
         if not rtags:
             continue
+
+        itags.sort()
 
         for pos in positions:           # clear markers first
             pos.trail_walked = False
@@ -288,7 +285,8 @@ def main(argv):
     wlib = store.getWeblib()
 
     if tags:
-        positions = query_by_tag(wlib, tags)
+        tags, unknown = weblib.parseTags(wlib, tags)
+        positions = query_by_tag(wlib, tags[0])
         for pos in positions:
             pos.items.sort()
             print pos

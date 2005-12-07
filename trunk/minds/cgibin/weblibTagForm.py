@@ -14,7 +14,7 @@ from minds.weblib import store
 
 log = logging.getLogger('cgi.tagFrm')
 
-ILLEGAL_CHARACTERS = '@<>'
+ILLEGAL_CHARACTERS = '@<>#'
 
 
 def _buildTags(req):
@@ -54,9 +54,7 @@ def main(wfile, req):
 
     base_tag, form_tag = tags
 
-    if req.method == 'GET':
-        doGetResource(wfile, form_tag)
-    elif req.method == 'POST':
+    if req.method == 'POST':
         # we only do category_collapse setting right now
         if 'category_collapse' not in req.form:
             doPostResource(wfile, base_tag, form_tag)
@@ -65,6 +63,8 @@ def main(wfile, req):
             doPostCategoryCollapse(wfile, req)
     elif req.method == 'DELETE':
         doDeleteResource(wfile, base_tag)
+    else:
+        doGetResource(wfile, form_tag)
 
 
 def doGetResource(wfile, form_tag):

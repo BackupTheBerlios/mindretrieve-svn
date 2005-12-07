@@ -83,10 +83,6 @@ class Tag(object):
         self.description= description
         self.flags      = flags
 
-        # TODO: are these still used???
-        self.isTag      = []    # isTag is intersection of all tags for all items
-        self.related    = {}    # relatedTag -> count, relatedTags is union of all tag for all items
-                                # Then inferRelation() would make it a list of tuples???
         self.num_item   = 0
 
     def __copy__(self):

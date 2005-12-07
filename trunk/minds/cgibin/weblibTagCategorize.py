@@ -64,6 +64,7 @@ def doPost(wfile, req):
     wlib.category.compile()
 
     # there is no update of header value. Save the data file.
+    # TODO: it is not necessary to save as there are update records. but right now we want to find a wait
     wlib.store.save()
 
     response.redirect(wfile, '/weblib/tag_categorize')

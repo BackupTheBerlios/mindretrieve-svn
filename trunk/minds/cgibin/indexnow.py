@@ -2,7 +2,7 @@ import cgi
 import os, sys
 
 from minds import qmsg_processor
-import templateTmpl
+#~import templateTmpl
 
 
 def main(rfile, wfile, env):
@@ -18,7 +18,7 @@ Cache-control: no-cache\r
 \r
 """)
     from minds import app_httpserver
-    app_httpserver.forwardTmpl(wfile, env, 'template.html', templateTmpl, msg)
+#~    app_httpserver.forwardTmpl(wfile, env, 'template.html', templateTmpl, msg)
 
 
 if __name__ == "__main__":

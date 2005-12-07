@@ -257,15 +257,6 @@ class Store(object):
                     if not line: # end of headers?
                         break
                     self._interpretHeaderRecord(line)
-###                    pair = line.split(':',1)
-###                    if len(pair) != 2:
-###                        raise SyntaxError('Header line should contain name and value separate by a colon (line %s)' % lineno+1)
-###                    name, value = map(string.strip, pair)
-###                    # force header name to be lower for now
-###                    name = name.lower()
-###                    # borrow dsv.decode_fields() to decode \ and line breaks.
-###                    value = dsv.decode_fields(value)[0]
-###                    wlib.setHeader(name,value)
 
                 # parse row header
                 row_headers = {}
@@ -441,17 +432,13 @@ class Store(object):
     # this module has not sufficiently deal with the column header in the data file and
     # the fact that it may different from the hardcoded COLUMN order of this version.
     _xheaders = dict(zip(map(string.lower, COLUMNS), range(len(COLUMNS))))
-#    def _xline_to_row(self, line):
-#        fields = dsv.decode_fields(line)
-#        fields = map(string.strip, fields)
-#        return dsv.RowObject(self._xheaders,fields)
 
 
     def _log(self, line, flush):
         """ Write a log record to the data file """
         writer = self._getWriter()
         writer.write(line)
-        writer.write('\n')
+        writer.write('\r\n')
         if flush:
             writer.flush()
 

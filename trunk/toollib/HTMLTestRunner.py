@@ -402,8 +402,18 @@ class HTMLTestRunner:
                 )
                 rows.append(row)
                 if has_output:
-                    uo = o.decode('latin-1','replace')   ##??
-                    ue = e.decode('latin-1','replace')
+                    # UnicodeEncodeError/UnicodeDecodeError DEBUG CODE
+                    try:
+                        uo = unicode(o)
+                    except (UnicodeEncodeError,UnicodeDecodeError):
+                        print >>sys.stderr, '#####\n\n'
+                        if isinstance(o,unicode):
+                            print >>sys.stderr, o.encode('raw_unicode_escape')
+                        else:
+                            print >>sys.stderr, o.encode('string_escape')
+
+                    uo = unicode(o)
+                    ue = unicode(e)
                     row = TEST_OUTPUT_TMPL.safe_substitute(
                         id = tid,
                         output = saxutils.escape(uo+ue) \

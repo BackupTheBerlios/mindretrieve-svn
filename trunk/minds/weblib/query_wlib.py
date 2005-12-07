@@ -24,6 +24,7 @@ from minds import weblib
 from minds.weblib import util
 from minds.weblib import mhtml
 from minds.weblib import graph
+from minds.weblib import store
 
 log = logging.getLogger('wlib.qry')
 
@@ -55,55 +56,6 @@ def query_tags(wlib, querytxt, select_tags):
                 result.append(tag)
                 break
     return result
-
-
-def query_by_tag(wlib, tag):
-    # TODO: document result returned
-
-    branches = graph.find_branches(wlib.category.root, unicode(tag))
-    #branches.dump()
-
-    # TODO: level is a crude method. Should have some path analysis to let item goes into most specific level.
-
-    tag_tree_index = {} # tag id -> (tag, level, result_list)
-    for node, level in branches.bfs():
-        name = node.data
-        tag = wlib.tags.getByName(name)
-        if not tag:
-            continue
-        tree_entry = tag_tree_index.get(tag.id, None)
-        if tree_entry and tree_entry.level >= level:
-            continue
-        tag_tree_index[tag.id] = (tag, level, [])
-
-    # query all webpages
-    for entry in wlib.webpages:
-        tree_entry = None
-        for tag in entry.tags:
-            e = tag_tree_index.get(tag.id,None)
-            if not e:
-                continue
-            if not tree_entry or tree_entry[1] < e[1]:
-                tree_entry = e
-        if tree_entry:
-            tree_entry[2].append(entry)
-
-    result = _attach_result(branches, wlib, tag_tree_index)
-    return result
-
-
-def _attach_result(branches, wlib, tag_tree_index):
-    """ Build a parallel tree with result attached to corresponding node """
-    name = branches.data
-    tag = wlib.tags.getByName(name)
-    if not tag:
-        result = []
-    else:
-        result = tag_tree_index[tag.id][2]
-    new_node = graph.Node((name, result),[])
-    for child in branches.children:
-        new_node.children.append(_attach_result(child, wlib, tag_tree_index))
-    return new_node
 
 
 def query(wlib, querytxt, select_tags):
@@ -161,13 +113,141 @@ def queryRoot(wlib):
 
 
 
+#------------------------------------------------------------------------
+
+"""
+     A
+    / \
+   B   C
+  / \   \
+ C   D   E
+
+
+Positions
+
+Prefix  Name
+----------------------------
+        A
+1       B
+1.1     C
+1.2     D
+2       C
+2.1     E
+
+"""
+class Position(graph.Node):
+
+    # Position are nodes that make up a tag tree
+    # positions is a linear list in dfs order
+
+    def __init__(self, name):
+        graph.Node.__init__(self, name)         # data is redundant?
+        wlib = store.getWeblib()
+        self.prefix = ''
+        self.name = name
+        self.tag = wlib.tags.getByName(name)    # maybe None
+        self.parent_path = []                   # path as [Position]
+        self.items = []                         # list of Spots
+                                                # Spot is tuple of (pos_rel, itags, webpage)
+
+        # field for the trail marking algorithm
+        self.trail_walked = False
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return u'%s %s (%s)' % (self.prefix, unicode(self.tag), len(self.items))
+
+
+def query_by_tag(wlib, tag):
+    """
+    @return - list of Position with items filled.
+    """
+
+    branches = graph.find_branches(wlib.category.root, unicode(tag))
+
+    positions = []
+    tag_set = sets.Set()    # all tags
+
+    # build positions
+    for visit_record in branches.dfs_ctx():
+        node, idx, path, _ = visit_record
+        pos = Position(node.data)
+        positions.append(pos)
+        visit_record[3] = pos
+
+        # set prefix, set parent.children
+        parent_vr = path and path[-1] or None
+        if parent_vr:
+            if len(path) == 1:
+                pos.prefix = str(idx+1)
+            else:
+                pos.prefix = '%s.%s' % (path[-1][3].prefix, str(idx+1))
+            parent_vr[3].children.append(pos)
+
+        # set parent_path
+        pos.parent_path = [vr[3] for vr in reversed(path)]
+
+        # update tag_set
+        if pos.tag:
+            tag_set.add(pos.tag)
+
+    # TODO: check for empty tree!!
+    root_pos = positions[0]
+
+    #for pos in positions: print pos # DBEUG
+    #for pos, _ in root_pos.dfs(): print pos # DEBUG
+
+    pos_rbfs = [pos for pos,_ in root_pos.bfs()]
+    pos_rbfs.reverse()
+
+    #print '###DEBUG rbfs'
+    #pprint (pos_rbfs)
+
+    for page in wlib.webpages:
+        # basic filtering
+        rtags = []  # relevant tags
+        itags = []  # irrelevant tags
+        for tag in page.tags:
+            if tag in tag_set:
+                rtags.append(tag)
+            else:
+                itags.append(tag)
+        if not rtags:
+            continue
+
+        for pos in positions:           # clear markers first
+            pos.trail_walked = False
+        for pos in pos_rbfs:
+            if pos.trail_walked:
+                continue
+            if pos.tag not in rtags:
+                continue
+            # should insert item in this position
+            # calculate pos_rel with respect to this position
+            pos_rel = []
+            for ppos in pos.parent_path:
+                ppos.trail_walked = True
+                if ppos.tag in rtags:
+                    pos_rel.append(0)
+                else:
+                    pos_rel.append(1)
+
+            pos.items.append((pos_rel, itags, page))                    # TODO: between pos_rel and itags is irrelevant tag in tree.
+
+    for pos in positions:
+        pos.items.sort()
+
+    return positions
+
+
 # ----------------------------------------------------------------------
 # Command line
 
 from pprint import pprint
 
 def testShowAll():
-    from minds.weblib import store
     wlib = store.getWeblib()
     for item in wlib.webpages:
         tags = [tag.name for tag in item.tags]
@@ -208,18 +288,21 @@ def main(argv):
     wlib = store.getWeblib()
 
     if tags:
-        branches = query_by_tag(wlib, tags)
-        for node, path in branches.dfs():
-            name, result = node.data
-            print '..'*len(path) + name
-            for item in result:
-                print u'%s  %s' % ('  '*len(path), item)
+        positions = query_by_tag(wlib, tags)
+        for pos in positions:
+            pos.items.sort()
+            print pos
+            for i in pos.items:
+                print '  ' + str(i)
+
     elif querytxt:
         testQuery(wlib, querytxt, '')
+
     else:
         pprint(queryRoot(wlib))
 
 
 if __name__ == '__main__':
     sys.stdout = codecs.getwriter('utf8')(sys.stdout,'replace')
+    sys.stderr = codecs.getwriter('utf8')(sys.stderr,'replace')
     main(sys.argv)

@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 import datetime
 import sets
 import StringIO
@@ -22,6 +22,9 @@ class TestQuery(unittest.TestCase):
         self.TESTTEXT = file(self.TESTFILE_PATH,'rb').read()
         self.store.load('*test*weblib*', StringIO.StringIO(self.TESTTEXT))
 
+        # need because some code get store instance thru store.getStore()
+        store.store_instance = self.store
+
 
     def test_find_url(self):
         wlib = self.store.wlib
@@ -41,10 +44,21 @@ class TestQuery(unittest.TestCase):
     def test_query_by_tags(self):
         wlib = self.store.wlib
         ktag =  wlib.tags.getByName('Kremlin')
-        result = query_wlib.query_by_tag(wlib, ktag)
-        self.assertTrue(result)
-        self.assertEqual(len(result.children), 4)   # 4 tags under Kremlin
-        # TODO: clarify query_by_tag's result
+        positions = query_wlib.query_by_tag(wlib, ktag)
+
+        self.assertEqual(len(positions), 5)     # 5 tags under Kremlin
+        self.assertEqual(positions[0].tag.name, u'Kremlin')
+        self.assertEqual(positions[1].tag.name, u'Русский')
+        self.assertEqual(positions[2].tag.name, u'Français')
+        self.assertEqual(positions[3].tag.name, u'日本語')
+        self.assertEqual(positions[4].tag.name, u'English')
+
+        self.assertEqual(len(positions[0].items), 0)
+        self.assertEqual(len(positions[1].items), 1)
+        self.assertEqual(len(positions[2].items), 1)
+        self.assertEqual(len(positions[3].items), 1)
+        self.assertEqual(len(positions[4].items), 1)
+
 
     def test_query(self):
         wlib = self.store.wlib

@@ -41,6 +41,37 @@ class Node(object):
         path.pop()
 
 
+    def dfs_ctx(self, visit_record=None):
+        """
+        Yield visit_record of this node and all decendant nodes in DFS order.
+        visit_record is a list of [node, idx, path, user field].
+
+        Note: path get modified between yields.
+        Make a copy if a permanent record is needed.
+        """
+
+        if not visit_record:
+            visit_record = [self, 0, [], None]
+        path = visit_record[2]
+
+        # safety valve
+        if len(path) > self.MAX_DEPTH:
+            raise TooManyLevelsError('Tree has too many level: %s(%s)' % (unicode(self), self.MAX_DEPTH))
+
+        yield visit_record
+
+        # we may come back with a user field
+        # propagate this to decendants
+        user_field = visit_record[3]
+
+        path.append(visit_record)
+
+        for idx, child in enumerate(self.children):
+            visit_child = [child, idx, path, user_field]
+            for x in child.dfs_ctx(visit_child): yield x
+        path.pop()
+
+
     def bfs(self):
         """ Walk in BFS order, yield node, level """
         fifo = [(self,0)]
@@ -402,7 +433,37 @@ def find_branches1(root, lname, result):
 
 
 # ------------------------------------------------------------------------
+def topoSort(wlib, g):
+    ## TODO: HACKish algorithm
+    nlist = g.values()[:]
 
+    for n in nlist:
+        if n[0]:        ## '' trouble
+            n[0].indegree = 0
+            n[0].torder = -1
+
+    for v,children in nlist :
+        for c in children:
+            if c[0]: ##
+                c[0].indegree += 1
+
+    top_nodes = [n for n in nlist if not n[0] or n[0].indegree == 0]
+
+    order = 0
+    while top_nodes:
+        node = top_nodes.pop(0)
+        order += 1
+        if node[0]:
+            node[0].torder = order
+        for cn in node[1]:
+            if cn[0]:
+                cn[0].indegree -= 1
+            if cn[0].indegree == 0:
+                top_nodes.append(cn)
+
+
+
+# ------------------------------------------------------------------------
 DATA = """
 C1
   C11

@@ -4,7 +4,6 @@ import os, sys
 import sets
 import string
 import urllib
-from xml.sax import saxutils
 
 from minds.config import cfg
 from minds.cgibin import weblibSnapshot
@@ -24,7 +23,7 @@ def main(rfile, wfile, env):
     wlib = store.getWeblib()
 
     req = request.WeblibRequest(rfile, env)
-    log.debug('method %s rid %s tid %s', req.method, req.rid, req.tid)
+    log.debug(unicode(req))
 
     if req.rid:
         path = req.path
@@ -185,15 +184,13 @@ def _n_dfs(root, nlist=None):
 
 def _query_by_tag(wlib, tagName):
     webItems = []
-    branches = query_wlib.query_by_tag(wlib, tagName)
-    for node, nlist in _n_dfs(branches):
-        name, result = node.data
-        tag = wlib.tags.getByName(name)
-        tagNode = WebItemTagNode(tag)
-        tagNode.prefix = '.'.join(map(str,nlist))
+    positions = query_wlib.query_by_tag(wlib, tagName)
+    for pos in positions:
+        tagNode = WebItemTagNode(pos.tag)
+        tagNode.prefix = pos.prefix
         webItems.append(tagNode)
-        for item in result:
-            webItems.append(WebItemNode(item))
+        for _,_,page in pos.items:
+            webItems.append(WebItemNode(page))
     return webItems
 
 
@@ -441,10 +438,8 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
             node.checkbox.atts['name'] = str(webitem.id)
             node.itemDescription.content = unicode(webitem)
             node.itemDescription.atts['href'] = request.go_url(webitem)
-            node.itemDescription.atts['title'] = saxutils.quoteattr('%s %s' % (webitem.modified, webitem.description))[1:-1]
-            # TODO HACK, should fix HTMLTemplate which reject string with both single and double quote
+            node.itemDescription.atts['title'] = '%s %s' % (webitem.modified, webitem.description)
             node.itemTag.tag.repeat(self.renderWebItemTag, webitem.tags)
-##            node.edit.atts['href'] = '%s/%s/form' % (request.WEBLIB_URL, webitem.id)
             node.edit.atts['href'] %= webitem.id
             node.delete.atts['href'] = '%s/%s?method=delete' % (request.WEBLIB_URL, webitem.id)
             if webitem.cached:

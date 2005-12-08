@@ -7,10 +7,37 @@ from StringIO import StringIO
 import unittest
 
 
+def checkStrings(fp, strings, no_pattern=None):
+    """
+    Search for the series of strings in fp (one per line at most).
+    In addition check for 'no_pattern' does not appear after the last pattern.
+    Return none if all matched; or return the pattern not matched.
+    """
+    for s in strings:
+        while True:
+            line = fp.readline()
+            if not line:
+                return s            # fail to find s
+            if s in line:
+                break
+
+    if no_pattern == None:
+        return None                 # no_pattern not defined, we're done
+
+    while True:
+        line = fp.readline()
+        if not line:
+            return None             # end of file, we are still good
+        if no_pattern in line:
+            return no_pattern       # oops, we got the no_pattern
+
+
+
 def checkPatterns(fp, patterns, no_pattern=None):
-    """ Search for the series of 'patterns' in fp (one per line at most).
-        In addition check for 'no_pattern' does not appear after the last pattern.
-        Return none if all matched; or return the pattern not matched.
+    """
+    Similar to checkStrings() but use regular expressions.
+
+    Note: the whole re pattern must appear within a line.
     """
     for p in patterns:
         pre = re.compile(p, re.I)
@@ -74,7 +101,7 @@ class TestPatternTester(unittest.TestCase):
 
     def test00(self):
         p = checkPatterns(StringIO(''), [])
-        self.assert_(not p, 'unexpected: %s' % p)
+        self.assertEqual(p, None)
 
     def test01(self):
         p = checkPatterns(StringIO(''), ['X'])
@@ -82,31 +109,69 @@ class TestPatternTester(unittest.TestCase):
 
     def test10(self):
         p = checkPatterns(StringIO('xyz'), [])
-        self.assert_(not p, 'unexpected: %s' % p)
+        self.assertEqual(p, None)
 
     def testCheckedOK(self):
-        p = checkPatterns(
-            StringIO(SAMPLE_FILE),
-            ['html', '.text.css.', '</html>'])
-        self.assert_(not p, 'unexpected: %s' % p)
+        p = checkPatterns(StringIO(SAMPLE_FILE),
+            ['html', '.text.css.', '</html>'])      # <-- .text.css. is an re
+        self.assertEqual(p, None)
+
+    def testCheckedRe(self):
+        p = checkPatterns(StringIO(SAMPLE_FILE),
+            ['html', '<title>.*</title>', '</html>'])
+        self.assertEqual(p, None)
 
     def testOrderWrong(self):
-        p = checkPatterns(
-            StringIO(SAMPLE_FILE),
+        p = checkPatterns(StringIO(SAMPLE_FILE),
             ['html', r'\</html\>', '.text.css.'])
         self.assertEqual(p, '.text.css.')
 
     def testNoPatternGood(self):
-        p = checkPatterns(
-            StringIO(SAMPLE_FILE),
+        p = checkPatterns(StringIO(SAMPLE_FILE),
             ['html', '.text.css.', '</html>'],
             '<')
-        self.assert_(not p, 'unexpected: %s' % p)
+        self.assertEqual(p, None)
 
     def testNoPatternBad(self):
-        p = checkPatterns(
-            StringIO(SAMPLE_FILE),
+        p = checkPatterns(StringIO(SAMPLE_FILE),
             ['html', '.text.css.', '</head>'],
+            '<')
+        self.assertEqual(p, '<')
+
+
+class TestCheckStrings(unittest.TestCase):
+
+    def test00(self):
+        p = checkStrings(StringIO(''), [])
+        self.assertEqual(p, None)
+
+    def test01(self):
+        p = checkStrings(StringIO(''), ['X'])
+        self.assertEqual(p, 'X')
+
+    def test10(self):
+        p = checkStrings(StringIO('xyz'), [])
+        self.assertEqual(p, None)
+
+    def testCheckedOK(self):
+        p = checkStrings(StringIO(SAMPLE_FILE),
+            ['html', 'text/css', '</html>'])
+        self.assertEqual(p, None)
+
+    def testOrderWrong(self):
+        p = checkStrings(StringIO(SAMPLE_FILE),
+            ['html', '</html>', 'text/css'])
+        self.assertEqual(p, 'text/css')
+
+    def testNoPatternGood(self):
+        p = checkStrings(StringIO(SAMPLE_FILE),
+            ['html', 'text/css', '</html>'],
+            '<')
+        self.assertEqual(p, None)
+
+    def testNoPatternBad(self):
+        p = checkStrings(StringIO(SAMPLE_FILE),
+            ['html', 'text/css', '</head>'],
             '<')
         self.assertEqual(p, '<')
 

@@ -100,6 +100,9 @@ class CategoryNode(object):
         self.comma = False
         self.highlight = False
 
+    def __repr__(self):
+        return '.'* self.level + self.tagName
+
 
 class WebItemNode(object):
     """ An object to be shown on the web item pane """
@@ -119,29 +122,32 @@ def _buildCategoryList(wlib, selectTag=''):
     """
     Build two level category list from wlib.category.
 
-    @returns list of (catNode, [catNode])
+    @returns list of (catNode, [descendant catNode])
     """
     lselectTag = selectTag.lower()
     categoryList = []
 
     top_nodes = wlib.category.root.children
-    for node in top_nodes:
+    for top_node in top_nodes:
         # TODO: check highlight
-        catNode = CategoryNode(node.data)
+        catNode = CategoryNode(top_node.data)
         subcats = []
         categoryList.append((catNode, subcats))
 
         if catNode.tagName.lower() == lselectTag:
             catNode.highlight = True
 
+        # use to determine if the node is within a highlighted subtree
+        # if highlight_path is a prefix of node's path then it should be highlighted.
         highlight_path = []
-        for node, path in node.dfs():
+
+        for node, path in top_node.dfs():
             if not path: continue
-            name = unicode(node)
-            subcat = CategoryNode(name)
+            tag = node.data
+            subcat = CategoryNode(tag)
             subcat.level = len(path)
             if not highlight_path:
-                if name.lower() == lselectTag:
+                if tag.match(lselectTag):
                     highlight_path = path[:] + [node]
                     subcats.append(CategoryNode.BEGIN_HIGHLIGHT)
             else:
@@ -152,12 +158,11 @@ def _buildCategoryList(wlib, selectTag=''):
         if highlight_path:
             subcats.append(CategoryNode.END_HIGHLIGHT)
 
-        # add comma up second last item
-        for i in range(len(subcats)-1):
-            n = subcats[i]
-            if n == CategoryNode.BEGIN_HIGHLIGHT or n == CategoryNode.END_HIGHLIGHT:
-                continue
-            n.comma = True
+        # add comma up to second last item
+        tag_nodes = [node for node in subcats
+            if node not in (CategoryNode.BEGIN_HIGHLIGHT, CategoryNode.END_HIGHLIGHT)]
+        for node in tag_nodes[:-1]:
+            node.comma = True
 
     uncategorized = wlib.category.getUncategorized()
     if uncategorized:
@@ -214,7 +219,11 @@ def queryTag(wfile, req, nameOrId):
     if tag:
         webItems = _query_by_tag(wlib, tag)
     else:
-        webItems = []
+        # TODO: HACK!!!
+        # Create a fake tag to fill something in the result
+        # Seems WeblibRenderer() is OK with this
+        fakeTagNode = WebItemTagNode(nameOrId)
+        webItems = [fakeTagNode]
 
     WeblibRenderer(wfile, req.env, '').output(
         wlib.tags,
@@ -329,7 +338,7 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
         @param tags - list of all tags
         @param selectedTag - tag selected or None
         @param defaultTag - a Tag (e.g. inbox)
-        @param webItems - list of (WebPage, [tags])
+        @param webItems - list of WebItemNode of WebItemTagNode
         """
 
         lSelectedTagName = selectedTag and selectedTag.name.lower() or ''

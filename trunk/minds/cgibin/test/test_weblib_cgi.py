@@ -7,6 +7,7 @@ import urllib
 
 from minds.safe_config import cfg as testcfg
 from minds import app_httpserver
+from minds.cgibin import weblib as weblib_cgi
 from minds.util import fileutil
 from minds.util import patterns_tester
 from minds import weblib
@@ -84,6 +85,60 @@ class TestWeblibCGI(TestCGIBase):
         '</html>'
     )
 
+
+  def _str_cat_nodes(self, cat_nodes):
+    strs = []
+    for cat, subcat in cat_nodes:
+        strs.append(str(cat))
+        for node in subcat:
+            if node == weblib_cgi.CategoryNode.BEGIN_HIGHLIGHT:
+                strs.append('[')
+            elif node == weblib_cgi.CategoryNode.END_HIGHLIGHT:
+                strs.append(']')
+            else:
+                strs.append(unicode(node))
+    return strs
+
+
+  def test_buildCategoryList(self):
+    cat_nodes = weblib_cgi._buildCategoryList(store.getWeblib(), '')
+    self.assertTrue(not cat_nodes[0][0].highlight)
+    self.assertEqual(self._str_cat_nodes(cat_nodes), [
+        u'Kremlin',
+        u'.Русский',
+        u'.Français',
+        u'.日本語',
+        u'.English',
+        u'TAG',
+        u'inbox',
+    ])
+
+    # highlight a top level cat
+    cat_nodes = weblib_cgi._buildCategoryList(store.getWeblib(), 'Kremlin')
+    self.assertTrue(cat_nodes[0][0].highlight)
+    self.assertEqual(self._str_cat_nodes(cat_nodes), [
+        u'Kremlin',
+        u'.Русский',
+        u'.Français',
+        u'.日本語',
+        u'.English',
+        u'TAG',
+        u'inbox',
+    ])
+
+    # highlight a subcat
+    cat_nodes = weblib_cgi._buildCategoryList(store.getWeblib(), 'English')
+    self.assertEqual(self._str_cat_nodes(cat_nodes), [
+        u'Kremlin',
+        u'.Русский',
+        u'.Français',
+        u'.日本語',
+        u'[',
+        u'.English',
+        u']',
+        u'TAG',
+        u'inbox',
+    ])
 
 
 class TestWeblibForm(TestCGIBase):

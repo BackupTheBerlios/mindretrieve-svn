@@ -4,18 +4,14 @@
 <title>MindRetrieve - Edit Tag</title>
 <link rel="stylesheet" href="/main.css" type="text/css">
 <style>
-  .error_message { color:red }
   #edit_form {
     margin-top: 2ex;
   }
-  .date_field   {
-    padding-left: 0.5em;
-    padding-right: 0.5em;
-    background-color: #eee;
-  }
-  .date_padding {
-    padding-left: 8em;
-    background-color: #eee;
+  .instructions {
+    color: #777;
+    font-size: 95%;
+    margin-top: 1ex;
+    margin-bottom: 1ex;
   }
 </style>
 
@@ -61,14 +57,17 @@ window.addEventListener('load', onload, false);
 
 <form node='con:form' id='edit_form' method='GET' action='/weblib/@$id'>
     <input type='hidden' name='method' value='POST' />
-    <input type='hidden' name='filled' value='1' />
     <table cellspacing='10'>
     <tr node='con:error'>
         <td colspan='2'><span node='con:message' class='error_message'>Please correct the error.</span></td>
     </tr>
     <tr>
-        <td>*Name</td>
-        <td><input type='text' node='con:name' name='name' size='50' /></td>
+        <td valign='top'>*Name</td>
+        <td valign='top'><input type='text' node='con:name' name='name' size='50' />
+        <div class='instructions'>
+        Enter a new name for this tag. If you enter a name same as another tag, the two tags will be combined.
+        </div>
+        </td>
     </tr>
     <tr>
         <td></td>

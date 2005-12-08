@@ -81,6 +81,9 @@ h1      { color: #ffff33; background-color: #0033ff; padding: 0.5ex; margin-top:
     padding-right: 1em;
 }
 
+.error_message {
+    color:red
+}
 
 #footer {
 }

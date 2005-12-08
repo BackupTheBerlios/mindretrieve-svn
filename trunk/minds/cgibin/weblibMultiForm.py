@@ -123,7 +123,7 @@ def doShowForm(wfile, req, errors=[], checklist=[], new_tags=[]):
     add_tags = req.param('add_tags')
 
     MultiFormRenderer(wfile).output(
-        [],
+        errors,
         new_tags,
         ids,
         names,
@@ -153,27 +153,38 @@ def doPost(wfile, req):
     # parse add tags
     add_tags = req.param('add_tags')
     add_tags, unknown = weblib.parseTags(wlib, add_tags)
-
-    # any new tags?
-    if unknown and req.param('create_tags'):
-        add_tags.extend(_create_tags(wlib,unknown))
-        unknown = []
-
-    if unknown:
-        tags = u', '.join(unknown)
-        errors.append('These tags are not previous used: ' + tags)
-
-    if errors:
-        doShowForm(wfile, req, errors, checklist=checklist, new_tags=unknown)
-        return
-
-    # remove_tags
     remove_tags = []
+
+    # going through checklist, add to add_tags, delete_tags
     for tag, flag in checklist:
         if flag and tag not in add_tags:
             add_tags.append(tag)
         else:
             remove_tags.append(tag)
+
+    # any new tags?
+    if unknown:
+        s = ''.join(unknown)
+        for c in weblib.Tag.ILLEGAL_CHARACTERS:
+            if c in s:
+                # found illegal characters
+                errors.append('These characters are not allowed in tag name: ' + weblib.Tag.ILLEGAL_CHARACTERS)
+                unknown = ''
+                break
+        else:
+            # cleared for illegal characters check, create new tags?
+            if req.param('create_tags'):
+                new_tags = _create_tags(wlib,unknown)
+                add_tags.extend(new_tags)
+            else:
+                tags = u', '.join(unknown)
+                errors.append('These tags are not previous used: ' + tags)
+
+
+    print >>sys.stderr, errors
+    if errors:
+        doShowForm(wfile, req, errors, checklist=checklist, new_tags=unknown)
+        return
 
     log.debug('EditTags for %s entries add(%s) remove(%s).', len(entries), add_tags, remove_tags)
     wlib.editTags(entries, [], add_tags, remove_tags)
@@ -190,7 +201,6 @@ def doDelete(wfile, req):
             store.getStore().removeItem(item)
         except:
             log.exception('Unable to delete: %s', unicode(item))
-##    store.save(wlib)
     response.redirect(wfile, '/updateParent')
 
 

@@ -1,8 +1,8 @@
 """Application HTTP Server
 
-????
+In-process/Fast CGI HTTP server base on SimpleHTTPServer.SimpleHTTPRequestHandler.
 
-In-process/Fast CGI
+A CGI should define this method:
 
   main(rfile, wfile, environ)
 
@@ -11,19 +11,7 @@ statement to the end of your script:
 
   if __name__ == '__main__':
       main(sys.stdin, sys.stdout, os.environ)
-
 """
-
-# todo: cache template mod and template, auto update, cache and auto update cgi
-# todo: unit test app_httpserver
-# todo:   test script exception
-# todo:   test should create test cache dir
-# todo: support location: status:, buffer output for exception possibility
-
-# todo: need to make sure line breaks in TEST_REQUEST are \r\n
-# todo: merge simplehttpserver too, no list dir
-# todo: write better description
-
 
 
 import logging
@@ -68,6 +56,10 @@ class AppHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         '.ico': 'image/x-icon',
         })
 
+    def version_string(self):
+        return self.server_version
+
+
     def do_POST(self):
         """
         Serve a POST request.
@@ -81,12 +73,48 @@ class AppHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
 
     def send_head(self):
-        """Version of send_head that support CGI scripts"""
+        """Common code for GET and HEAD commands.
+
+        This version reimplement much of
+        SimpleHTTPServer.SimpleHTTPRequestHandler as it is
+        unfortunately not very parameterized.
+
+        In addition this added support of CGI scripts.
+
+        This sends the response code and MIME headers.
+
+        Return value is either a file object (which has to be copied
+        to the outputfile by the caller unless the command was HEAD,
+        and must be closed by the caller under all circumstances), or
+        None, in which case the caller has nothing further to do.
+
+        """
         cgi_info = self._lookup_cgi(self.path)
         if cgi_info:
             return self.run_cgi(cgi_info)
-        else:
-            return SimpleHTTPServer.SimpleHTTPRequestHandler.send_head(self)
+
+        path = self.translate_path(self.path)
+        if not os.path.isfile(path):
+            # have to be file, no directory listing support
+            self.send_error(404, "File not found")
+            return None
+
+        f = None
+        ctype = self.guess_type(path)
+        try:
+            # Always read in binary mode. Opening files in text mode may cause
+            # newline translations, making the actual size of the content
+            # transmitted *less* than the content-length!
+            f = open(path, 'rb')
+        except IOError:
+            self.send_error(404, "File not found")
+            return None
+        self.send_response(200)
+        self.send_header("Content-type", ctype)
+        self.send_header("Content-Length", str(os.fstat(f.fileno())[6]))
+        self.send_header("Cache-Control", "max-age=86400")  # static files assume good for 1 day
+        self.end_headers()
+        return f
 
 
     def _lookup_cgi(self, path):

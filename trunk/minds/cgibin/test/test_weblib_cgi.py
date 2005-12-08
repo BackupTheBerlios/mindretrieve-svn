@@ -11,6 +11,7 @@ from minds.cgibin import weblib as weblib_cgi
 from minds.util import fileutil
 from minds.util import patterns_tester
 from minds import weblib
+from minds.weblib import query_wlib
 from minds.weblib import store
 
 
@@ -24,12 +25,14 @@ class TestCGIBase(unittest.TestCase):
     testdata = file(testfile_path,'rb').read()
     stor.load('*test*data*',StringIO.StringIO(testdata))
 
-
+  # TODO: we have switched from checkPatterns() to checkStrings(). Clean up the code below.
   def checkPathForPattern(self, path, patterns, no_pattern=None):
     buf = fileutil.aStringIO()
     app_httpserver.handlePath(path, buf)
     buf.seek(0)
-    p = patterns_tester.checkPatterns(buf, patterns, no_pattern)
+    # Beware of the limitation of patterns_tester()
+    # It test for string occurance line by line
+    p = patterns_tester.checkStrings(buf, patterns, no_pattern)
     msg = (p == no_pattern) and 'unexpected pattern found' or 'pattern missing'
     self.assert_(not p,
         'failed:%s\n  %s: %s%s' % (path, msg, p,
@@ -143,7 +146,13 @@ class TestWeblibCGI(TestCGIBase):
 
 class TestWeblibForm(TestCGIBase):
 
-  def test_GET(self):
+  def test_GET_404(self):
+    self.checkPathForPattern("/weblib/987654321", [
+        '404 not found', '987654321 not found',
+    ])
+
+
+  def test_GET_rid(self):
     self.checkPathForPattern("/weblib/4", [
         '<html>', 'Edit Entry', 'ja.wikipedia.org', '</html>',
     ])
@@ -154,47 +163,53 @@ class TestWeblibForm(TestCGIBase):
 
   def test_GET_new(self):
     self.checkPathForPattern("/weblib/_", [
-        '<html>', 'Add Entry', '</html>',
+        '<html>', 'Add Entry', '/weblib/_', '</html>',
     ])
     self.checkPathForPattern("/weblib/_/form", [
-        '<html>', 'Add Entry', '</html>',
+        '<html>', 'Add Entry', '/weblib/_', '</html>',
     ])
 
 
   def test_GET_URL_match(self):
     # note URL http://en.wikipedia.org/wiki/Moscow_Kremlin match id 5.
-    # This will be an edit.
-    self.checkPathForPattern("/weblib/_?url=http://en.wikipedia.org/wiki/Moscow_Kremlin", [
-        '<html>',
-        'Edit Entry',
-        '<form action="/weblib/5"',     # will PUT to id 5 instead of _!
-        'English, Kremlin',             # some tag used by id 5
-        '</html>',
+    url = '/weblib/_?url=http://en.wikipedia.org/wiki/Moscow_Kremlin&title=1+2&description='
+    new_url = url.replace('/_','/5')
+    self.checkPathForPattern(url, [
+        '302 Found',
+        'location: ' + new_url,
+    ])
+
+
+  def test_PUT_404(self):
+    self.checkPathForPattern("/weblib/987654321?method=PUT", [
+        '404 not found', '987654321 not found',
     ])
 
 
   def test_PUT_new(self):
     wlib = store.getWeblib()
     self.assertEqual(len(wlib.webpages),5)
+    self.failIf(query_wlib.find_url(wlib,'http://abc.com'))
 
     # PUT new form
-    self.checkPathForPattern("/weblib/_?method=put&filled=1&url=http%3A%2F%2Fwww.mindretrieve.net%2F&title=Test%20Title", [
+    self.checkPathForPattern("/weblib/_?method=PUT&url=http%3A%2F%2Fabc.com%2F&title=Test%20Title", [
         'HTTP/1.0 302 Found',
         'location: /updateParent',
     ])
 
     # one item has added
     self.assertEqual(len(wlib.webpages),6)
+    self.assert_(query_wlib.find_url(wlib,'http://abc.com/'))
 
 
-  def test_PUT_form(self):
+  def test_PUT_rid(self):
     wlib = store.getWeblib()
     self.assertEqual(len(wlib.webpages),5)
     item = wlib.webpages.getById(1)
     self.assertEqual(item.name, 'MindRetrieve - Search Your Personal Web')
 
     # PUT form
-    self.checkPathForPattern("/weblib/1?method=put&filled=1&url=http%3A%2F%2Fwww.mindretrieve.net%2F&title=Test%20Title", [
+    self.checkPathForPattern("/weblib/1?method=put&url=http%3A%2F%2Fwww.mindretrieve.net%2F&title=Test%20Title", [
         'HTTP/1.0 302 Found',
         'location: /updateParent',
     ])
@@ -340,11 +355,18 @@ class TestTagForm(TestCGIBase):
     ])
 
   def test_GET_404(self):
-    self.checkPathForPattern("/weblib/@67890", [
+    self.checkPathForPattern("/weblib/@987654321", [
         '404 not found',
+        '@987654321 not found',
     ],
     no_pattern='html'
     )
+
+  def test_POST_404(self):
+    self.checkPathForPattern("/weblib/@987654321/form?method=POST&name=Buckingham", [
+        '404 not found',
+        '@987654321 not found',
+    ])
 
   def test_POST_rename(self):
     wlib = store.getWeblib()
@@ -358,7 +380,7 @@ class TestTagForm(TestCGIBase):
     self.assertTrue(not wlib.tags.getByName('Buckingham'))
     self.assertTrue('Buckingham' not in wlib.category.getDescription())
 
-    self.checkPathForPattern("/weblib/@124/form?method=POST&filled=1&name=Buckingham", [
+    self.checkPathForPattern("/weblib/@124/form?method=POST&name=Buckingham", [
         'HTTP/1.0 302 Found',
         'location: /updateParent',
     ])
@@ -383,7 +405,7 @@ class TestTagForm(TestCGIBase):
     self.assertEqual(tag.name, 'Kremlin')
     self.assertTrue(tag in page.tags)
 
-    self.checkPathForPattern("/weblib/@124/form?method=POST&filled=1&name=KREMLIN", [
+    self.checkPathForPattern("/weblib/@124/form?method=POST&name=KREMLIN", [
         'HTTP/1.0 302 Found',
         'location: /updateParent',
     ])
@@ -405,7 +427,7 @@ class TestTagForm(TestCGIBase):
     self.assertTrue(wlib.tags.getByName('Kremlin'))
     self.assertTrue(wlib.tags.getByName('inbox') not in page.tags)
 
-    self.checkPathForPattern("/weblib/@124/form?method=POST&filled=1&name=inbox", [
+    self.checkPathForPattern("/weblib/@124/form?method=POST&name=inbox", [
         'HTTP/1.0 302 Found',
         'location: /updateParent',
     ])
@@ -420,16 +442,16 @@ class TestTagForm(TestCGIBase):
   def test_POST_invalid(self):
     wlib = store.getWeblib()
 
-    self.checkPathForPattern("/weblib/@124/form?method=POST&filled=1&name=", [
-        '200 ok',
+    self.checkPathForPattern("/weblib/@124/form?method=POST&name=", [
+        '200 OK',
         '<html>',
         'Please enter a name',
         '</html>',
     ])
 
     # spaces only also invalid
-    self.checkPathForPattern("/weblib/@124/form?method=POST&filled=1&name=++", [
-        '200 ok',
+    self.checkPathForPattern("/weblib/@124/form?method=POST&name=++", [
+        '200 OK',
         '<html>',
         'Please enter a name',
         '</html>',
@@ -441,22 +463,22 @@ class TestTagForm(TestCGIBase):
     self.assertTrue('c' not in wlib.tags.getById(124).flags)
 
     # turn it on
-    self.checkPathForPattern("/weblib/@124/form?method=POST&filled=1&category_collapse=on", [
-        '200 ok',
+    self.checkPathForPattern("/weblib/@124/form?method=POST&category_collapse=on", [
+        '200 OK',
         'setCategoryCollapse @124 True',
     ])
     self.assertTrue('c' in wlib.tags.getById(124).flags)
 
     # turn it off
-    self.checkPathForPattern("/weblib/@124/form?method=POST&filled=1&category_collapse=", [
-        '200 ok',
+    self.checkPathForPattern("/weblib/@124/form?method=POST&category_collapse=", [
+        '200 OK',
         'setCategoryCollapse @124 False',
     ])
     self.assertTrue('c' not in wlib.tags.getById(124).flags)
 
     # turn it off again
-    self.checkPathForPattern("/weblib/@124/form?method=POST&filled=1&category_collapse=", [
-        '200 ok',
+    self.checkPathForPattern("/weblib/@124/form?method=POST&category_collapse=", [
+        '200 OK',
         'setCategoryCollapse @124 False',
     ])
     self.assertTrue('c' not in wlib.tags.getById(124).flags)

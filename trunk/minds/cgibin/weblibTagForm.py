@@ -27,19 +27,21 @@ def _buildTags(req):
     base_tag = wlib.tags.getById(req.tid)
     if not base_tag:
         return None
-    if 'filled' in req.form:
-        name = req.param('name') or ' '
+
+    if req.method == 'GET':
+        form_tag = base_tag.__copy__()
+    else:
+        name = req.param('name') or ' '             # avoid empty string
         form_tag = weblib.Tag(
-            id          = req.tid,
-            name        = name,
-            description = base_tag.description,
-            flags       = base_tag.flags,
+            id          = req.tid,                  # should be same
+            name        = name,                     # from form
+            description = base_tag.description,     # from repository
+            flags       = base_tag.flags,           # from repository
         )
         # HACK! Got around the empty string check in Tag.__init__
         if not req.param('name'):
             form_tag.name = ''
-    else:
-        form_tag = base_tag.__copy__()
+
     return base_tag, form_tag
 
 

@@ -21,7 +21,7 @@ class Bean(object):
     def __init__(self, req):
         self.item = None
 
-        # tags input as entered by user
+        # tags string as entered by user
         self.tags = ''
 
         # tags not known
@@ -30,67 +30,93 @@ class Bean(object):
 
         self.errors = []
 
-        self._readForm(req)
+        if req.method == 'GET':
+            self._parse_GET(req)
+        else:
+            self._parse_PUT(req)
 
 
-    def _readForm(self, req):
+    def _parse_GET(self, req):
+        """
+        Parse submission from via bookmarklet or links
+          method: GET
+          parameters: url, title, description
+        """
         wlib = store.getWeblib()
 
-        if 'filled' in req.form:
-            # User is submitting form, use the parameters in the query
-            self.item = weblib.WebPage(
-                id          = req.rid,
-                name        = req.param('title'),
-                url         = req.param('url'),
-                description = req.param('description'),
-                modified    = req.param('modified'),
-                lastused    = req.param('lastused'),
-                cached      = req.param('cached'),
-            )
-            self._parseTags(req)
+        # Three possiblities:
+        #
+        # 1. rid is an existing webpage
+        #    The edit link from main page or
+        #    user enter URL directly or
+        #    request of case 3 redirected to an existing rid
+        #
+        # 2. rid is -1 and URL is not found in weblib
+        #    Submit new page via bookmarklet
+        #
+        # 3. rid is -1 and URL is found in weblib
+        #    Submit existing page via bookmarklet
 
+        item = (req.rid > 0) and wlib.webpages.getById(req.rid) or None
+        if item:
+            # Case 1. make a copy of existing item
+            item = item.__copy__()
+            # overwritten with request parameters (only if defined)
+            # usually only defined if it is redirected from case 3 request.
+            if req.param('title')      : item.name        = req.param('title')
+            if req.param('url')        : item.url         = req.param('url')
+            if req.param('description'): item.description = req.param('description')
         else:
-            # Request comes from three possible sources
-            #
-            # 1. The edit link from main page (or similar)
-            #       rid is an existing webpage
-            # 2. Submit new page via bookmarklet
-            #       rid is -1 and URL is new
-            # 3. Submit existing page via bookmarklet
-            #       rid is -1 and URL found in weblib
-            item = wlib.webpages.getById(req.rid)
-            if item:
-                # Case 1. make a copy of existing item
-                item = item.__copy__()
+            url = req.param('url')
+            matches = query_wlib.find_url(wlib, url)
+            if not matches:
+                # Case 2. this is a new webpage
+                today = datetime.date.today().isoformat()
+                item = weblib.WebPage(
+                    name        = req.param('title'),
+                    url         = url,
+                    description = req.param('description'),
+                    modified    = today,
+                    lastused    = today,
+                )
+
+                if wlib.getDefaultTag():
+                    item.tags = [wlib.getDefaultTag()]
             else:
-                url = req.param('url')
-                matches = query_wlib.find_url(wlib, url)
-                if not matches:
-                    # Case 2. this is a new webpage
-                    today = datetime.date.today().isoformat()
-                    item = weblib.WebPage(
-                        name        = req.param('title'),
-                        url         = url,
-                        description = req.param('description'),
-                        modified    = today,
-                        lastused    = today,
-                    )
+                # Case 3. use existing webpage
+                item = matches[0].__copy__()
+                # however override with possibly new title and description
+                item.name        = req.param('title')
+                item.description = req.param('description')
+                # actually the item is not very important because we
+                # are going to redirect the request to the proper rid.
 
-                    if wlib.getDefaultTag():
-                        item.tags = [wlib.getDefaultTag()]
-                else:
-                    # Case 3. use existing webpage
-                    item = matches[0].__copy__()
-                    # however override with possibly new title and description
-                    item.name        = req.param('title')
-                    item.description = req.param('description')
-                    # note: subsequent action is POSTed to existing item's rid
+        self.item = item
+        self.tags  = ', '.join([l.name for l in item.tags])
 
-            self.item = item
-            self.tags  = ', '.join([l.name for l in item.tags])
+
+    def _parse_PUT(self, req):
+        """
+        Parse submission from form
+          method: PUT
+          parameters: description, title, url, tags, modified, lastused, cached
+             (plus some more auxiliary parameters)
+        """
+        wlib = store.getWeblib()
+        self.item = weblib.WebPage(
+            id          = req.rid,
+            name        = req.param('title'),
+            url         = req.param('url'),
+            description = req.param('description'),
+            modified    = req.param('modified'),
+            lastused    = req.param('lastused'),
+            cached      = req.param('cached'),
+        )
+        self._parseTags(req)
 
 
     def _parseTags(self, req):
+        """ Parse the 'tags' parameter. Check for exsiting and new tags. """
         wlib = store.getWeblib()
         self.tags = req.param('tags')
         self.item.tags, self.newTags = weblib.parseTags(wlib, self.tags)
@@ -116,10 +142,22 @@ class Bean(object):
 
 def main(wfile, req):
     # this is called from the controller weblib
-    bean = Bean(req)
+
+    # if rid is defined, make sure it is valid
+    if req.rid > 0:
+        if not store.getWeblib().webpages.getById(req.rid):
+            wfile.write('404 not found\r\n\r\nrid %s not found' % req.rid)
+
     if req.method == 'GET':
-        doGetResource(wfile, req, bean)
+        bean = Bean(req)
+        if req.rid == -1 and bean.item.id > 0:
+            # if bookmarklet to an existing item, redirect to the appropiate rid
+            url = '%s?%s' % (request.rid_url(bean.item.id), req.env.get('QUERY_STRING',''))
+            response.redirect(wfile, url)
+        else:
+            doGetResource(wfile, req, bean)
     elif req.method == 'PUT':
+        bean = Bean(req)
         doPutResource(wfile, req, bean)
     elif req.method == 'DELETE':
         doDeleteResource(wfile, req)
@@ -207,7 +245,7 @@ class FormRenderer(response.CGIRenderer):
         item = bean.item
         wlib = store.getWeblib()
 
-        node.form_title.content = item.id == -1 and 'Add entry' or 'Edit entry'
+        node.form_title.content = item.id == -1 and 'Add Entry' or 'Edit Entry'
 
         form = node.form
         id = item.id < 0 and '_' or str(item.id)

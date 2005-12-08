@@ -33,6 +33,12 @@ class TestIdList(unittest.TestCase):
         for i in self.lst:
             self.fail('expect empty')
 
+    def test_first(self):
+        # make sure id start from a positive number
+        # id of 0 would cause a lot of trouble
+        first_item = TestItem()
+        self.lst.append(first_item)
+        self.assertTrue(first_item.id > 0)
 
     def test3(self):
         item1 = TestItem()

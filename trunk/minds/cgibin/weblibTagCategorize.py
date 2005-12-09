@@ -9,7 +9,7 @@ from minds.cgibin.util import response
 from minds import weblib
 from minds.weblib import store
 
-log = logging.getLogger('cgi.categry')
+log = logging.getLogger('cgi.catgry')
 
 def main(rfile, wfile, env):
     req = request.Request(rfile, env)
@@ -72,17 +72,26 @@ def doPost(wfile, req):
 # ----------------------------------------------------------------------
 
 _TRIM_TITLE = 50
-def _title_format(webpage,count):
-    if not webpage:
-        return ''
-    s = unicode(webpage)
-    if count > 1:
-        suffix = ',...'
-    elif len(s) > _TRIM_TITLE:
-        suffix = '...'
+
+def _format_tag_base(tag_info):
+
+    encoded_tag_name = response.javascriptEscape(tag_info[1])
+    count = tag_info[2]
+    if not tag_info[3]:
+        encoded_hint = ''
     else:
-        suffix = ''
-    return s[:_TRIM_TITLE] + suffix
+        hint = unicode(tag_info[3])
+        if count > 1:
+            suffix = ',...'
+        elif len(hint) > _TRIM_TITLE:
+            suffix = '...'
+        else:
+            suffix = ''
+        hint = hint[:_TRIM_TITLE] + suffix
+        encoded_hint = response.javascriptEscape(hint)
+
+    statement = "tag_base['%s'] = [%s,'%s'];" % (encoded_tag_name, count, encoded_hint)
+    return statement
 
 
 class CategorizeRenderer(response.CGIRenderer):
@@ -95,14 +104,10 @@ class CategorizeRenderer(response.CGIRenderer):
         con:footer
     """
     def render(self, node, errors, tag_base, category_description, uncategorized_tags):
-        ### TODO: need to encode
-        node.tag_base_init.raw = '\n'.join(
-            ["tag_base['%s'] = [%s,%s];" % (
-                b[1],
-                b[2],
-                saxutils.quoteattr(_title_format(b[3],b[2])),
-                ) for b in tag_base]
-            )
+        """
+        @param tag_base - list of ('@id', tag name, count, sample webpage title)
+        """
+        node.tag_base_init.raw = '\n'.join(map(_format_tag_base, tag_base))
         node.category_description.content = category_description
         node.uncategorized_tag.repeat(self.render_uncategorized_tag, uncategorized_tags)
 

@@ -3,6 +3,7 @@
 Run from command line to display the HTMLTemplate parse tree.
 """
 import codecs
+import datetime
 import sys
 import urllib
 
@@ -24,6 +25,14 @@ def redirect(wfile, url):
     url = urllib.quote(url.encode('utf8'), ASCII)
     wfile.write('location: %s\r\n\r\n' % url)
 
+
+def javascriptEscape(s):
+    return s.replace('\\','\\\\') \
+        .replace('\r', '\\r') \
+        .replace('\n', '\\n') \
+        .replace('"', '\\"') \
+        .replace("'", "\\'")
+    # non-ascii unicode characters do not need encoding
 
 # ----------------------------------------------------------------------
 
@@ -166,7 +175,12 @@ class CGIRendererHeadnFoot(CGIRenderer):
 
 def main(argv):
     """ Helper to show structure of template """
-    fp = file(argv[1],'rb')
+    filename = argv[1]
+    pathname = cfg.getpath('docBase')/filename
+    print
+    print 'File:', pathname
+    print 'Date:',str(datetime.datetime.now())[:19]
+    fp = file(pathname,'rb')
     template = HTMLTemplate.Template(None, fp.read())
     print template.structure()
 

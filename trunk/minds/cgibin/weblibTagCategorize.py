@@ -62,6 +62,8 @@ def doPost(wfile, req):
 
     # TODO: parse and check for error?
     text = req.param('category_description')
+
+    # setDescription() has a quick & dirty way to get rid of illegal characters
     wlib.category.setDescription(text)
 
     response.redirect(wfile, '/weblib/tag_categorize')

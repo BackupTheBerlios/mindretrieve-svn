@@ -5,7 +5,6 @@ import unittest
 from minds.safe_config import cfg as testcfg
 from minds.cgibin.test import test_weblib
 from minds import weblib
-from minds.weblib import store
 
 
 class TestWeblibMultiForm(test_weblib.TestCGIBase):
@@ -20,7 +19,7 @@ class TestWeblibMultiForm(test_weblib.TestCGIBase):
 
 
   def test_POST_add(self):
-    wlib = store.getWeblib()
+    wlib = self.wlib
 
     # before
     self.assertEqual(len(wlib.webpages.getById(2).tags), 2) # Kremlin, Русский
@@ -49,7 +48,7 @@ class TestWeblibMultiForm(test_weblib.TestCGIBase):
 
 
   def test_POST_remove(self):
-    wlib = store.getWeblib()
+    wlib = self.wlib
 
     # before
     self.assertEqual(len(wlib.webpages.getById(2).tags), 2) # Kremlin, Русский
@@ -78,7 +77,7 @@ class TestWeblibMultiForm(test_weblib.TestCGIBase):
 
 
   def test_POST_add_new_tag(self):
-    wlib = store.getWeblib()
+    wlib = self.wlib
 
     # before
     self.assertEqual(len(wlib.webpages.getById(2).tags), 2) # Kremlin, Русский
@@ -110,6 +109,36 @@ class TestWeblibMultiForm(test_weblib.TestCGIBase):
     item = wlib.webpages.getById(3)
     tagIds = sorted([t.id for t in item.tags])
     self.assertEqual(tagIds, [122,124,newTag.id])     # Français, Kremlin, aNewTag
+
+
+  def test_POST_illegal_tag(self):
+    url = ''.join(['/weblib/multiform',
+            '?id_list=2%2C3',                   # 2 - Russian, 3 - French
+            '&%40122=on&%40122changed=1',       # add Français
+            '&%40121=on&%40121changed=',        # Русский unchanged
+            '&add_tags=#illegal',
+            '&method=POST',
+            ])
+    self.checkPathForPattern(url, [
+        '<html>',
+        'These characters are not allowed',
+        '#illegal',
+        '</html>',
+    ])
+
+    url = ''.join(['/weblib/multiform',
+            '?id_list=2%2C3',                   # 2 - Russian, 3 - French
+            '&%40122=on&%40122changed=1',       # add Français
+            '&%40121=on&%40121changed=',        # Русский unchanged
+            '&add_tags=this+is+a+new+tag',
+            '&method=POST',
+            ])
+    self.checkPathForPattern(url, [
+        '<html>',
+        'These tags are not previous used',
+        'this is a new tag',
+        '</html>',
+    ])
 
 
 if __name__ == '__main__':

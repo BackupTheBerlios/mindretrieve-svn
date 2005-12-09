@@ -125,22 +125,19 @@ class Bean(object):
     def validate(self):
         if not self.item.name:
             self.errors.append('Please enter a name.')
+
         if not self.item.url:
             self.errors.append('Please enter an address.')
+
         if self.newTags:
-            # check for illegal characters first
-            s = ''.join(self.newTags)
-            for c in weblib.Tag.ILLEGAL_CHARACTERS:
-                if c in s:
-                    # found illegal characters
-                    self.errors.append('These characters are not allowed in tag name: ' + weblib.Tag.ILLEGAL_CHARACTERS)
-                    self.newTags = []
-                    break
+            if weblib.Tag.hasIllegalChar(''.join(self.newTags)):
+                self.errors.append('These characters are not allowed in tag name: ' + weblib.Tag.ILLEGAL_CHARACTERS)
+                self.newTags = []
             else:
-                # cleared for illegal characters check, create?
                 if not self.create_tags:
                     tags = u', '.join(self.newTags)
                     self.errors.append('These tags are not previous used: ' + tags)
+
         return not self.errors
 
 

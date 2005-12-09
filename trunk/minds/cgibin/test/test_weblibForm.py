@@ -1,12 +1,12 @@
 ﻿# -*- coding: utf-8 -*-
 import sys
 import unittest
+import urllib
 
 from minds.safe_config import cfg as testcfg
 from minds.cgibin.test import test_weblib
 from minds import weblib
 from minds.weblib import query_wlib
-from minds.weblib import store
 
 class TestWeblibForm(test_weblib.TestCGIBase):
 
@@ -38,6 +38,7 @@ class TestWeblibForm(test_weblib.TestCGIBase):
     # note URL http://en.wikipedia.org/wiki/Moscow_Kremlin match id 5.
     url = '/weblib/_?url=http://en.wikipedia.org/wiki/Moscow_Kremlin&title=1+2&description='
     new_url = url.replace('/_','/5')
+
     self.checkPathForPattern(url, [
         '302 Found',
         'location: ' + new_url,
@@ -51,12 +52,16 @@ class TestWeblibForm(test_weblib.TestCGIBase):
 
 
   def test_PUT_new(self):
-    wlib = store.getWeblib()
+    wlib = self.wlib
     self.assertEqual(len(wlib.webpages),5)
-    self.failIf(query_wlib.find_url(wlib,'http://abc.com'))
+    self.failIf(query_wlib.find_url(wlib,'http://abc.com/'))
 
     # PUT new form
-    self.checkPathForPattern("/weblib/_?method=PUT&url=http%3A%2F%2Fabc.com%2F&title=Test%20Title", [
+    self.checkPathForPattern('/weblib/_?' + urllib.urlencode({
+            'method': 'PUT',
+            'url': 'http://abc.com/',
+            'title': 'Test Title',
+        }),[
         'HTTP/1.0 302 Found',
         'location: /updateParent',
     ])
@@ -67,13 +72,17 @@ class TestWeblibForm(test_weblib.TestCGIBase):
 
 
   def test_PUT_rid(self):
-    wlib = store.getWeblib()
+    wlib = self.wlib
     self.assertEqual(len(wlib.webpages),5)
     item = wlib.webpages.getById(1)
     self.assertEqual(item.name, 'MindRetrieve - Search Your Personal Web')
 
     # PUT form
-    self.checkPathForPattern("/weblib/1?method=put&url=http%3A%2F%2Fwww.mindretrieve.net%2F&title=Test%20Title", [
+    self.checkPathForPattern('/weblib/1?' + urllib.urlencode({
+            'method': 'PUT',
+            'url': 'http://www.mindretrieve.net/',
+            'title': 'Test Title',
+        }),[
         'HTTP/1.0 302 Found',
         'location: /updateParent',
     ])
@@ -83,6 +92,33 @@ class TestWeblibForm(test_weblib.TestCGIBase):
     item = wlib.webpages.getById(1)
     self.assertEqual(item.name, 'Test Title')
 
+
+  def test_PUT_illegal(self):
+    # PUT illegal tag
+    self.checkPathForPattern('/weblib/_?' + urllib.urlencode({
+            'method': 'PUT',
+            'url': 'http://www.mindretrieve.net/',
+            'title': 'Test Title',
+            'tags': '#illegal tag',
+        }),[
+        '<html>',
+        'These characters are not allowed',
+        '#illegal',
+        '</html>',
+    ])
+
+    # PUT new tag
+    self.checkPathForPattern('/weblib/_?' + urllib.urlencode({
+            'method': 'PUT',
+            'url': 'http://www.mindretrieve.net/',
+            'title': 'Test Title',
+            'tags': 'this is a new tag',
+        }),[
+        '<html>',
+        'These tags are not previous used',
+        'this is a new tag',
+        '</html>',
+    ])
 
 if __name__ == '__main__':
     unittest.main()

@@ -23,12 +23,6 @@ log = logging.getLogger('cgi.wlibfrm')
 
 TAG_DELETE, TAG_UNCHANGE, TAG_SELECT = range(1,4)
 
-#CHECKBOX_CLASS = {
-#    TAG_DELETE  : 'tagDelete',
-#    TAG_UNCHANGE: 'tagUnchange',
-#    TAG_SELECT  : 'tagSelect',
-#}
-
 
 def main(rfile, wfile, env):
     req = request.Request(rfile, env)
@@ -164,15 +158,10 @@ def doPost(wfile, req):
 
     # any new tags?
     if unknown:
-        s = ''.join(unknown)
-        for c in weblib.Tag.ILLEGAL_CHARACTERS:
-            if c in s:
-                # found illegal characters
-                errors.append('These characters are not allowed in tag name: ' + weblib.Tag.ILLEGAL_CHARACTERS)
-                unknown = ''
-                break
+        if weblib.Tag.hasIllegalChar(''.join(unknown)):
+            errors.append('These characters are not allowed in tag name: ' + weblib.Tag.ILLEGAL_CHARACTERS)
+            unknown = ''
         else:
-            # cleared for illegal characters check, create new tags?
             if req.param('create_tags'):
                 new_tags = _create_tags(wlib,unknown)
                 add_tags.extend(new_tags)
@@ -180,8 +169,6 @@ def doPost(wfile, req):
                 tags = u', '.join(unknown)
                 errors.append('These tags are not previous used: ' + tags)
 
-
-    print >>sys.stderr, errors
     if errors:
         doShowForm(wfile, req, errors, checklist=checklist, new_tags=unknown)
         return

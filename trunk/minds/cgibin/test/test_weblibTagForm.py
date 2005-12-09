@@ -5,7 +5,6 @@ import unittest
 from minds.safe_config import cfg as testcfg
 from minds.cgibin.test import test_weblib
 from minds import weblib
-from minds.weblib import store
 
 
 class TestTagForm(test_weblib.TestCGIBase):
@@ -30,7 +29,7 @@ class TestTagForm(test_weblib.TestCGIBase):
     ])
 
   def test_POST_rename(self):
-    wlib = store.getWeblib()
+    wlib = self.wlib
 
     # before
     page = wlib.webpages.getById(2)
@@ -57,7 +56,7 @@ class TestTagForm(test_weblib.TestCGIBase):
 
 
   def test_POST_rename_capitalization(self):
-    wlib = store.getWeblib()
+    wlib = self.wlib
 
     # before
     page = wlib.webpages.getById(2)
@@ -80,7 +79,7 @@ class TestTagForm(test_weblib.TestCGIBase):
 
 
   def test_POST_merge(self):
-    wlib = store.getWeblib()
+    wlib = self.wlib
 
     # before
     page = wlib.webpages.getById(2)
@@ -101,8 +100,6 @@ class TestTagForm(test_weblib.TestCGIBase):
 
 
   def test_POST_invalid(self):
-    wlib = store.getWeblib()
-
     self.checkPathForPattern("/weblib/@124/form?method=POST&name=", [
         '200 OK',
         '<html>',
@@ -118,8 +115,17 @@ class TestTagForm(test_weblib.TestCGIBase):
         '</html>',
     ])
 
+    # illegal characters
+    self.checkPathForPattern("/weblib/@124/form?method=POST&name=#illegal", [
+        '200 OK',
+        '<html>',
+        'These characters are not allowed in tag name',
+        '</html>',
+    ])
+
+
   def test_POST_category_collapse(self):
-    wlib = store.getWeblib()
+    wlib = self.wlib
 
     self.assertTrue('c' not in wlib.tags.getById(124).flags)
 

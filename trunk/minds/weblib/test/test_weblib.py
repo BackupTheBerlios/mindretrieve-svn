@@ -11,6 +11,29 @@ from minds.weblib import store
 
 testpath = testcfg.getpath('testDoc')
 
+class TestTag(unittest.TestCase):
+
+    def test0(self):
+        # empty name not allowed
+        self.assertRaises(ValueError, weblib.Tag, name='')
+
+    def test_hasIllegalChar(self):
+        illegal = ',@#<>+:'
+        self.assert_(weblib.Tag.hasIllegalChar(illegal))
+        self.assert_(weblib.Tag.hasIllegalChar('filler,'))
+        self.assert_(weblib.Tag.hasIllegalChar('filler@'))
+        self.assert_(weblib.Tag.hasIllegalChar('filler#'))
+        self.assert_(weblib.Tag.hasIllegalChar('filler<'))
+        self.assert_(weblib.Tag.hasIllegalChar('filler>'))
+        self.assert_(weblib.Tag.hasIllegalChar('filler+'))
+        self.assert_(weblib.Tag.hasIllegalChar('filler:'))
+
+        xascii = r""" !"$%&'()*-./0123456789;=?ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~""" + '\x7f'
+        self.failIf(weblib.Tag.hasIllegalChar(xascii))
+
+        # covered all printable ascii?
+        self.assertEqual(len(illegal)+len(xascii), 96)
+
 
 class TestWeblib(unittest.TestCase):
 
@@ -20,7 +43,6 @@ class TestWeblib(unittest.TestCase):
         self.store = store.Store()
         self.TESTTEXT = file(self.TESTFILE_PATH,'rb').read()
         self.store.load('*test*weblib*', StringIO.StringIO(self.TESTTEXT))
-
 
     def test_default_tag(self):
         # start from empty wlib

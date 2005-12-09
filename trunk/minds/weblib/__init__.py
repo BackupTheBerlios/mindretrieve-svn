@@ -86,10 +86,18 @@ class Tag(object):
     #   SanFran+museum
     #   SanFran:museum
 
+    @staticmethod
+    def hasIllegalChar(s):
+        for c in Tag.ILLEGAL_CHARACTERS:
+            if c in s:
+                return True
+        return False
+
+
     def __init__(self, id=-1, name='', description='', flags=''):
 
         if not name:
-            raise RuntimeError('Tag name required')
+            raise ValueError('Tag name required')
 
         self.id         = id
         self.name       = name
@@ -439,6 +447,14 @@ class WebLibrary(object):
             if remove_tags:
                 item.tags = [t for t in item.tags if t not in remove_tags]
             self.store.writeWebPage(item)
+
+
+    def __repr__(self):
+        return 'WebLibraray date=%s #tags=%s #pages=%s' % (
+            self.headers.get('date','?'),
+            len(self.tags),
+            len(self.webpages),
+            )
 
 
 # ----------------------------------------------------------------------

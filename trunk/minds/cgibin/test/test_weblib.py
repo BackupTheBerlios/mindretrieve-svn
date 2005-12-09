@@ -15,18 +15,19 @@ from minds.weblib import query_wlib
 from minds.weblib import store
 
 
-testpath = testcfg.getpath('testDoc')
+test_path = testcfg.getpath('testDoc')/'test_weblib/weblib.dat'
 
 class TestCGIBase(unittest.TestCase):
 
   def setUp(self):
-    # prevent it from auto loading
-    store.store_instance = store.Store()
-    # load test weblib.dat
-    stor = store.getStore()
-    testfile_path = testpath/'test_weblib/weblib.dat'
-    testdata = file(testfile_path,'rb').read()
-    stor.load('*test*data*',StringIO.StringIO(testdata))
+    self.store = store.Store()
+    self.TESTTEXT = file(test_path,'rb').read()
+    self.store.load('*test*weblib*', StringIO.StringIO(self.TESTTEXT))
+    self.wlib = self.store.wlib
+
+    # so that cgi can access it
+    store.store_instance = self.store
+
 
   # TODO: we have switched from checkPatterns() to checkStrings(). Clean up the code below.
   def checkPathForPattern(self, path, patterns, no_pattern=None):
@@ -44,9 +45,6 @@ class TestCGIBase(unittest.TestCase):
 
 
 class TestWeblibCGI(TestCGIBase):
-
-  # ------------------------------------------------------------------------
-  # /weblib
 
   def test_weblib(self):
     self.checkPathForPattern("/weblib", [
@@ -90,6 +88,13 @@ class TestWeblibCGI(TestCGIBase):
         ],
         '</html>'
     )
+
+
+  def test_weblib_go_invalid(self):
+    self.checkPathForPattern("/weblib/987654321/go;url", [
+        '404 not found',
+        '987654321 not found',
+    ])
 
 
   def _str_cat_nodes(self, cat_nodes):

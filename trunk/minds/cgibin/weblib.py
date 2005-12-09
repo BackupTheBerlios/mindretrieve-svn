@@ -71,7 +71,7 @@ def doGoResource(wfile, req):
     wlib = store.getWeblib()
     item = wlib.webpages.getById(req.rid)
     if not item:
-        wfile.write('404 not found\r\n\r\n%s not found' % rid)
+        wfile.write('404 not found\r\n\r\n%s not found' % req.rid)
         return
 
     item = wlib.visit(item)

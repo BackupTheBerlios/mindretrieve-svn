@@ -12,18 +12,23 @@ from minds import weblib
 from minds.weblib import query_wlib
 from minds.weblib import store
 
-log = logging.getLogger('cgi.wlibfrm')
+log = logging.getLogger('cgi.wlibFm')
 
 
 class Bean(object):
-    """ The bean that represents one web entry """
+    """ The bean that represents the state of the form """
 
     def __init__(self, req):
+
         self.item = None
+        if req.rid > 0:
+            # Could get None. But then there was a 404 check prior to this.
+            self.oldItem = store.getWeblib().webpages.getById(req.rid)
+        else:
+            self.oldItem = None
 
         # tags string as entered by user
         self.tags = ''
-
         # tags not known
         self.newTags = sets.Set()
         self.create_tags = req.param('create_tags')
@@ -57,10 +62,9 @@ class Bean(object):
         # 3. rid is -1 and URL is found in weblib
         #    Submit existing page via bookmarklet
 
-        item = (req.rid > 0) and wlib.webpages.getById(req.rid) or None
-        if item:
-            # Case 1. make a copy of existing item
-            item = item.__copy__()
+        if self.oldItem:
+            # Case 1. make a copy of the existing item
+            item = self.oldItem.__copy__()
             # overwritten with request parameters (only if defined)
             # usually only defined if it is redirected from case 3 request.
             if req.param('title')      : item.name        = req.param('title')
@@ -84,7 +88,8 @@ class Bean(object):
                     item.tags = [wlib.getDefaultTag()]
             else:
                 # Case 3. use existing webpage
-                item = matches[0].__copy__()
+                self.oldItem = matches[0]
+                item = self.oldItem.__copy__()
                 # however override with possibly new title and description
                 item.name        = req.param('title')
                 item.description = req.param('description')
@@ -100,19 +105,32 @@ class Bean(object):
         Parse submission from form
           method: PUT
           parameters: description, title, url, tags, modified, lastused, cached
-             (plus some more auxiliary parameters)
+             (plus some more auxiliary parameters?)
         """
         wlib = store.getWeblib()
-        self.item = weblib.WebPage(
-            id          = req.rid,
-            name        = req.param('title'),
-            url         = req.param('url'),
-            description = req.param('description'),
-            modified    = req.param('modified'),
-            lastused    = req.param('lastused'),
-            cached      = req.param('cached'),
-        )
-        self._parseTags(req)
+        if self.oldItem:
+            # Update an existing item
+            # Selectively update the field if parameter is supplied.
+            # That way an API call can send a subset of parameters.
+            self.item = self.oldItem.__copy__()
+            if 'title'       in req.form: self.item.name         = req.param('title')
+            if 'url'         in req.form: self.item.url          = req.param('url')
+            if 'description' in req.form: self.item.description  = req.param('description')
+            if 'modified'    in req.form: self.item.modified     = req.param('modified')
+            if 'lastused'    in req.form: self.item.lastused     = req.param('lastused')
+            if 'cached'      in req.form: self.item.cached       = req.param('cached')
+            if 'tags'        in req.form: self._parseTags(req)
+        else:
+            # create new item
+            self.item = weblib.WebPage(
+                name        = req.param('title'),
+                url         = req.param('url'),
+                description = req.param('description'),
+                modified    = req.param('modified'),
+                lastused    = req.param('lastused'),
+                cached      = req.param('cached'),
+            )
+            self._parseTags(req)
 
 
     def _parseTags(self, req):
@@ -158,15 +176,18 @@ def main(wfile, req):
 
     if req.method == 'GET':
         bean = Bean(req)
-        if req.rid == -1 and bean.item.id > 0:
+        if req.rid == -1 and bean.oldItem:
             # if bookmarklet to an existing item, redirect to the appropiate rid
             url = '%s?%s' % (request.rid_url(bean.item.id), req.env.get('QUERY_STRING',''))
             response.redirect(wfile, url)
+
         else:
             doGetResource(wfile, req, bean)
+
     elif req.method == 'PUT':
         bean = Bean(req)
         doPutResource(wfile, req, bean)
+
     elif req.method == 'DELETE':
         doDeleteResource(wfile, req)
 
@@ -282,8 +303,8 @@ class FormRenderer(response.CGIRenderer):
                 form.cached_txt.content = item.cached
 
         tags = bean.newTags and u', '.join(bean.newTags) or ''
-        ##TODO: encode tags for javascript in HTML
-        node.form.new_tags.content = node.form.new_tags.content % tags
+        encode_tags = response.javascriptEscape(tags)
+        node.form.new_tags.content = node.form.new_tags.content % encode_tags
 
 # weblibForm get invoked from CGI weblib.py
 

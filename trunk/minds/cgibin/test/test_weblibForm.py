@@ -71,7 +71,7 @@ class TestWeblibForm(test_weblib.TestCGIBase):
     self.assert_(query_wlib.find_url(wlib,'http://abc.com/'))
 
 
-  def test_PUT_rid(self):
+  def test_PUT_existing(self):
     wlib = self.wlib
     self.assertEqual(len(wlib.webpages),5)
     item = wlib.webpages.getById(1)
@@ -82,6 +82,11 @@ class TestWeblibForm(test_weblib.TestCGIBase):
             'method': 'PUT',
             'url': 'http://www.mindretrieve.net/',
             'title': 'Test Title',
+            'description': 'some description',
+            'modified': '1900',
+            'lastused': '1901',
+            'cached': '1902',
+            'tags': 'Kremlin, English',
         }),[
         'HTTP/1.0 302 Found',
         'location: /updateParent',
@@ -90,7 +95,35 @@ class TestWeblibForm(test_weblib.TestCGIBase):
     # one item has changed
     self.assertEqual(len(wlib.webpages),5)
     item = wlib.webpages.getById(1)
-    self.assertEqual(item.name, 'Test Title')
+    self.assertEqual(item.name       , 'Test Title')
+    self.assertEqual(item.description, 'some description')
+    self.assertEqual(item.url        , 'http://www.mindretrieve.net/')
+    self.assertEqual(item.modified   , '1900')
+    self.assertEqual(item.lastused   , '1901')
+#    self.assertEqual(item.cached     , '1902')
+    tags = ','.join(sorted(tag.name.lower() for tag in item.tags))
+    self.assertEqual(tags, 'english,kremlin')
+
+    # PUT partial parameters (only URL)
+    self.checkPathForPattern('/weblib/1?' + urllib.urlencode({
+            'method': 'PUT',
+            'url': 'new url',
+        }),[
+        'HTTP/1.0 302 Found',
+        'location: /updateParent',
+    ])
+
+    # url has changed
+    item = wlib.webpages.getById(1)
+    self.assertEqual(item.url        , 'new url')
+    # the rest is unchanged
+    self.assertEqual(item.name       , 'Test Title')
+    self.assertEqual(item.description, 'some description')
+    self.assertEqual(item.modified   , '1900')
+    self.assertEqual(item.lastused   , '1901')
+#    self.assertEqual(item.cached     , '1902')
+    tags = ','.join(sorted(tag.name.lower() for tag in item.tags))
+    self.assertEqual(tags, 'english,kremlin')
 
 
   def test_PUT_illegal(self):

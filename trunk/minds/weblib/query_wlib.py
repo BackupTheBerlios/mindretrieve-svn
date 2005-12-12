@@ -164,6 +164,7 @@ def query_by_tag(wlib, tag):
     """
 
     branches = graph.find_branches(wlib.category.root, tag)
+    assert branches
 
     positions = []
     tag_set = sets.Set()    # all tags
@@ -191,7 +192,7 @@ def query_by_tag(wlib, tag):
         if pos.tag:
             tag_set.add(pos.tag)
 
-    # TODO: check for empty tree!!
+    # note: branches is a non null Tree
     root_pos = positions[0]
 
     #for pos in positions: print pos # DBEUG

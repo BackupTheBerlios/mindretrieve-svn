@@ -10,13 +10,14 @@ from minds.util import patterns_tester
 
 class TestCGI(unittest.TestCase):
 
-  def checkPathForPattern(self, path, patterns):
+  def checkPathForPattern(self, path, patterns, nopattern=None):
 
     # note: look for </html> can ensure cgi did not abort in error
     buf = fileutil.aStringIO()
     app_httpserver.handlePath(path, buf)
     buf.seek(0)
-    p = patterns_tester.checkPatterns(buf, patterns)
+    p = patterns_tester.checkPatterns(buf, patterns, nopattern)
+    # BUG: p can also be nopattern. In this case the msg should be 'pattern found!'
     self.assert_(not p,
         'Test failed path:%s\n  pattern not found: %s%s' % (path, p, patterns_tester.showFile(buf, 'out'))
     )
@@ -35,6 +36,9 @@ class TestCGI(unittest.TestCase):
 
   def test_help(self):
     self.checkPathForPattern("/help", ['<h1>MindRetrieve</h1>', '</html>'])
+
+  def test_updateParent_input_escape(self):
+    self.checkPathForPattern("/updateParent?url='\"</bad_tag>", ['<html>'], '</bad_tag>')
 
 
 

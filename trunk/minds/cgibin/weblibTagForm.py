@@ -4,6 +4,7 @@ import os
 import sets
 import sys
 import urllib
+from xml.sax import saxutils
 
 from minds.config import cfg
 from minds.cgibin.util import request
@@ -139,7 +140,8 @@ class FormRenderer(response.CGIRenderer):
         form.atts['action'] = '/weblib/@%s' % id
 
         if errors:
-            form.error.message.raw = '<br />'.join(errors)
+            escaped_errors = map(saxutils.escape, errors)
+            form.error.message.raw = '<br />'.join(escaped_errors)
         else:
             form.error.omit()
 

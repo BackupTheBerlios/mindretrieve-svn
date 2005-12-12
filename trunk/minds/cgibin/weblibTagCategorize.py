@@ -75,7 +75,7 @@ _TRIM_TITLE = 50
 
 def _format_tag_base(tag_info):
 
-    encoded_tag_name = response.javascriptEscape(tag_info[1])
+    encoded_tag_name = response.jsEscapeString(tag_info[1])
     count = tag_info[2]
     if not tag_info[3]:
         encoded_hint = ''
@@ -88,7 +88,7 @@ def _format_tag_base(tag_info):
         else:
             suffix = ''
         hint = hint[:_TRIM_TITLE] + suffix
-        encoded_hint = response.javascriptEscape(hint)
+        encoded_hint = response.jsEscapeString(hint)
 
     statement = "tag_base['%s'] = [%s,'%s'];" % (encoded_tag_name, count, encoded_hint)
     return statement

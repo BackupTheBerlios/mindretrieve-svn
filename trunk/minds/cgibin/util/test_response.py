@@ -12,15 +12,16 @@ alert("%s");
 
 class TestResponse(unittest.TestCase):
 
-    def test_javascriptEscape(self):
+    def test_jsEscapeString(self):
         text = u"""You should see
 1. new line separate by \\n.\r
 2. new line separate by \\r\\n.
 3. quote ' and double quote ".
 4. The slash \\ character.
-5. The euro sign \N{euro sign}.
+5. The angle brackets < and >.
+6. The euro sign \N{euro sign}.
 """
-        escaped_test = response.javascriptEscape(text)
+        escaped_test = response.jsEscapeString(text)
 
         print '\nPlease cut and paste the statement below and test in your browser'
         print '-'*72
@@ -31,6 +32,8 @@ class TestResponse(unittest.TestCase):
         self.assert_('\\"' in escaped_test)
         self.assert_("\\'" in escaped_test)
         self.assert_('\\\\' in escaped_test)
+        self.assert_('<'  not in escaped_test)
+        self.assert_('>' not in escaped_test)
 
 
 if __name__ == '__main__':

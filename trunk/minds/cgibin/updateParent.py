@@ -6,8 +6,6 @@ import sys
 from minds.config import cfg
 from minds.cgibin.util import request
 from minds.cgibin.util import response
-#from minds import weblib
-#from minds.weblib import store
 
 log = logging.getLogger('cgi.update')
 
@@ -24,7 +22,7 @@ class UpdateParentRenderer(response.CGIRenderer):
     """
     """
     def render(self, node, url=''):
-        node.url.raw = 'var url="%s";' % url
+        node.url.raw = 'var url="%s";' % response.jsEscapeString(url)
 
 
 if __name__ == "__main__":

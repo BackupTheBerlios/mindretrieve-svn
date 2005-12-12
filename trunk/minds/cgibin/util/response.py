@@ -26,13 +26,31 @@ def redirect(wfile, url):
     wfile.write('location: %s\r\n\r\n' % url)
 
 
-def javascriptEscape(s):
+def jsEscapeString(s):
+    """ Escape s for use as a Javascript String """
+
+    # 2005-12-12 note:
+    # < and > are not suppose to require escaping.
+    # But HTML parsers seems to aggressively terminate a string when
+    # they see "</script>". Try this in your browser.
+
+    """
+    <script>
+      alert('Escaped \x3c/script\x33\x3cfont size=7 color=red\x3eGOTCHA');
+      alert('Unescaped </script><font size=7 color=red>GOTCHA');
+    </script>
+    This is the HTML body
+    """
+
+    # Note: non-ascii unicode characters do not need encoding
+
     return s.replace('\\','\\\\') \
         .replace('\r', '\\r') \
         .replace('\n', '\\n') \
         .replace('"', '\\"') \
-        .replace("'", "\\'")
-    # non-ascii unicode characters do not need encoding
+        .replace("'", "\\'") \
+        .replace("<", '\\x3C') \
+        .replace(">", '\\x3E')
 
 # ----------------------------------------------------------------------
 

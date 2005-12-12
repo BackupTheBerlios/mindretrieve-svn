@@ -1,10 +1,11 @@
+import itertools
 import logging
 import os
 import re
 import sets
 import sys
 import urllib
-import itertools
+from xml.sax import saxutils
 
 from minds.config import cfg
 from minds.cgibin.util import request
@@ -195,21 +196,18 @@ def doDelete(wfile, req):
 
 class MultiFormRenderer(response.CGIRenderer):
     TEMPLATE_FILE = 'weblibMultiForm.html'
-    """ 2005-11-15
-    con:header
-    con:form_title
+    """ 2005-12-09
     con:form
-            con:id_list
-            con:error
-                    con:message
-            rep:title
-            rep:tag
-                    con:checkbox
-                    con:hidden
-                    con:tagName
-            con:add_tags
-            con:new_tags
-    con:footer
+        con:id_list
+        con:error
+                con:message
+        rep:title
+        rep:tag
+                con:checkbox
+                con:hidden
+                con:tagName
+        con:add_tags
+        con:new_tags_js_var
     """
     def render(self, node, errors, new_tags, ids, names, tags, add_tags=''):
         """
@@ -218,7 +216,8 @@ class MultiFormRenderer(response.CGIRenderer):
 
         form = node.form
         if errors:
-            form.error.message.raw = '<br />'.join(errors)
+            escaped_errors = map(saxutils.escape, errors)
+            form.error.message.raw = '<br />'.join(escaped_errors)
         else:
             form.error.omit()
 
@@ -231,8 +230,8 @@ class MultiFormRenderer(response.CGIRenderer):
         form.add_tags.atts['value'] = add_tags
 
         tags = new_tags and u', '.join(new_tags) or ''
-        ##TODO: encode tags for javascript in HTML
-        node.form.new_tags.content = node.form.new_tags.content % tags
+        encode_tags = response.jsEscapeString(tags)
+        node.form.new_tags_js_var.raw = node.form.new_tags_js_var.raw % encode_tags
 
 
     def renderTitle(self, node, title):

@@ -4,6 +4,7 @@ import os
 import sets
 import sys
 import urllib
+from xml.sax import saxutils
 
 from minds.config import cfg
 from minds.cgibin.util import request
@@ -13,6 +14,37 @@ from minds.weblib import query_wlib
 from minds.weblib import store
 
 log = logging.getLogger('cgi.wlibFm')
+
+
+def main(wfile, req):
+    # this is called from the controller weblib
+
+    # if rid is defined, make sure it is valid
+    if req.rid > 0:
+        if not store.getWeblib().webpages.getById(req.rid):
+            wfile.write('404 not found\r\n\r\n')
+            wfile.write('rid %s not found' % req.rid)
+
+    if req.method == 'PUT':
+        bean = Bean(req)
+        doPutResource(wfile, req, bean)
+
+    elif req.method == 'POST':
+        wfile.write('404 Method Not Allowed\r\n\r\n')
+        wfile.write('Use PUT to update the item.')
+
+    elif req.method == 'DELETE':
+        doDeleteResource(wfile, req)
+
+    else: # otherwise it is GET
+        bean = Bean(req)
+        if req.rid == -1 and bean.oldItem:
+            # if bookmarklet to an existing item, redirect to the appropiate rid
+            url = '%s?%s' % (request.rid_url(bean.item.id), req.env.get('QUERY_STRING',''))
+            response.redirect(wfile, url)
+
+        else:
+            doGetResource(wfile, req, bean)
 
 
 class Bean(object):
@@ -166,32 +198,6 @@ class Bean(object):
             return u'%s(%s)' % (self.item.name, self.item.id)
 
 
-def main(wfile, req):
-    # this is called from the controller weblib
-
-    # if rid is defined, make sure it is valid
-    if req.rid > 0:
-        if not store.getWeblib().webpages.getById(req.rid):
-            wfile.write('404 not found\r\n\r\nrid %s not found' % req.rid)
-
-    if req.method == 'GET':
-        bean = Bean(req)
-        if req.rid == -1 and bean.oldItem:
-            # if bookmarklet to an existing item, redirect to the appropiate rid
-            url = '%s?%s' % (request.rid_url(bean.item.id), req.env.get('QUERY_STRING',''))
-            response.redirect(wfile, url)
-
-        else:
-            doGetResource(wfile, req, bean)
-
-    elif req.method == 'PUT':
-        bean = Bean(req)
-        doPutResource(wfile, req, bean)
-
-    elif req.method == 'DELETE':
-        doDeleteResource(wfile, req)
-
-
 def doGetResource(wfile, req, bean):
     FormRenderer(wfile).output(bean)
 
@@ -250,14 +256,14 @@ def doDeleteResource(wfile, req):
 
 class FormRenderer(response.CGIRenderer):
     TEMPLATE_FILE = 'weblibForm.html'
-    """
-    con:header
+    """ 2005-12-09
+    con:form_title
     con:form
-            con:id
             con:error
                     con:message
             con:name
             con:url
+            con:url_link
             con:description
             con:tags
             con:modified_txt
@@ -266,8 +272,7 @@ class FormRenderer(response.CGIRenderer):
             con:modified
             con:lastused
             con:cached
-            con:new_tags
-    con:footer
+            con:new_tags_js_var
     """
     def render(self, node, bean):
 
@@ -281,7 +286,8 @@ class FormRenderer(response.CGIRenderer):
         form.atts['action'] = request.rid_url(id)
 
         if bean.errors:
-            form.error.message.raw = '<br />'.join(bean.errors)
+            escaped_errors = map(saxutils.escape, bean.errors)
+            form.error.message.raw = '<br />'.join(escaped_errors)
         else:
             form.error.omit()
 
@@ -303,8 +309,8 @@ class FormRenderer(response.CGIRenderer):
                 form.cached_txt.content = item.cached
 
         tags = bean.newTags and u', '.join(bean.newTags) or ''
-        encode_tags = response.javascriptEscape(tags)
-        node.form.new_tags.content = node.form.new_tags.content % encode_tags
+        encoded_tags = response.jsEscapeString(tags)
+        node.form.new_tags_js_var.raw = node.form.new_tags_js_var.raw % encoded_tags
 
 # weblibForm get invoked from CGI weblib.py
 

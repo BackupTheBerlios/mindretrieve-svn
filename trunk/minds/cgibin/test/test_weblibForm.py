@@ -153,5 +153,36 @@ class TestWeblibForm(test_weblib.TestCGIBase):
         '</html>',
     ])
 
+
+  def test_PUT_char_workout(self):
+    wlib = self.wlib
+
+    # this one is going to give character escaping a good work out
+    url = '/weblib/_?' + urllib.urlencode({
+            'method': 'PUT',
+            'title': u'€!"#$%&\'()*+,-. /0123456789: ;<=>?@[\\]^_`{|}~'.encode('utf8'),
+            'description': u'description:€!"#$%&\'()*+,-. /0123456789: ;<=>?@[\\]^_`{|}~\r\n[For testing]'.encode('utf8'),
+            'url': u'url:€!"#$%&\'()*+,-. /0123456789: ;<=>?@[\\]^_`{|}~'.encode('utf8'),
+            'tags': u'€!"$% &\'()*-./; =?[\\]^ _`{|}~'.encode('utf8'),
+            'create_tags': '1'
+        })
+    self.checkPathForPattern(url,[
+        'HTTP/1.0 302 Found',
+        'location: /updateParent',
+    ])
+
+    # one item has added
+    tag = wlib.tags.getByName(u'€!"$% &\'()*-./; =?[\\]^ _`{|}~')
+    self.assert_(tag)
+
+    lastId = wlib.webpages._lastId      # undocumented
+    page = wlib.webpages.getById(lastId)
+    self.assert_(page)
+    self.assertEqual(page.name,        u'€!"#$%&\'()*+,-. /0123456789: ;<=>?@[\\]^_`{|}~')
+    self.assertEqual(page.description, u'description:€!"#$%&\'()*+,-. /0123456789: ;<=>?@[\\]^_`{|}~\r\n[For testing]')
+    self.assertEqual(page.url,         u'url:€!"#$%&\'()*+,-. /0123456789: ;<=>?@[\\]^_`{|}~')
+    self.assertEqual(page.tags,        [tag])
+
+
 if __name__ == '__main__':
     unittest.main()

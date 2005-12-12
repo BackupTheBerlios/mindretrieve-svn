@@ -145,20 +145,32 @@ function remove_parenthesis(name) {
     return name;
 }
 
+
+// Help change the text of an element.
+// Assume the first child is the text node!
+// Note: the .innerHTML alternative is not safe if the text is not escaped.
+function setChildText(id, text) {
+    var elem = document.getElementById(id);
+    if (elem) {
+        if (elem.firstChild) {
+            elem.firstChild.nodeValue = text;
+        }
+    }
+}
+
 function tags_changed(tag_name) {
     tag_name = tag_name.replace('^ *','');
     var info = tag_base[tag_name];
-    // TODOTODO: need to escape tag_name
-    document.getElementById('hint_tag').innerHTML = tag_name;
+    setChildText('hint_tag', tag_name);
     if (info == null) {
         document.getElementById('hint_tag').href = '';
-        document.getElementById('hint_count').innerHTML = '';
-        document.getElementById('hint_webpages').innerHTML = '&nbsp;'; // help maintain a blank line
+        setChildText('hint_count', '');
+        setChildText('hint_webpages', '');
     }
     else {
         document.getElementById('hint_tag').href = '/weblib?tag=' + encodeURIComponent(tag_name);
-        document.getElementById('hint_count').innerHTML = '(' + info[0] + ') ';
-        document.getElementById('hint_webpages').innerHTML = '- ' + info[1];
+        setChildText('hint_count', '(' + info[0] + ') ');
+        setChildText('hint_webpages', '- ' + info[1]);
     }
 }
 
@@ -290,7 +302,7 @@ travel
 </td>
 -->
 <!-- hint area -->
-<td colspan='5'>
+<td colspan='4'>
 <p>
 <span style='font-weight: bold;'><a id='hint_tag' href='#'>some tag</a></span>
 <span id='hint_count'>(2)</span>

@@ -73,18 +73,16 @@ class WebPage(object):
 
 class Tag(object):
 
-    ILLEGAL_CHARACTERS = ',@#<>+:'
+    ILLEGAL_CHARACTERS = ',@#+:'
 
     # ',' is used to separate tags
     # '@' is used to denote tag id
     # '#' is used to denote comment
-    # Avoid '<>' to minimize HTML escaping issue?
     # '+' reserve as operator for category description
     # ':' reserve as operator for category description
-
-    # e.g.
-    #   SanFran+museum
-    #   SanFran:museum
+    #     e.g.
+    #       SanFran+museum
+    #       SanFran:museum
 
     @staticmethod
     def hasIllegalChar(s):

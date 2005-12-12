@@ -29,11 +29,16 @@ class TestCGIBase(unittest.TestCase):
     store.store_instance = self.store
 
 
-  # TODO: we have switched from checkPatterns() to checkStrings(). Clean up the code below.
-  def checkPathForPattern(self, path, patterns, no_pattern=None):
+  def _run_url(self, path):
+    """ Invoke the URL and return the response HTTP message """
     buf = fileutil.aStringIO()
     app_httpserver.handlePath(path, buf)
-    buf.seek(0)
+    return buf.getvalue()
+
+
+  # TODO: we have switched from checkPatterns() to checkStrings(). Clean up the code below.
+  def checkPathForPattern(self, path, patterns, no_pattern=None):
+    buf = StringIO.StringIO(self._run_url(path))
     # Beware of the limitation of patterns_tester()
     # It test for string occurance line by line
     p = patterns_tester.checkStrings(buf, patterns, no_pattern)
@@ -95,6 +100,18 @@ class TestWeblibCGI(TestCGIBase):
         '404 not found',
         '987654321 not found',
     ])
+
+
+  def test_weblib_input_escape(self):
+    txt = self._run_url("/weblib?query=</bad_tag>")
+    self.assert_('bad_tag' in txt)
+    self.assert_('</bad_tag>' not in txt)
+
+
+  def test_weblib_input_escape_tag(self):
+    txt = self._run_url("/weblib?tag=</bad_tag>")
+    self.assert_('bad_tag' in txt)
+    self.assert_('</bad_tag>' not in txt)
 
 
   def _str_cat_nodes(self, cat_nodes):

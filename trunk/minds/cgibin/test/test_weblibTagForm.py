@@ -124,6 +124,18 @@ class TestTagForm(test_weblib.TestCGIBase):
     ])
 
 
+  def test_PUT_input_escape(self):
+    # First insert some risky data into weblib
+    badtag = weblib.Tag(name='</bad_tag>')
+    badtag = self.store.writeTag(badtag)
+
+    # GET
+    url = '/weblib/@%s/form?name=</bad_tag>' % badtag.id
+    txt = self._run_url(url)
+    self.assert_('bad_tag' in txt)
+    self.assert_('</bad_tag>' not in txt)
+
+
   def test_POST_category_collapse(self):
     wlib = self.wlib
 

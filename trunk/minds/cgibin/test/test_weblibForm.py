@@ -154,9 +154,22 @@ class TestWeblibForm(test_weblib.TestCGIBase):
     ])
 
 
-  def test_PUT_char_workout(self):
-    wlib = self.wlib
+  def test_PUT_input_escape(self):
+    url = '/weblib/_?' + urllib.urlencode({
+            'method': 'PUT',
+            'title': '</bad_tag>',
+            'description': '</bad_tag>',
+            'url': '</bad_tag>',
+            'tags': '</bad_tag>',
+            'create_tags': '',
+        })
+    txt = self._run_url(url)
+    self.assert_('bad_tag' in txt)
+    self.assert_('</bad_tag>' not in txt)
 
+
+  def test_PUT_char_workout(self):
+    # test_PUT_input_escape() is a quick basic test
     # this one is going to give character escaping a good work out
     url = '/weblib/_?' + urllib.urlencode({
             'method': 'PUT',
@@ -172,11 +185,11 @@ class TestWeblibForm(test_weblib.TestCGIBase):
     ])
 
     # one item has added
-    tag = wlib.tags.getByName(u'€!"$% &\'()*-./; =?[\\]^ _`{|}~')
+    tag = self.wlib.tags.getByName(u'€!"$% &\'()*-./; =?[\\]^ _`{|}~')
     self.assert_(tag)
 
-    lastId = wlib.webpages._lastId      # undocumented
-    page = wlib.webpages.getById(lastId)
+    lastId = self.wlib.webpages._lastId      # undocumented
+    page = self.wlib.webpages.getById(lastId)
     self.assert_(page)
     self.assertEqual(page.name,        u'€!"#$%&\'()*+,-. /0123456789: ;<=>?@[\\]^_`{|}~')
     self.assertEqual(page.description, u'description:€!"#$%&\'()*+,-. /0123456789: ;<=>?@[\\]^_`{|}~\r\n[For testing]')

@@ -141,5 +141,19 @@ class TestWeblibMultiForm(test_weblib.TestCGIBase):
     ])
 
 
+  def test_POST_input_escape(self):
+    url = ''.join(['/weblib/multiform',
+            '?id_list=2%2C3',                   # 2 - Russian, 3 - French
+            '&%40122=on&%40122changed=1',       # add Français
+            '&%40121=on&%40121changed=',        # Русский unchanged
+            '&add_tags=</bad_tag>',
+            '&method=POST',
+            ])
+    txt = self._run_url(url)
+    self.assert_('bad_tag' in txt)
+    self.assert_('</bad_tag>' not in txt)
+
+
+
 if __name__ == '__main__':
     unittest.main()

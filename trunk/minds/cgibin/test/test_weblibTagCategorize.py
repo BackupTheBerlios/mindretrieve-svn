@@ -46,5 +46,23 @@ class TestWeblibTagCategorize(test_weblib.TestCGIBase):
     self.assert_(wlib.tags.getByName('good'))
 
 
+  def test_POST_input_escape(self):
+    # First insert some risky data into weblib
+    badtag = weblib.Tag(name='</bad_tag>')
+    badtag = self.store.writeTag(badtag)
+    badpage = weblib.WebPage(
+        name        = '</bad_tag>',
+        url         = '</bad_tag>',
+        description = '</bad_tag>',
+        tags        = [badtag]
+    )
+    badpage = self.store.writeWebPage(badpage)
+
+    # GET and make sure it is escaped
+    txt = self._run_url('/weblib/tag_categorize')
+    self.assert_('bad_tag' in txt)
+    self.assert_('</bad_tag>' not in txt)
+
+
 if __name__ == '__main__':
     unittest.main()

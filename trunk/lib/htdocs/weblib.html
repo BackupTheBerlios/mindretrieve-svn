@@ -1,14 +1,156 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3c.org/TR/html4/loose.dtd">
 <html>
 <head>
-<title>MindRetrieve - Configuration</title>
-<link rel="stylesheet" href="/main.css" type="text/css">
+<title>MindRetrieve - Web Library</title>
+<link rel="stylesheet" href="main.css" type="text/css">
 <style>
-  #content         {
-    margin-top: 2ex;
-    width: 100%;
-  }
+.midHeader {
+  color: rgb(39,78,144);
+  background-color: rgb(140,170,230);
+  border-bottom: 1px solid #000;
+  background: url(mid_bg00.png);
+}
 
+.midHeader h1 {
+  color:  #930;
+  font-size: 20pt;
+  margin: 0.5ex 1em 0.5ex 0.2em;
+}
+
+.subHeader {
+  color: white;
+  background-color: #003399;
+  margin: 0 0 0 0;
+  padding: 1ex 0.5em 1ex 0.5em;
+  border-top1: 1px solid #004BE5;
+}
+
+.subHeader .searchBox {
+  float: right;
+  xfont-size: 80%;
+}
+
+.subHeader .searchBox form {
+  margin: 0 0 0 0;
+}
+
+.subHeader .searchBox input {
+    vertical-align: baseline;
+    font-size: 90%;
+}
+
+.searchBoxButton      {
+    font-weight: bold;
+    padding-left: 0.5em;
+    padding-right: 0.5em;
+    xbackground-color:#fed;
+    xborder: 2px outset #fed;
+}
+
+
+.subHeader a {
+  color: white;
+  background-color: transparent;
+  text-decoration: none;
+  font-weight: bold;
+  margin: 0;
+  padding: 0 0.75ex 0 0.5ex;
+}
+
+.subHeader a:hover {
+  text-decoration: underline;
+}
+
+
+/* ##### Side Bar ##### */
+
+#side-bar {
+  width: 16em;
+  float: left;
+  clear: left;
+  margin-right: 20px;
+  border-bottom: 1px solid rgb(153,153,153);
+  border-right: 1px solid rgb(153,153,153);
+}
+/*
+#side-bar div {
+  border-bottom: 1px solid rgb(153,153,153);
+  background-color: rgb(240,240,240);
+}
+*/
+.sideBarTitle {
+  font-weight: bold;
+  margin: 0 0 0.5em 2.5mm;
+  padding: 1em 0 0 0;
+}
+
+#side-bar ul {
+  list-style-type: none;
+  list-style-position: outside;
+  margin: 0;
+  padding: 0 0 1em 0;
+}
+
+#xside-bar li {
+  margin: 0;
+  padding: 0.1ex 0;  /* Circumvents a rendering bug (?) in MSIE 6.0 */
+}
+
+/* ##### Main Copy ##### */
+
+#main {
+  color: black;
+  background: #FFF;
+  text-align: justify;
+  line-height: 1.5em;
+  margin: 0 0 0 16em;
+  padding: 0.5mm 1em 5mm 1em;
+/*  border-left: 1px solid rgb(153,153,153); */
+}
+
+
+/* ##### Footer ##### */
+
+#footer {
+  color: white;
+  background-color: rgb(100,135,220);
+  font-size: 91%;
+  margin: 0;
+  padding: 0.5ex 2.5mm 1ex 2.5mm;
+  clear: both;
+}
+
+#footer .left {
+  line-height: 1.45em;
+  margin-top:0;
+
+  float: left;
+  clear: left;
+}
+
+#footer .right {
+  text-align: right;
+  line-height: 1.45em;
+}
+
+#footer a {
+  color: white;
+  background-color: transparent;
+  text-decoration: underline;
+}
+
+#footer a:hover {
+  text-decoration: none;
+}
+
+
+.spacer {
+	clear: both;
+}
+</style>
+
+
+<style>
   /* ------------------------------------------------------------------------
      Category Pane
      ------------------------------------------------------------------------
@@ -27,9 +169,10 @@
     margin:0.5ex;
   }
   #categorytPane        {
-    width: 16em;
-    paddingx: 0.2cm;
-    border: 1px solid #777;
+/*    width: 16em;*/
+    margin-left:0.5em;
+    padding-bottom: 6ex;
+/*    border: 1px solid #777;*/
   }
   #categorytPane p     {
     padding: 0.2cm;
@@ -107,19 +250,17 @@
      Webitem Pane
      ------------------------------------------------------------------------ */
 
-  #itemPane             {
-    padding-left: 1em;
-  }
-
   #found_msg {
     padding-left: 0.2em;
     padding-right: 0.5em;
+    margin-top: 1ex;
     margin-bottom: 0.5ex;
   }
 
   .libTable     a       { text-decoration: none; }
   .libTable     a:hover { text-decoration: underline; }
   .libTable .itemHeader a { color:black; }
+
   .libTableHeader       {
     background-color: #ccc;
   }
@@ -157,12 +298,7 @@
   .altselectedrow       {
     background-color: #fc9;
   }
-/*
-  .altselectedrow td      {
-    border-top: thin solid white;
-    xborder-bottom: thin solid white;
-  }
-*/
+
   .itemHeader           {
     font-weight: bold;
   }
@@ -183,7 +319,9 @@
     top:1px;
     border:0;
   }
-
+  #webpages {
+  margin: 1ex 0 0 0;
+  }
 
   /* ------------------------------------------------------------------------
 
@@ -424,15 +562,32 @@ window.addEventListener('load', onload, false);
 
 <body>
 
-<div node='-con:header' style='width:100%;background-color:#ddd;text-align:center'>--HEADER--</div>
+<!--==Header=============================================================================-->
+<div id="header">
 
-<table id='content' border='0' cellspacing='0' cellpadding='0'>
-<tr valign='top'>
+  <div class="midHeader">
+    <h1>MindRetrieve</h1>
+  </div>
+
+  <div class="subHeader">
+      <div class='searchBox'>
+        <form action='/weblib' method='get'>
+          <input type='text' name='query' value='' size="25" node="con:querytxt" /><input type='submit' name='submit' value='Search' class='searchBoxButton' /><input type='submit' name='submit' value='&gt;'  class='searchBoxButton' />
+        </form>
+      </div>
+    <a href="">Home</a> |
+    <a href="#">action2</a> |
+    <a href="#">action3</a> |
+    <a href="#">action4</a> |
+  </div>
+</div>  <!-- end header -->
+
 
 
 
 <!--==categoryPane========================================================================-->
-<td id='categorytPane'>
+    <!-- ##### Side Bar ##### -->
+    <div id="side-bar">
 
 <!-- tag pull down -->
 <div id='tagList'>
@@ -464,7 +619,7 @@ window.addEventListener('load', onload, false);
     </table>
   </form>
 </div>
-
+<div id='categorytPane'>
 <ul>
   <ul>
     <span class='SubCat1'><a node='con:rootTag' href='/weblib?tag='>/</a></span><span class='MainCat'><a node='con:defaultTag' href='/weblib?tag='>inbox</a></span>
@@ -500,13 +655,15 @@ window.addEventListener('load', onload, false);
     </span>
   </ul>
 </ul>
-</td> <!-- categoryPane -->
+</div>
+</div> <!-- side bar -->
 
 
 
 
-<!--==itemPane========================================================================-->
-<td id='itemPane'>
+<!--==main content========================================================================-->
+
+<div id="main">
 
 <div node='con:found_msg' id='found_msg'>
     <div node='con:search_engine' style='float:right'>Search "<span node='-con:querytxt'>x</span>" in
@@ -637,10 +794,19 @@ window.addEventListener('load', onload, false);
   </form>
 
 </div>
-</td> <!-- itemPane -->
 
-</tr>
-</table> <!-- content -->
+</div>  <!-- end main content -->
+
+
+    <!-- ##### Footer ##### -->
+    <div id="footer">
+      <div class="left">
+        <a href="http://openwebdesign.org/email.phtml?user=MonkeyMan" class="doNotPrint"><img src='img/favicon16x16.gif' border='0'>Bookmarklet</a>
+      </div>
+      <div class="right">
+	       <a href="http://mindretrieve.net">MindRetrieve</a>
+      </div>
+    </div>  <!-- end footer -->
 
 
 <!-- hidden asyncForm -->
@@ -649,9 +815,6 @@ window.addEventListener('load', onload, false);
 <input type='textbox' name='category_collapse' />
 <iframe name='asyncFrame' src='' scrolling='no' ></iframe>
 </form>
-
-
-<div node='-con:footer' style='width:100%;background-color:#ddd;text-align:center'>--footer--</div>
 
 </body>
 </html>

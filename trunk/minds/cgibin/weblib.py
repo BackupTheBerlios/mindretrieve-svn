@@ -225,7 +225,7 @@ def queryTag(wfile, req, nameOrId):
         fakeTagNode = WebItemTagNode(nameOrId)
         webItems = [fakeTagNode]
 
-    WeblibRenderer(wfile, req.env, '').output(
+    WeblibRenderer(wfile).output(
         wlib.tags,
         tag,
         wlib.getDefaultTag(),
@@ -295,7 +295,8 @@ def queryRoot(wfile, req):
 
 # ----------------------------------------------------------------------
 
-class WeblibRenderer(response.CGIRendererHeadnFoot):
+#class WeblibRenderer(response.CGIRendererHeadnFoot):
+class WeblibRenderer(response.CGIRenderer):
     TEMPLATE_FILE = 'weblib.html'
     """ weblib.html 2005-11-11
     con:header
@@ -367,6 +368,7 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
 
         # ------------------------------------------------------------------------
         # Matching message
+        self.querytxt=''###
         if self.querytxt:
             count = sum(1 for item in webItems if isinstance(item, WebItemNode))
             node.found_msg.count.content = str(count)
@@ -450,7 +452,7 @@ class WeblibRenderer(response.CGIRendererHeadnFoot):
             node = node.placeHolder
             node.checkbox.atts['name'] = str(webitem.id)
             node.itemDescription.content = unicode(webitem)
-            node.itemDescription.atts['href'] = request.go_url(webitem)
+            node.itemDescription.atts['href'] = webitem.url
             node.itemDescription.atts['title'] = '%s %s' % (webitem.modified, webitem.description)
             node.itemTag.tag.repeat(self.renderWebItemTag, webitem.tags)
             node.edit.atts['href'] %= webitem.id

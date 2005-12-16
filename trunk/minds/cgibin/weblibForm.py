@@ -219,19 +219,6 @@ def doPutResource(wfile, req, bean):
         assert not bean.newTags
 
     item = bean.item
-    # is it an existing item?
-    if item.id >= 0 and wlib.webpages.getById(item.id):
-        # update existing item from bean
-        item0             = wlib.webpages.getById(item.id)
-        item0.name        = item.name
-        item0.url         = item.url
-        item0.description = item.description
-        item0.tags        = item.tags[:]
-        item0.modified    = item.modified
-        item0.lastused    = item.lastused
-#        item0.cached      = item.cached
-        item = item0
-
     if item.id < 0:
         log.info('Adding WebPage: %s' % unicode(item))
         store.getStore().writeWebPage(item)

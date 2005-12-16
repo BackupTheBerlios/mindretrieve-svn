@@ -22,7 +22,7 @@ class HtmlPullParser(sgmllib.SGMLParser):
 
     def __init__(self, verbose=0, comment=False):
         self.stream = []
-        self.includeComment = comment        
+        self.includeComment = comment
         sgmllib.SGMLParser.__init__(self, verbose)
 
     def handle_data(self, data):
@@ -70,9 +70,9 @@ class HtmlPullParser(sgmllib.SGMLParser):
     def handle_comment(self, comment):
         if self.includeComment:
             self.stream.append((COMMENT,comment))
-        
-    def unknown_decl(self, data):       
-        # Treat XML CDATA block <![CDATA[...]]> as data 
+
+    def unknown_decl(self, data):
+        # Treat XML CDATA block <![CDATA[...]]> as data
         # Are we stretching sgmllib here?
         if data[:6].lower() == 'cdata[':
             self.stream.append((DATA, data[6:]))
@@ -118,6 +118,26 @@ def generate_tokens(fp,comment=False):
             raise StopIteration
         for token in parser.stream:
             yield token
+        parser.stream = []
+
+# TODO: migrate generate_tokens to generate_tokens3
+# TODO: migrate test
+def generate_tokens3(fp,comment=False):
+    """ Parse HTML and yield (kind, data, attrs) """
+    parser = HtmlPullParser(comment=comment)
+    while True:
+        data = fp.read(BUFSIZE)
+        if data:
+            parser.feed(data)
+        else:
+            parser.close()
+        if not parser.stream:
+            raise StopIteration
+        for token in parser.stream:
+            if len(token) == 2:
+                yield (token[0], token[1], None)
+            else:
+                yield token
         parser.stream = []
 
 

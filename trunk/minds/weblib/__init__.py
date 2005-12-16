@@ -3,8 +3,6 @@ Define Weblib data type Tag, WebPage and the container WebLibrary.
 """
 
 # TODO: weblib use to be quite standalone container class. However, index need to be careful managed and properly closed. FIND A SYSTEM. use store?
-# TODO: how do I make sure WebPage fields is the right type? e.g. id is int.
-# date fields: modified, cached, accessed
 
 import codecs
 import datetime
@@ -495,76 +493,10 @@ def sortTags(tags):
 
 #-----------------------------------------------------------------------
 
-TEST_DATA0 = """
-mindretrieve
-    search
-    python
-    web design
-    css
-travel
-    italy
-    san francisco
-        real estate
-"""
-
-TEST_DATA = """
-San Francisco
-    food
-    travel
-        italy
-money
-    account
-    real estate
-real estate
-    listing
-    San Francisco
-        agents
-travel
-    italy
-        food
-"""
-
-
-def test_tag_tree():
-    print '\ntree0---'
-    root0 = graph.parse_text_tree(TEST_DATA0)
-    root0.dump()
-
-    print '\ntree1---'
-    root0 = graph.parse_text_tree(TEST_DATA)
-    root0.dump()
-
-    graph.merge_DAG(g0,g)
-    print '\nmerged---'
-    root0.dump()
-
-
-def test_DAG():
-    wlib = store.getWeblib()
-    root = inferCategory(wlib)
-    ## debug
-    for v, path in root.dfs():
-        if not v:
-            continue    # skip the root node
-        print '..' * len(path) + unicode(v) + ' %s' % v.torder + ' %s' % path
-
-
-def test_find_branches():
-    root = graph.parse_text_tree(TEST_DATA)
-    branches = graph.find_branches(root, 'San Francisco')
-    print '\nSan Francisco branches---'
-    print >>sys.stderr, branches
-    graph.Node('',branches).dump()
-
-
 def main(argv):
-    test_find_branches()
-    #test_tag_tree()
-    #test_DAG()
-
+    pass
 
 if __name__ =='__main__':
-    import codecs
     sys.stdout = codecs.getwriter('utf-8')(sys.stdout,'replace')
     sys.stderr = codecs.getwriter('utf-8')(sys.stderr,'replace')
     main(sys.argv)

@@ -268,7 +268,7 @@ def queryWebLib(wfile, req, tag, querytxt):
     for item,_ in result:
         webItems.append(WebItemNode(item))
 
-    WeblibRenderer(wfile, req.env, querytxt).output(
+    WeblibRenderer(wfile).output(
         wlib.tags,
         None,
         wlib.getDefaultTag(),
@@ -285,7 +285,7 @@ def queryRoot(wfile, req):
     # webitem pane
     webItems = map(WebItemNode, query_wlib.queryRoot(wlib))
 
-    WeblibRenderer(wfile, req.env, '').output(
+    WeblibRenderer(wfile).output(
         wlib.tags,
         None,
         wlib.getDefaultTag(),

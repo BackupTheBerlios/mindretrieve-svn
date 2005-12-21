@@ -256,5 +256,12 @@ class TestIdNameList(TestIdList):
         super(TestIdNameList,self).test_remove()
 
 
+
+class TestURLUtil(unittest.TestCase):
+
+    def test_url_util_need_test(self):
+        self.fail()
+
+
 if __name__ =='__main__':
     unittest.main()

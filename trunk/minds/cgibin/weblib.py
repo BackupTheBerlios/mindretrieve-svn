@@ -15,6 +15,7 @@ from minds import weblib
 from minds.weblib import graph
 from minds.weblib import query_wlib
 from minds.weblib import store
+from minds.weblib import util
 
 log = logging.getLogger('cgi.weblib')
 
@@ -30,16 +31,18 @@ def main(rfile, wfile, env):
         # rid based (note rid maybe -1)
         if path and path.startswith('go;'):
             doGoResource(wfile, req)
+        elif path and path == 'url':
+            doLaunchURL(wfile, req)
         elif path and path.startswith('snapshot'):
             weblibSnapshot.main(wfile, env, req.method, req.form, req.rid, path)
         elif path == 'form':
-            weblibForm.main(wfile, req)
+            doWeblibForm(wfile, req)
         else:
             # show form by default
-            weblibForm.main(wfile, req)
+            doWeblibForm(wfile, req)
 
     elif req.tid:
-        weblibTagForm.main(wfile, req)
+        doweblibTagForm(wfile, req)
 
     else:
         # query
@@ -65,6 +68,24 @@ def main(rfile, wfile, env):
             queryRoot(wfile, req)
 
 
+def doWeblibForm(wfile, req):
+    try:
+        reload(weblibForm)  # reload for development convenience
+    except:
+        pass                # doesn't work in py2exe service version. But it's OK.
+    # delegate to another CGI variant
+    weblibForm.main(wfile, req)
+
+
+def doweblibTagForm(wfile, req):
+    try:
+        reload(weblibTagForm)   # reload for development convenience
+    except:
+        pass                    # doesn't work in py2exe service version. But it's OK.
+    # delegate to another CGI variant
+    weblibTagForm.main(wfile, req)
+
+
 def doGoResource(wfile, req):
     # the path are really for user's information only.
     # rid alone determines where to go.
@@ -76,6 +97,26 @@ def doGoResource(wfile, req):
 
     item = wlib.visit(item)
     response.redirect(wfile, item.url)
+
+
+def doLaunchURL(wfile, req):
+    wlib = store.getWeblib()
+    item = wlib.webpages.getById(req.rid)
+    if not item:
+        wfile.write('404 not found\r\n\r\n%s not found' % req.rid)
+        return
+
+    if util.isFileURL(item.url):
+        # TODO: HACK win32 only??
+        # TODO: It is dangerous to launch anything could be executable or script
+        from minds.weblib.win32 import ntfs_util
+        ntfs_util.launch(item.url)
+        wfile.write('Cache-control: no-cache\r\n')
+        wfile.write('\r\n')
+        wfile.write('ok')
+    else:
+        response.redirect(wfile, item.url)
+
 
 
 # ------------------------------------------------------------------------
@@ -452,7 +493,14 @@ class WeblibRenderer(response.CGIRenderer):
             node = node.placeHolder
             node.checkbox.atts['name'] = str(webitem.id)
             node.itemDescription.content = unicode(webitem)
-            node.itemDescription.atts['href'] = webitem.url
+            if util.isFileURL(webitem.url):
+                node.itemDescription.atts['href'] = '%s/%s/url#%s' % (
+                    request.WEBLIB_URL,
+                    webitem.id,
+                    urllib.quote(webitem.url, ':/'),
+                    )
+            else:
+                node.itemDescription.atts['href'] = webitem.url
             node.itemDescription.atts['title'] = '%s %s' % (webitem.modified, webitem.description)
             node.itemTag.tag.repeat(self.renderWebItemTag, webitem.tags)
             node.edit.atts['href'] %= webitem.id

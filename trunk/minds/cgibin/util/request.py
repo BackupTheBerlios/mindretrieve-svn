@@ -4,34 +4,38 @@ import urllib
 WEBLIB_URL = '/weblib'
 
 """
-URL                         method (default GET)      description
-------------------------------------------------------------------------------
-weblib                                                query or weblib home page
+URL                         method (default GET)  description
+--------------------------------------------------------------------------
+weblib                                            query or weblib home page
 
-weblib?tag=xx,yy                                      show tag
+weblib?tag=xx,yy                                  show tag
 
-weblib?query=xx&tag=yy                                search xx
+weblib?query=xx&tag=yy                            search xx
 
 [Resources/webpage]
-weblib/_                    GET                       new entry
+weblib/_                    GET                   new entry
                             PUT
 
-weblib/%id                  GET, same as form?        entry %id
+weblib/%id                  GET, same as form?    entry %id
                             PUT
                             DELETE
 
-weblib/%id/form                                       form for entry %id
+weblib/%id/form                                   form for entry %id
 
 weblib/%id/snapshot
 
 weblib/%id/snapshot?cid=
 
-weblib/%id/go;http://xyz                              Redirect to page
+weblib/%id/go;http://xyz                          Redirect to page              <-- (migrate to /url?)
+
+weblib/%id/url#file:///c:/acb                     Launch the (file) URL
+                                                  note: the fragment is only for
+                                                  user's info. Not sent to server
 
 [tag]
-weblib/@%tid                GET (not supported)       tag %id
+weblib/@%tid                GET (not supported)   tag %id
 
-weblib/@%tid?               POST                      change tag setting
+weblib/@%tid?               POST                  change tag setting
     category_collapse=on/off
 
 """

@@ -4,6 +4,7 @@ import os
 import sets
 import sys
 import urllib
+import urlparse
 from xml.sax import saxutils
 
 from minds.config import cfg
@@ -12,6 +13,8 @@ from minds.cgibin.util import response
 from minds import weblib
 from minds.weblib import query_wlib
 from minds.weblib import store
+from minds.weblib import util as weblib_util
+from minds.weblib.win32 import ntfs_util
 
 log = logging.getLogger('cgi.wlibFm')
 
@@ -108,13 +111,16 @@ class Bean(object):
             if not matches:
                 # Case 2. this is a new webpage
                 today = datetime.date.today().isoformat()
-                item = weblib.WebPage(
-                    name        = req.param('title'),
-                    url         = url,
-                    description = req.param('description'),
-                    modified    = today,
-                    lastused    = today,
-                )
+                if weblib_util.isFileURL(url):
+                    item, tags = ntfs_util.makeWebPage(url)
+                else:
+                    item = weblib.WebPage(
+                        name        = req.param('title'),
+                        url         = url,
+                        description = req.param('description'),
+                        modified    = today,
+                        lastused    = today,
+                    )
 
                 if wlib.getDefaultTag():
                     item.tags = [wlib.getDefaultTag()]

@@ -14,7 +14,8 @@ import urlparse
 
 import pythoncom
 import pywintypes
-import win32com.client
+#import win32com.client
+from win32com import storagecon
 
 from minds.weblib import util
 from toollib.path import path
@@ -95,35 +96,84 @@ def updateWebPage(page):
 
 def _readProp(pathname):
     """
-    Read file properties using COM helper.
+    Read file properties using IPropertySetStorage.
     @return - (title, comments, category)
     """
-    pythoncom.CoInitialize()    # HACK need this per thread
-    doc = win32com.client.Dispatch("DSOFile.OleDocumentProperties")
-    doc.open(pathname)
+    pss = None
+    pssum = None
+    psdocs = None
     try:
-        summary = doc.SummaryProperties
-        result = summary.Title, summary.Comments, summary.Category
+      try:
+        ##  file, mode, format, attrs (always 0), IID (IStorage or IPropertySetStorage, storage options(only used with STGFMT_DOCFILE)
+        pss=pythoncom.StgOpenStorageEx(pathname,
+            storagecon.STGM_READWRITE | storagecon.STGM_SHARE_EXCLUSIVE,
+            storagecon.STGFMT_FILE,
+            0 ,
+            pythoncom.IID_IPropertySetStorage)
+
+        pssum = pss.Open(pythoncom.FMTID_SummaryInformation, storagecon.STGM_READ | storagecon.STGM_SHARE_EXCLUSIVE)
+        title, comments = pssum.ReadMultiple((storagecon.PIDSI_TITLE, storagecon.PIDSI_COMMENTS))
+
+        psdocs = pss.Open(pythoncom.FMTID_DocSummaryInformation, storagecon.STGM_READ | storagecon.STGM_SHARE_EXCLUSIVE)
+        category = psdocs.ReadMultiple((storagecon.PIDDSI_CATEGORY,))[0]
+
+        return title, comments, category
+
+      except pywintypes.com_error, e:
+        #import traceback
+        #traceback.print_exc()
+        # STG_E_FILENOTFOUND or STG_E_ACCESSDENIED?
+        return ('','','')
+
     finally:
-        doc.close()
-    return result
+        ## doesn't seem to be a close or release method, and you can't even reopen it from the same process until previous object is gone
+        psdocs = None
+        pssum = None
+        pss = None
 
 
 def _writeProp(pathname, title, comments, category):
     """
-    Write file properties using COM helper.
+    Write file properties using IPropertySetStorage.
     """
-    pythoncom.CoInitialize()    # HACK need this per thread
-    doc = win32com.client.Dispatch("DSOFile.OleDocumentProperties")
-    doc.open(pathname)
+    # code base on pywin32 - win32com\test\testStorage.py
+    pss = None
+    pssum = None
+    psdocs = None
     try:
-        summary = doc.SummaryProperties
-        summary.title = title
-        summary.comments = comments
-        summary.category = category
-        doc.save()
+        ##  file, mode, format, attrs (always 0), IID (IStorage or IPropertySetStorage, storage options(only used with STGFMT_DOCFILE)
+        pss=pythoncom.StgOpenStorageEx(pathname,
+            storagecon.STGM_READWRITE | storagecon.STGM_SHARE_EXCLUSIVE,
+            storagecon.STGFMT_FILE,
+            0 ,
+            pythoncom.IID_IPropertySetStorage)
+
+        pssum = _openPropertySet(pss, pythoncom.FMTID_SummaryInformation)
+        pssum.WriteMultiple((storagecon.PIDSI_TITLE,storagecon.PIDSI_COMMENTS),(title, comments))
+
+        psdocs = _openPropertySet(pss, pythoncom.FMTID_DocSummaryInformation)
+        psdocs.WriteMultiple((storagecon.PIDDSI_CATEGORY,),(category,))
+
     finally:
-        doc.close()
+        ## doesn't seem to be a close or release method, and you can't even reopen it from the same process until previous object is gone
+        psdocs = None
+        pssum = None
+        pss = None
+
+
+def _openPropertySet(pss, fmtid):
+    """ Helper to open fmtid. Create if not already exist """
+    try:
+        # try Open() first
+        ps=pss.Open(fmtid, storagecon.STGM_READWRITE|storagecon.STGM_SHARE_EXCLUSIVE)
+    except pywintypes.com_error, e:
+        if e.args[1] != 'STG_E_FILENOTFOUND': raise
+        # if STG_E_FILENOTFOUND try Create()
+        ps=pss.Create(fmtid,
+                      pythoncom.IID_IPropertySetStorage,
+                      storagecon.PROPSETFLAG_DEFAULT,
+                      storagecon.STGM_READWRITE|storagecon.STGM_CREATE|storagecon.STGM_SHARE_EXCLUSIVE)
+    return ps
 
 
 def main(argv):

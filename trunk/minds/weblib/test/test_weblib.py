@@ -218,5 +218,34 @@ class TestWeblib(unittest.TestCase):
         ])
 
 
+    def test_makeTags(self):
+        # before
+        wlib = self.store.wlib
+        self.assertEqual(len(wlib.tags), 6)
+
+        # makeTags() with existing tags
+        tags = weblib.makeTags(self.store, 'English,Kremlin')
+        self.assertEqual(len(tags), 2)
+        self.assertEqual(len(wlib.tags), 6)
+
+        # makeTags() with new tags
+        tags = weblib.makeTags(self.store, 'T1,T2,T3')
+        self.assertEqual(len(tags), 3)
+        self.assertEqual(len(wlib.tags), 9)
+
+        # makeTags() with existing and new tags
+        tags = weblib.makeTags(self.store, 'T4,T5,English,Kremlin')
+        self.assertEqual(len(tags), 4)
+        self.assertEqual(len(wlib.tags), 11)
+
+
+    def test_makeTags_invalid(self):
+        self.assertRaises( ValueError,
+            weblib.makeTags,
+            self.store,
+            '@100',
+            )
+
+
 if __name__ == '__main__':
     unittest.main()

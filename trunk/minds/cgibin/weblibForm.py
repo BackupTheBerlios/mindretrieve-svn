@@ -62,8 +62,6 @@ class Bean(object):
         else:
             self.oldItem = None
 
-        # tags string as entered by user
-        self.tags = ''
         # tags not known
         self.newTags = sets.Set()
         self.create_tags = req.param('create_tags')
@@ -135,7 +133,8 @@ class Bean(object):
                 # are going to redirect the request to the proper rid.
 
         self.item = item
-        self.tags  = ', '.join([l.name for l in item.tags])
+        # construct tags_description for editing
+        self.item.tags_description  = ', '.join([l.name for l in item.tags])
 
 
     def _parse_PUT(self, req):
@@ -174,8 +173,9 @@ class Bean(object):
     def _parseTags(self, req):
         """ Parse the 'tags' parameter. Check for exsiting and new tags. """
         wlib = store.getWeblib()
-        self.tags = req.param('tags')
-        self.item.tags, self.newTags = weblib.parseTags(wlib, self.tags)
+        tags_description = req.param('tags')
+        self.item.tags, self.newTags = weblib.parseTags(wlib, tags_description)
+        self.item.tags_description = tags_description
 
 
     def validate(self):
@@ -215,16 +215,11 @@ def doPutResource(wfile, req, bean):
         FormRenderer(wfile).output(bean)
         return
 
+    item = bean.item
     if bean.newTags:
         assert bean.create_tags
-        for t in bean.newTags:
-            l = weblib.Tag(name=unicode(t))
-            store.getStore().writeTag(l)
-        # reparse after created tags
-        bean._parseTags(req)
-        assert not bean.newTags
+        item.tags = weblib.makeTags(store.getStore(), item.tags_description)
 
-    item = bean.item
     if item.id < 0:
         log.info('Adding WebPage: %s' % unicode(item))
         store.getStore().writeWebPage(item)
@@ -289,7 +284,7 @@ class FormRenderer(response.CGIRenderer):
             form.url        .atts['value'] = item.url
             form.url_link   .atts['href']  = item.url
             form.description.content       = item.description
-            form.tags       .atts['value'] = bean.tags
+            form.tags       .atts['value'] = bean.item.tags_description
             form.modified   .atts['value'] = item.modified
             form.lastused   .atts['value'] = item.lastused
             form.cached     .atts['value'] = item.cached

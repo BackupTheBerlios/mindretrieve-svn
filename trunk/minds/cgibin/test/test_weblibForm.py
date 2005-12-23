@@ -54,6 +54,7 @@ class TestWeblibForm(test_weblib.TestCGIBase):
   def test_PUT_new(self):
     wlib = self.wlib
     self.assertEqual(len(wlib.webpages),5)
+    self.assertEqual(len(wlib.tags),6)
     self.failIf(query_wlib.find_url(wlib,'http://abc.com/'))
 
     # PUT new form
@@ -61,6 +62,8 @@ class TestWeblibForm(test_weblib.TestCGIBase):
             'method': 'PUT',
             'url': 'http://abc.com/',
             'title': 'Test Title',
+            'tags': 'new tag1, new tag2',
+            'create_tags': '1',
         }),[
         'HTTP/1.0 302 Found',
         'location: /updateParent',
@@ -68,6 +71,7 @@ class TestWeblibForm(test_weblib.TestCGIBase):
 
     # one item has added
     self.assertEqual(len(wlib.webpages),6)
+    self.assertEqual(len(wlib.tags),8)
     self.assert_(query_wlib.find_url(wlib,'http://abc.com/'))
 
 

@@ -40,10 +40,14 @@ class WebPage(object):
         cached      ='',
         archived    ='',
         flags       ='',
-    ):
+        ):
         # put all parameter values as instance variable
         self.__dict__.update(locals())
         del self.self
+        # This serve as a place holder for a string tags description for
+        # editing (e.g. from web form). Once it is finalized it should
+        # be converted into the list of object references in tags.
+        self.tags_description = None
 
     def __copy__(self):
         item = WebPage(
@@ -58,6 +62,7 @@ class WebPage(object):
             archived    = self.archived     ,
             flags       = self.flags        ,
         )
+        item.tags_description = self.tags_description
         return item
 
     def __str__(self):
@@ -465,14 +470,14 @@ def parseTag(wlib, nameOrId):
         return wlib.tags.getByName(nameOrId)
 
 
-def parseTags(wlib, tag_names):
+def parseTags(wlib, tags_description):
     """
-    Parse comma separated tag names.
+    Parse comma separated tags_description.
     @return: list of tags and list of unknown tag names.
     """
     tags = []
     unknown = []
-    for name in tag_names.split(','):
+    for name in tags_description.split(','):
         name = name.strip()
         if not name:
             continue
@@ -483,6 +488,27 @@ def parseTags(wlib, tag_names):
             unknown.append(name)
     tags.sort()
     return tags, unknown
+
+
+def makeTags(store, tags_description):
+    """
+    Parse comma separated tags_description.
+    Create tags if not already in repository.
+    @return: list of tags
+    """
+
+    # Sanity check. UI should have block this already?
+    d1 = tags_description.replace(',',' ')  # ',' is valid separator
+    if Tag.hasIllegalChar(d1):
+        raise ValueError('Illegal characters for tags in "%s"' % tags_description)
+
+    tags, unknown = parseTags(store.wlib, tags_description)
+    for name in unknown:
+        newTag = Tag(name=name)
+        tag = store.writeTag(newTag)
+        tags.append(tag)
+        log.debug(u'Added tag: %s' % unicode(tag))
+    return tags
 
 
 def sortTags(tags):

@@ -127,18 +127,6 @@ def doShowForm(wfile, req, errors=[], checklist=[], new_tags=[]):
         )
 
 
-def _create_tags(wlib, names):
-    """ Return list of Tags created from the names list. """
-    lst = []
-    for name in names:
-        tag = wlib.tags.getByName(name)
-        if not tag:
-            tag = weblib.Tag(name=name)
-            tag = wlib.store.writeTag(tag)
-        lst.append(tag)
-    return lst
-
-
 def doPost(wfile, req):
     wlib = store.getWeblib()
     entries = _buildEntries(req)
@@ -146,36 +134,36 @@ def doPost(wfile, req):
     errors = []
 
     # parse add tags
-    add_tags = req.param('add_tags')
-    add_tags, unknown = weblib.parseTags(wlib, add_tags)
+    tags_description = req.param('add_tags')
+    if weblib.Tag.hasIllegalChar(tags_description.replace(',',' ')):
+        errors.append('These characters are not allowed in tag name: ' + weblib.Tag.ILLEGAL_CHARACTERS)
+        tags_description = ''
+
+    # check for new tags and the create_tags flag
+    _, unknown = weblib.parseTags(wlib, tags_description)
+    if unknown and (not req.param('create_tags')):
+        tags = u', '.join(unknown)
+        errors.append('These tags are not previous used: ' + tags)
+        tags_description = ''
+
+    # note: validation should be done, new tags will be created here
+    set_tags = weblib.makeTags(store.getStore(), tags_description)
     remove_tags = []
 
-    # going through checklist, add to add_tags, delete_tags
+    # going through checklist, add to set_tags, delete_tags
     for tag, flag in checklist:
-        if flag and tag not in add_tags:
-            add_tags.append(tag)
+        if flag:
+            if tag not in set_tags:
+                set_tags.append(tag)
         else:
             remove_tags.append(tag)
-
-    # any new tags?
-    if unknown:
-        if weblib.Tag.hasIllegalChar(''.join(unknown)):
-            errors.append('These characters are not allowed in tag name: ' + weblib.Tag.ILLEGAL_CHARACTERS)
-            unknown = ''
-        else:
-            if req.param('create_tags'):
-                new_tags = _create_tags(wlib,unknown)
-                add_tags.extend(new_tags)
-            else:
-                tags = u', '.join(unknown)
-                errors.append('These tags are not previous used: ' + tags)
 
     if errors:
         doShowForm(wfile, req, errors, checklist=checklist, new_tags=unknown)
         return
 
-    log.debug('EditTags for %s entries add(%s) remove(%s).', len(entries), add_tags, remove_tags)
-    wlib.editTags(entries, [], add_tags, remove_tags)
+    log.debug('EditTags for %s entries set(%s) remove(%s).', len(entries), set_tags, remove_tags)
+    wlib.editTags(entries, [], set_tags, remove_tags)
 
     response.redirect(wfile, '/updateParent')
 

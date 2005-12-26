@@ -502,12 +502,17 @@ def makeTags(store, tags_description):
     if Tag.hasIllegalChar(d1):
         raise ValueError('Illegal characters for tags in "%s"' % tags_description)
 
-    tags, unknown = parseTags(store.wlib, tags_description)
+    _, unknown = parseTags(store.wlib, tags_description)
     for name in unknown:
         newTag = Tag(name=name)
         tag = store.writeTag(newTag)
-        tags.append(tag)
         log.debug(u'Added tag: %s' % unicode(tag))
+
+    if unknown:
+        # parseTags() again to get a list of all Tags (in input order)
+        tags, unknown = parseTags(store.wlib, tags_description)
+        assert not unknown
+
     return tags
 
 

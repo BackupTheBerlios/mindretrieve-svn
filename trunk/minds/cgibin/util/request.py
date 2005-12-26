@@ -82,7 +82,7 @@ class WeblibRequest(Request):
                 self.tid = int(resource[1:])
             except ValueError:
                 pass
-        else:
+        elif resource[0:1].isdigit():
             try:
                 self.rid = int(resource)
             except ValueError:
@@ -90,6 +90,8 @@ class WeblibRequest(Request):
 
         if len(resources) > 1:
             self.path = resources[1]
+        else:
+            self.path = resources[0]
 
 
     def __str__(self):

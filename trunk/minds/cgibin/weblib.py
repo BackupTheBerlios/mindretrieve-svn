@@ -25,9 +25,9 @@ def main(rfile, wfile, env):
 
     req = request.WeblibRequest(rfile, env)
     log.debug(unicode(req))
+    path = req.path
 
     if req.rid:
-        path = req.path
         # rid based (note rid maybe -1)
         if path and path.startswith('go;'):
             doGoResource(wfile, req)
@@ -45,27 +45,32 @@ def main(rfile, wfile, env):
         doweblibTagForm(wfile, req)
 
     else:
-        # query
-        querytxt = req.param('query')
-        tag = req.param('tag')
-
-        # redirect to default tag (if it is defined)
-        if not ('tag' in req.form or querytxt):
-            dt = wlib.getDefaultTag()
-            if dt:
-                url = request.tag_url([dt])
-                response.redirect(wfile, url)
-                return
-
-        if req.param('action') == 'cancel':
-            response.redirect(wfile, request.WEBLIB_URL)
-
-        if tag:
-            queryTag(wfile, req, tag)
-        elif querytxt:
-            queryWebLib(wfile, req, tag, querytxt)
+        if path == 'load':
+            doLoad(wfile, req)
+        elif path == 'save':
+            doSave(wfile, req)
         else:
-            queryRoot(wfile, req)
+            # query
+            querytxt = req.param('query')
+            tag = req.param('tag')
+
+            # redirect to default tag (if it is defined)
+            if not ('tag' in req.form or querytxt):
+                dt = wlib.getDefaultTag()
+                if dt:
+                    url = request.tag_url([dt])
+                    response.redirect(wfile, url)
+                    return
+
+#            if req.param('action') == 'cancel':
+#                response.redirect(wfile, request.WEBLIB_URL)
+
+            if tag:
+                queryTag(wfile, req, tag)
+            elif querytxt:
+                queryWebLib(wfile, req, tag, querytxt)
+            else:
+                queryRoot(wfile, req)
 
 
 def doWeblibForm(wfile, req):
@@ -116,6 +121,20 @@ def doLaunchURL(wfile, req):
         wfile.write('ok')
     else:
         response.redirect(wfile, item.url)
+
+
+def doLoad(wfile, req):
+    wlib = store.getWeblib()
+    store.getStore().load()
+    wfile.write('200 ok\r\n\r\n')
+    wfile.write('Load %s pages %s tags' % (len(wlib.webpages), len(wlib.tags)))
+
+
+def doSave(wfile, req):
+    wlib = store.getWeblib()
+    store.getStore().save()
+    wfile.write('200 ok\r\n\r\n')
+    wfile.write('saved %s pages %s tags' % (len(wlib.webpages), len(wlib.tags)))
 
 
 
@@ -289,7 +308,7 @@ def queryWebLib(wfile, req, tag, querytxt):
     # quick jump?
     if go_direct and result:
         top_item = result[0][0]
-        top_item = wlib.visit(top_item)
+        #top_item = wlib.visit(top_item)
         response.redirect(wfile, top_item.url)
         return
 

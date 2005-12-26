@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 import datetime
+import os
+import os.path
 import sets
 import StringIO
 import sys
@@ -53,6 +55,53 @@ class TestStore(unittest.TestCase):
 
     def test_init(self):
         self._assert_weblib_size(0, 0)
+
+
+    def test_getWriter(self):
+        # test _getWriter() prepare fp for non-exist or 0 size file.
+        stor = store.Store()
+
+        # ------------------------------------------------------------------------
+        # make sure weblib file does not exist
+        try:
+            os.remove(stor.pathname)
+        except OSError:
+            pass
+        self.assert_(not os.path.exists(stor.pathname))
+
+        # test _getWriter() probably write headers for non-exist file
+        out = stor._getWriter()
+        self.assert_(os.path.exists(stor.pathname))
+        self.assert_(os.path.getsize(stor.pathname) > 0)
+
+        # test current position is > 0
+        # write some dummy chars to initialize tell()?
+        out.write('#\n')
+        self.assert_(out.tell() > 2)
+
+        stor.reset()
+
+        # ------------------------------------------------------------------------
+        # make it a 0 size file
+        fp = file(stor.pathname,'wb')
+        fp.close()
+        self.assert_(os.path.getsize(stor.pathname) == 0)
+
+        # test _getWriter() probably write headers for 0 size file
+        out = stor._getWriter()
+        self.assert_(os.path.exists(stor.pathname))
+        self.assert_(os.path.getsize(stor.pathname) > 0)
+
+        # test current position is > 0
+        # write some dummy chars to initialize tell()?
+        out.write('#\n')
+        self.assert_(out.tell() > 2)
+
+        stor.reset()
+
+        # ------------------------------------------------------------------------
+        # clean up
+        os.remove(stor.pathname)
 
 
     def test_write_header(self):

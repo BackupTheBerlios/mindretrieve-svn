@@ -85,12 +85,14 @@ import logging
 import os
 import re
 import string
+import StringIO
 import sys
 import threading
 
 from minds.config import cfg
 from minds import weblib
 from minds.util import dsv
+from minds.weblib import util
 
 
 log = logging.getLogger('wlib.store')
@@ -142,6 +144,27 @@ Is this protocol too problematic to use in practice?
 #'\s*[\!\#\$\%\&\'\*\+\-\.0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ\\\^\_\`abcdefghijklmnopqrstuvwxyz\~]+\s*:'
 
 
+
+# ------------------------------------------------------------------------
+# Define writeFileMetaData for each OS
+# Current only NTFS is supported
+
+def nt_updateFileMetaData(item):
+    from minds.weblib.win32 import ntfs_util
+    p = ntfs_util.updateWebPage(item)
+    if p:
+        log.debug('updateFileMetaData: %s' % p)
+
+def dummy_updateFileMetaData():
+    pass
+
+updateFileMetaData = dummy_updateFileMetaData
+
+if os.name == 'nt':
+    updateFileMetaData = nt_updateFileMetaData
+
+
+
 TIMESTAMP_FORMAT = 'YYYY-MM-DD HH:MM:SS'
 
 def _getTimeStamp():
@@ -189,10 +212,37 @@ class Store(object):
         # reset filename?
 
 
-    def _getWriter(self, mode='a+b'):
-        if not self.writer:
-            fp = file(self.pathname, mode)
-            self.writer = codecs.getwriter(self.ENCODING)(fp,'replace')
+    def _getWriter(self):
+        """
+        Return a writer object for updating. Use the cached writer if possible.
+        """
+        if self.writer:
+            return self.writer
+        if not os.path.isfile(self.pathname) or os.path.getsize(self.pathname) == 0:
+            # file not exist? Use save() to write headers first
+            self.save()
+
+# Note: There is a small issue about timing of calling save(). The sequence of
+# events is depicted below:
+#
+#   writeTag()
+#
+#   line = ..change record..
+#
+#   _interpretRecord(line)      a record is added to wlib
+#                               (any error is checked before _log())
+#   _log()
+#
+#   _getWriter()
+#
+#   save()                      have the newly added record
+#
+#   write(line)                 write the change record
+#
+# This case the record to have written twice by the last two steps.
+
+        fp = file(self.pathname, 'a+b')
+        self.writer = codecs.getwriter(self.ENCODING)(fp,'replace')
         return self.writer
 
 
@@ -242,7 +292,11 @@ class Store(object):
                 use_disk_file = False
             else:
                 use_disk_file = True
-                fp = file(self.pathname, 'rb')
+                if not os.path.isfile(self.pathname):
+                    log.info('Weblib file not exist. Start from an empty library: %s' % self.pathname)
+                    fp = StringIO.StringIO()    # dummy
+                else:
+                    fp = file(self.pathname, 'rb')
 
             try:
                 reader = codecs.getreader(self.ENCODING)(fp,'replace')
@@ -287,11 +341,12 @@ class Store(object):
                 if use_disk_file:
                     fp.close()
 
+            # For testing?
+            # attach buffer fp to attach to self.writer for appending change records.
             if not use_disk_file:
                 # seek to EOF
                 fp.seek(0,2)
-                # attach fp to self.writer for appending change records.
-                # I guess this is just for testing and it won't get closed, right?
+                # don't close it or you would this buffer
                 self.writer = codecs.getwriter(self.ENCODING)(fp,'replace')
 
             # post-processing, convert tagIds to tag
@@ -514,6 +569,11 @@ class Store(object):
             # shred the input webpage
             webpage.__dict__.clear()    # TODO: this would only raise AttributeError for caller. Make better error message?
 
+            # 2005-12-20 TODO Review if this is the best place for this
+            # If it is a file URL, try to save the meta data with the file also (if the OS support).
+            if util.isFileURL(newItem.url):
+                updateFileMetaData(newItem)
+
             return newItem
 
         finally:
@@ -659,15 +719,19 @@ class Store(object):
                     fp.close()
 
             if use_temp_file:
-                try:
-                    # In posix, rename atomically replace old file with new
-                    os.rename(pathname, backup_pathname)
-                    os.rename(tmp_pathname, pathname)
-                except OSError:
-                    # For Windows, delete before rename. Not atomic.
-                    os.remove(backup_pathname)
-                    os.rename(pathname, backup_pathname)
-                    os.rename(tmp_pathname, pathname)
+#                print >>sys.stderr, 'v -', tmp_pathname
+#                print >>sys.stderr, 'v -', pathname
+#                print >>sys.stderr, 'v -', backup_pathname
+                if os.path.isfile(pathname):
+                    # backup existing file first
+                    try:
+                        # In posix, rename atomically replace old file with new
+                        os.rename(pathname, backup_pathname)
+                    except OSError:
+                        # For Windows, delete before rename. Not atomic.
+                        os.remove(backup_pathname)
+                        os.rename(pathname, backup_pathname)
+                os.rename(tmp_pathname, pathname)
 
         finally:
             self.lock.release()

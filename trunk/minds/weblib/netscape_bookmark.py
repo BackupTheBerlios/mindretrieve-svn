@@ -2,10 +2,8 @@
 Import Netscape bookmark.
 """
 
-import datetime
 import codecs
 import logging
-import StringIO
 import sys
 import urllib
 
@@ -18,7 +16,7 @@ from minds.weblib import store
 from minds.util import html_pull_parser
 from minds.util.html_pull_parser import DATA, TAG, ENDTAG, COMMENT
 
-log = logging.getLogger('wlib.nscpe')
+log = logging.getLogger('imp.nscape')
 
 
 class PushBackIterator(object):
@@ -42,12 +40,12 @@ class PushBackIterator(object):
         self.backItem = item
 
 
-def _get_attr(name_value_pair, attr):
+def _get_attr(name_value_pair, attr, default=None):
     """ find value corresponding to attr among list of (name,value) """
     for n,v in name_value_pair:
         if n == attr:
             return v
-    return None
+    return default
 
 
 def _join_text(lst):
@@ -114,7 +112,7 @@ def parseItem(tokens):
         if kind == DATA:
             description.append(data)
         elif kind == TAG and data == 'a':
-            title, url = parseLink(tokens, attrs)
+            title, url, created, modified = parseLink(tokens, attrs)
         elif kind == TAG and data == 'dd':
             dd_description = parseDescription(tokens)
         elif data in ('dl', 'dt'):
@@ -125,16 +123,23 @@ def parseItem(tokens):
     description = _join_text(description)
     description = dd_description or description
 
+
     # it is either a Folder or Bookmark
     if title != None:
-        return import_util.Bookmark(title, url, description)
+        return import_util.Bookmark(title, url, description, created, modified)
     else:
         return import_util.Folder(description)
 
 
 def parseLink(tokens, attrs):
     # <a>
-    url = _get_attr(attrs, 'href')
+    url           = _get_attr(attrs, 'href')
+    last_modified = _get_attr(attrs, 'last_modified')
+    add_date      = _get_attr(attrs, 'add_date')
+
+    last_modified = import_util._ctime_str_2_iso8601(last_modified)
+    add_date      = import_util._ctime_str_2_iso8601(add_date)
+
     title = []
     for kind, data, attrs in tokens:
         if kind == DATA:
@@ -145,7 +150,7 @@ def parseLink(tokens, attrs):
             # malformed!
             tokens.push_back((kind,data,attrs))
             break
-    return _join_text(title), url
+    return _join_text(title), url, add_date, last_modified
 
 
 def parseDescription(tokens):

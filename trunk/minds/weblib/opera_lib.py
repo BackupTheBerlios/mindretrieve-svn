@@ -8,8 +8,9 @@ import sys
 
 from minds.config import cfg
 from minds import weblib
+from minds.weblib import import_util
 
-log = logging.getLogger('wlib.opera')
+log = logging.getLogger('imp.opera')
 
 FOLDER, URL, SEPERATOR, DASH = range(1,5)
 
@@ -40,7 +41,7 @@ def _parseAttr(lineReader):
 
 
 
-def parseRecords(rstream):
+def iterRecords(rstream):
 
     reader = codecs.getreader('utf8')(rstream,'replace')
     lineReader = enumerate(reader)
@@ -69,36 +70,19 @@ def parseRecords(rstream):
             log.warn('Unknown line %s - %s', lineno+1, line)
 
 
+def parseFile(fp):
+    root_folder = import_util.Folder('')
+    folder_stack = [root_folder]
 
-def load(rstream):
+    iterator = iterRecords(fp)
 
-    wlib = weblib.WebLibrary()
-    folder_stack = []
-
-    recordParser = parseRecords(rstream)
-
-    for lineno, type, name, attrs in recordParser:
+    for lineno, type, name, attrs in iterator:
 
         if type == FOLDER:
-            if not attrs.has_key('trashfolder'):
-                if not name:
-                    log.warn('Invalid name line %s', lineno+1)
-                    continue
-
-                tag = weblib.Tag(name=name)
-                try:
-                    wlib.addTag(tag)
-                except KeyError, e:
-                    log.info('line %s - %s', lineno+1, e)
-                    # not a problem, just use the existing tag
-                    tag = wlib.tags.getByName(name)
-
-                folder_stack.append(tag)
-
-            else:
+            if attrs.has_key('trashfolder'):
                 # skipping everything under the trash folder
                 trash_count = 1
-                for lineno, type, name, attrs in recordParser:
+                for lineno, type, name, attrs in iterator:
                     if type == FOLDER:
                         trash_count += 1
                         log.info('drop %s', name)
@@ -106,64 +90,59 @@ def load(rstream):
                         trash_count -= 1
                         if trash_count == 0:
                             break
+                continue
+
+            if not name:
+                log.warn('Invalid name line %s', lineno+1)
+                continue
+
+            folder = import_util.Folder(name)
+            folder_stack[-1].children.append(folder)
+            folder_stack.append(folder)
 
         elif type == URL:
             if not name:
                 log.warn('Invalid name line %s', lineno+1)
                 continue
 
-            try:
-                _modified = int(attrs.get('created',''))
-                _modified = datetime.date.fromtimestamp(_modified)
-                modified = _modified.isoformat()
-            except:
-                modified = ''
+            created  = attrs.get('created','')
+            created  = import_util._ctime_str_2_iso8601(created)
+            modified = attrs.get('visited','')
+            modified = import_util._ctime_str_2_iso8601(modified)
 
-            try:
-                _lastused = int(attrs.get('visited',''))
-                _lastused = datetime.date.fromtimestamp(_lastused)
-                lastused = _lastused.isoformat()
-            except:
-                lastused = ''
-
-            webpage = weblib.WebPage(
-                name        = name,
-                url         = attrs.get('url',''),
-                description = attrs.get('description',''),
-                tags        = folder_stack,
-                modified    = modified,
-                lastused    = lastused,
+            page = import_util.Bookmark(
+                name,
+                attrs.get('url',''),
+                attrs.get('description',''),
+                created,
+                modified,
             )
-            wlib.addWebPage(webpage)
+            folder_stack[-1].children.append(page)
 
         elif type == SEPERATOR:
             pass
 
         elif type == DASH:
-            if len(folder_stack) == 0:
-                log.warn('Unmatched "-" line %s', lineno+1)
+            if len(folder_stack) <= 1:
+                raise RuntimeError('Unmatched "-" line: %s' % (lineno+1,))
             else:
                 folder_stack.pop()
 
-    return wlib
+    return root_folder
 
 
-#
-#def main(argv):
-#
-#    if len(argv) < 3:
-#        print __doc__
-#        sys.exit(-1)
-#
-#    # load
-#    wlib = load(file(argv[1],'rb'))
-#
-#    # save
-#    fp = file(argv[2],'wb')
-#    import minds_lib
-#    minds_lib.save(fp, wlib)
-#    fp.close()
-#
-#
-#if __name__ == '__main__':
-#    main(sys.argv)
+def import_bookmark(pathname):
+    fp = file(pathname,'rb')
+    root_folder = parseFile(fp)
+    import_util.import_tree(root_folder)
+
+
+def main(argv):
+    pathname = argv[1]
+    import_bookmark(pathname)
+
+
+if __name__ =='__main__':
+    sys.stdout = codecs.getwriter('utf8')(sys.stdout,'replace')
+    sys.stderr = codecs.getwriter('utf8')(sys.stderr,'replace')
+    main(sys.argv)

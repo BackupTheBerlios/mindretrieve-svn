@@ -3,6 +3,7 @@ Import Netscape bookmark.
 """
 
 import codecs
+import datetime
 import logging
 import StringIO
 import sys
@@ -16,6 +17,15 @@ from minds.weblib import store
 from minds.util import fileutil
 
 log = logging.getLogger('wlib.imprt')
+
+
+def _ctime_str_2_iso8601(s):
+    if not s: return ''
+    try:
+        dt = datetime.date.fromtimestamp(int(s))
+    except ValueError:
+        return ''
+    return dt.isoformat()
 
 
 class Folder(object):
@@ -40,11 +50,13 @@ class Folder(object):
 
 
 class Bookmark(object):
-    def __init__(self, name, url='', description=''):
-        self.name = name
-        self.url = url
+    def __init__(self, name, url='', description='', created='', modified=''):
+        self.name        = name
+        self.url         = url
         self.description = description
-        self.tags = ''
+        self.created     = created
+        self.modified    = modified
+        self.tags        = ''
 
     def __repr__(self):
         return u'%s (%s)' % (self.name, self.url)
@@ -88,6 +100,8 @@ def _add_item(item):
             'url':         item.url.encode('utf-8'),
             'description': item.description.encode('utf-8'),
             'tags':        item.tags.encode('utf-8'),
+            'modified':    item.modified,
+            'lastused':    item.created,            #######HACK HACK HACK
             'create_tags': '1',
         })
 

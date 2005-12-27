@@ -12,6 +12,11 @@ weblib?tag=xx,yy                                  show tag
 
 weblib?query=xx&tag=yy                            search xx
 
+weblib/load                                       [temporary?]
+
+weblib/save                                       [temporary?]
+
+
 [Resources/webpage]
 weblib/_                    GET                   new entry
                             PUT
@@ -70,28 +75,28 @@ class WeblibRequest(Request):
         # parse rid, tid and path for the /weblib URI scheme
         self.rid = None
         self.tid = None
-        self.path = ''
+        self.path = env.get('PATH_INFO', '').lstrip('/')
 
-        # /a/b/c -> [a,b/c]
-        resources = env.get('PATH_INFO', '').lstrip('/').split('/',1)
-        resource = resources[0]
-        if resource == '_':
+        # try to interpret path as 'id/path'
+        # if match, strip the id part from path
+        components = self.path.split('/',1)      # a/b/c -> ['a','b/c']
+        components.append('')                    # pad it to at least 2 elements
+        base = components[0]
+        if base == '_':
             self.rid = -1
-        elif resource.startswith('@'):
+            self.path = components[1]
+        elif base.startswith('@'):
             try:
-                self.tid = int(resource[1:])
+                self.tid = int(base[1:])
+                self.path = components[1]
             except ValueError:
                 pass
-        elif resource[0:1].isdigit():
+        elif base[0:1].isdigit():
             try:
-                self.rid = int(resource)
+                self.rid = int(base)
+                self.path = components[1]
             except ValueError:
                 pass
-
-        if len(resources) > 1:
-            self.path = resources[1]
-        else:
-            self.path = resources[0]
 
 
     def __str__(self):

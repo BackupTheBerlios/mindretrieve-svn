@@ -45,14 +45,19 @@ class TestRequest(unittest.TestCase):
         self.assertEqual(_rid_request(path='/_/form'), (-1,'form'))
         self.assertEqual(_rid_request(path='/1/')    , (1,''))
         self.assertEqual(_rid_request(path='/2')     , (2,''))
-        self.assertEqual(_rid_request(path='/x')     , (None,''))
+        self.assertEqual(_rid_request(path='/x')     , (None,'x'))
 
 
     def test_tid(self):
-        self.assertEqual(_tid_request(path='/@')      , (None,''))
         self.assertEqual(_tid_request(path='/@1/form'), (1,'form'))
         self.assertEqual(_tid_request(path='/@2')     , (2,''))
         self.assertEqual(_tid_request(path='/@3/x')   , (3,'x'))
+        self.assertEqual(_tid_request(path='/@')      , (None,'@'))
+
+
+    def test_others(self):
+        self.assertEqual(_tid_request(path='/load')    , (None,'load'))
+        self.assertEqual(_tid_request(path='/save/all'), (None,'save/all'))
 
 
     def test_param(self):

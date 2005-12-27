@@ -62,74 +62,80 @@ class Bookmark(object):
         return u'%s (%s)' % (self.name, self.url)
 
 
+class WalkState(object):
+    """ Keep the state of during traversal of folder tree """
+    def __init__(self):
+        self.update_count = 0
+        self.add_count = 0
+        self.cat_buf = StringIO.StringIO()
+        self.cat_buf.write('\n')
 
-def build_category(folder, cat_buf, path=None):
+
+def build_category(folder, state, path=None):
     """ walk the folder tree recursively and build the category description """
     if path == None:
         path = []
 
-    cat_buf.write('  ' * (len(path)-1))   # negative ok
-    cat_buf.write(folder.name)
-    cat_buf.write('\n')
+    state.cat_buf.write('  ' * (len(path)-1))   # negative is ok
+    state.cat_buf.write(folder.name)
+    state.cat_buf.write('\n')
+
+    wlib = store.getWeblib()
 
     path.append(folder)
     tags = ','.join([f.name for f in path])
     for item in folder.children:
         if isinstance(item, Folder):
-            build_category(item, cat_buf, path)
+            build_category(item, state, path)
         else:
-            item.tags = tags
-            _add_item(item)
+            page = weblib.WebPage(
+                name        = item.name,
+                url         = item.url,
+                description = item.description,
+                created     = item.created,
+                modified    = item.modified,
+                )
+            page.tags_description = tags
+            isNew, newPage = wlib.putWebPage(page)
+            if isNew:
+                state.update_count += 1
+            else:
+                state.add_count += 1
     path.pop()
 
 
-def _add_item(item):
-    # if it match existing item, make it an update
-    # otherwise the CGI would ask us to redirect, which we try to avoid
-    items = query_wlib.find_url(store.getWeblib(), item.url)
-    if items:
-        id = items[0].id
-    else:
-        id = '_'
-
-    # Add the item via CGI. Probably not the fastest.
-    # But there is less code to write and the API will become official
-    url = '/weblib/%s?' % id + urllib.urlencode({
-            'method':      'PUT',
-            'title':       item.name.encode('utf-8'),
-            'url':         item.url.encode('utf-8'),
-            'description': item.description.encode('utf-8'),
-            'tags':        item.tags.encode('utf-8'),
-            'modified':    item.modified,
-            'lastused':    item.created,            #######HACK HACK HACK
-            'create_tags': '1',
-        })
-
-    # faster via app_httpserver than socket?
-    buf = fileutil.aStringIO()
-    app_httpserver.handlePath(url, buf)
-
-    # check status
-    buf.seek(0)
-    status = buf.readline()
-    if ' 200 ' not in status and ' 302 ' not in status:
-        log.warn('Unable to add %s: %s' % (item.name, status))
-
-    return
-
-
 def import_tree(root_folder):
-    cat_buf = StringIO.StringIO()
-    cat_buf.write('\n')
-#    cat_buf.write('#------------------------------------------------------------------------')
-#    cat_buf.write('Netscape-Imported-Category-%s\n' % str(datetime.date.today()))
 
-    build_category(root_folder, cat_buf)
+    state = WalkState()
+    build_category(root_folder, state)
 
     # append cat_buf to category description
     wlib = store.getWeblib()
-    new_cat = wlib.category.getDescription() + cat_buf.getvalue()
+    new_cat = wlib.category.getDescription() + state.cat_buf.getvalue()
     wlib.category.setDescription(new_cat)
+
+    log.info('Import completed items added=%s updated=%s' % (state.add_count, state.update_count))
+
+
+def import_bookmarks(bookmarks):
+    wlib = store.getWeblib()
+    update_count = 0
+    add_count = 0
+    for b in bookmarks:
+        page = weblib.WebPage(
+            name        = b.name,
+            url         = b.url,
+            description = b.description,
+            created     = b.created,
+            modified    = b.modified,
+            )
+        page.tags_description = b.tags
+        isNew, newPage = wlib.putWebPage(page)
+        if isNew:
+            update_count += 1
+        else:
+            add_count += 1
+    log.info('Import completed items added=%s updated=%s' % (add_count, update_count))
 
 
 def main(argv):

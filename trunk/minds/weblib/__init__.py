@@ -30,20 +30,30 @@ TAG_DEFAULT = 'inbox'
 
 class WebPage(object):
 
-    def __init__(self, id=-1,
+    def __init__(self,
+        id          =-1,
         name        ='',
         url         ='',
         description ='',
         tags        =[],
+        created     ='',
         modified    ='',
         lastused    ='',
         cached      ='',
         archived    ='',
         flags       ='',
         ):
-        # put all parameter values as instance variable
-        self.__dict__.update(locals())
-        del self.self
+        self.id          = id
+        self.name        = name
+        self.url         = url
+        self.description = description
+        self.tags        = tags[:]
+        self.created     = created
+        self.modified    = modified
+        self.lastused    = lastused
+        self.cached      = cached
+        self.archived    = archived
+        self.flags       = flags
         # This serve as a place holder for a string tags description for
         # editing (e.g. from web form). Once it is finalized it should
         # be converted into the list of object references in tags.
@@ -56,6 +66,7 @@ class WebPage(object):
             url         = self.url          ,
             description = self.description  ,
             tags        = self.tags[:]      ,
+            created     = self.created      ,
             modified    = self.modified     ,
             lastused    = self.lastused     ,
             cached      = self.cached       ,
@@ -263,30 +274,30 @@ class WebLibrary(object):
         self.index_searcher = lucene_logic.Searcher(pathname=wpath)
 
 
-    # TODO: this is not used right now
-    def updateWebPage(self, item):
-        """
-        The item updated can be new or existing.
-        """
-        print >>sys.stderr, '## index %s' % item.name
-        return
-        self._delete_index(item)
-        scontent = self._get_snapshot_content(item)
-        print >>sys.stderr, '## ss [%s]' % scontent[:50]
-        content = '\n'.join([
-            item.name,
-            item.description,
-            scontent,
-        ])
-
-        self.index_writer.addDocument(
-            item.id,
-            dict(
-                uri=item.url,
-                date='',
-                ),
-            content,
-        )    # todo date
+#    # TODO: this is not used right now
+#    def updateWebPage(self, item):
+#        """
+#        The item updated can be new or existing.
+#        """
+#        print >>sys.stderr, '## index %s' % item.name
+#        return
+#        self._delete_index(item)
+#        scontent = self._get_snapshot_content(item)
+#        print >>sys.stderr, '## ss [%s]' % scontent[:50]
+#        content = '\n'.join([
+#            item.name,
+#            item.description,
+#            scontent,
+#        ])
+#
+#        self.index_writer.addDocument(
+#            item.id,
+#            dict(
+#                uri=item.url,
+#                date='',
+#                ),
+#            content,
+#        )    # todo date
 
 
     def _get_snapshot_content(self, item):
@@ -417,6 +428,50 @@ class WebLibrary(object):
     # ------------------------------------------------------------------------
     # Webpage methods
 
+    def putWebPage(self, page):
+        """
+        Put a webpage into the weblib. This is a higher level function
+        (compares to inserting a raw record). It updates some fields
+        according to the list below:
+
+        id              - ignored, either generates a new id or lookup an existing id
+        url             - used to match existing item in the wlib
+        modified        - if None, substitute with today
+        created         - if None, substitute with today or the value of the existing item
+        tags_description- if not None, used to build the tags list; create any new tags
+
+        @return - (isNew, newPage object)
+        """
+        today = datetime.date.today().isoformat()
+
+        import query_wlib
+        matches = query_wlib.find_url(self, page.url)
+        if matches:
+            old = matches[0]
+            page.id = old.id
+            if page.created is None:
+                page.created = old.created
+        else:
+            page.id = -1
+            if page.created is None:
+                page.created = today
+
+        if page.modified is None:
+            page.modified = today
+
+        if page.tags_description is not None:
+            page.tags = makeTags(self.store, page.tags_description)
+            page.tags_description = None
+
+        if page.id < 0:
+            log.info('Adding WebPage: %s' % unicode(page))
+        else:
+            log.info('Updating WebPage: %s' % unicode(page))
+        newPage = self.store.writeWebPage(page)
+
+        return bool(matches), newPage
+
+
     def visit(self, item):
         item.lastused = datetime.date.today().isoformat()
         return self.store.writeWebPage(item)
@@ -449,6 +504,8 @@ class WebLibrary(object):
                 item.tags = [t for t in item.tags if t not in remove_tags]
             self.store.writeWebPage(item)
 
+
+    # ------------------------------------------------------------------------
 
     def __repr__(self):
         return 'WebLibraray date=%s #tags=%s #pages=%s' % (
@@ -502,7 +559,7 @@ def makeTags(store, tags_description):
     if Tag.hasIllegalChar(d1):
         raise ValueError('Illegal characters for tags in "%s"' % tags_description)
 
-    _, unknown = parseTags(store.wlib, tags_description)
+    tags, unknown = parseTags(store.wlib, tags_description)
     for name in unknown:
         newTag = Tag(name=name)
         tag = store.writeTag(newTag)

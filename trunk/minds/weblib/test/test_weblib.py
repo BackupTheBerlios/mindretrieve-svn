@@ -32,6 +32,18 @@ class TestTag(unittest.TestCase):
         # covered all printable ascii?
         self.assertEqual(len(illegal)+len(xascii), 96)
 
+    def test_cleanIllegalChar(self):
+        illegal = ',@#+:'
+        self.assertEqual(weblib.Tag.cleanIllegalChar(illegal)  , '?????')
+        self.assertEqual(weblib.Tag.cleanIllegalChar('filler,'), 'filler?')
+        self.assertEqual(weblib.Tag.cleanIllegalChar('filler@'), 'filler?')
+        self.assertEqual(weblib.Tag.cleanIllegalChar('filler#'), 'filler?')
+        self.assertEqual(weblib.Tag.cleanIllegalChar('filler+'), 'filler?')
+        self.assertEqual(weblib.Tag.cleanIllegalChar('filler:'), 'filler?')
+
+        xascii = r""" !"$%&'()*-./0123456789;<=>?ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~""" + '\x7f'
+        self.assertEqual(weblib.Tag.cleanIllegalChar(xascii), xascii)
+
 
 class TestWeblib(unittest.TestCase):
 
@@ -221,6 +233,16 @@ class TestWeblib(unittest.TestCase):
     def test_makeTags(self):
         # before
         wlib = self.store.wlib
+        self.assertEqual(len(wlib.tags), 6)
+
+        # makeTags() with ''
+        tags = weblib.makeTags(self.store, '')
+        self.assert_(not tags)
+        self.assertEqual(len(wlib.tags), 6)
+
+        # makeTags() with spaces
+        tags = weblib.makeTags(self.store, '    ')
+        self.assert_(not tags)
         self.assertEqual(len(wlib.tags), 6)
 
         # makeTags() with existing tags

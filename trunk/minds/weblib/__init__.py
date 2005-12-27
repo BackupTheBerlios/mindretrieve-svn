@@ -97,6 +97,10 @@ class Tag(object):
     #     e.g.
     #       SanFran+museum
     #       SanFran:museum
+    #
+    # Note that we have O(n) algorithm with respect to the length of
+    # ILLEGAL_CHARACTERS. It is only suppose to have a small number
+    # of characters.
 
     @staticmethod
     def hasIllegalChar(s):
@@ -105,6 +109,16 @@ class Tag(object):
                 return True
         return False
 
+    @staticmethod
+    def cleanIllegalChar(s):
+        """
+        Alternatively replace illegal characters with '?' rather than
+        rejecting the input.
+        """
+        for c in Tag.ILLEGAL_CHARACTERS:
+            if c in s:
+                s = s.replace(c,'?')
+        return s
 
     def __init__(self, id=-1, name='', description='', flags=''):
 
@@ -164,9 +178,7 @@ class Category(object):
 
 
     def setDescription(self, description):
-        # quick and dirty way to clean up for ILLEGAL_CHARACTERS
-        for c in Tag.ILLEGAL_CHARACTERS:
-            description = description.replace(c,'?')
+        description = Tag.cleanIllegalChar(description)
 
         # TODO: Note that setDescription() is called by renameTag() and
         # deleteTag() for each tag. It does compile() and write to disk.
@@ -460,6 +472,9 @@ class WebLibrary(object):
             page.modified = today
 
         if page.tags_description is not None:
+            # caller should have checked for illegal characters
+            # if you don't, they will be cleaned here
+            page.tags_description = Tag.cleanIllegalChar(page.tags_description)
             page.tags = makeTags(self.store, page.tags_description)
             page.tags_description = None
 

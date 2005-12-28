@@ -39,8 +39,7 @@ class WebPage(object):
         created     ='',
         modified    ='',
         lastused    ='',
-        cached      ='',
-        archived    ='',
+        fetched     ='',
         flags       ='',
         ):
         self.id          = id
@@ -51,8 +50,7 @@ class WebPage(object):
         self.created     = created
         self.modified    = modified
         self.lastused    = lastused
-        self.cached      = cached
-        self.archived    = archived
+        self.fetched     = fetched
         self.flags       = flags
         # This serve as a place holder for a string tags description for
         # editing (e.g. from web form). Once it is finalized it should
@@ -69,8 +67,7 @@ class WebPage(object):
             created     = self.created      ,
             modified    = self.modified     ,
             lastused    = self.lastused     ,
-            cached      = self.cached       ,
-            archived    = self.archived     ,
+            fetched     = self.fetched      ,
             flags       = self.flags        ,
         )
         item.tags_description = self.tags_description

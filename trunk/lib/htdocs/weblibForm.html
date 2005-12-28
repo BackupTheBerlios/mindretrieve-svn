@@ -78,16 +78,17 @@ window.addEventListener('load', onload, false);
         <td><input type='text' node='con:tags' name='tags' size='50' /> (separate tags by comma)</td>
     </tr>
     <tr>
-        <td>Modified</td>
+        <td>Date</td>
         <td>
+            <span style="margin-left:1em">Created&nbsp;</span>
+            <span class='date_field' node='con:created_txt'><span class='date_padding'></span></span>
+            <span style="margin-left:1em">Modified&nbsp;</span>
             <span class='date_field' node='con:modified_txt'><span class='date_padding'></span></span>
             <span style="margin-left:1em">Last Used&nbsp;</span>
             <span class='date_field' node='con:lastused_txt'><span class='date_padding'></span></span>
-            <span style="margin-left:1em">Cached&nbsp;</span>
-            <span class='date_field' node='con:cached_txt'><span class='date_padding'></span></span>
+            <input type='hidden' node='con:created' name='created' size='15' />
             <input type='hidden' node='con:modified' name='modified' size='15' />
             <input type='hidden' node='con:lastused' name='lastused' size='15' />
-            <input type='hidden' node='con:cached' name='cached' size='15' />
         </td>
     </tr>
     <tr>

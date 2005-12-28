@@ -124,15 +124,15 @@ def doLaunchURL(wfile, req):
 
 
 def doLoad(wfile, req):
-    wlib = store.getWeblib()
     store.getStore().load()
+    wlib = store.getWeblib()
     wfile.write('200 ok\r\n\r\n')
     wfile.write('Load %s pages %s tags' % (len(wlib.webpages), len(wlib.tags)))
 
 
 def doSave(wfile, req):
-    wlib = store.getWeblib()
     store.getStore().save()
+    wlib = store.getWeblib()
     wfile.write('200 ok\r\n\r\n')
     wfile.write('saved %s pages %s tags' % (len(wlib.webpages), len(wlib.tags)))
 
@@ -524,9 +524,9 @@ class WeblibRenderer(response.CGIRenderer):
             node.itemTag.tag.repeat(self.renderWebItemTag, webitem.tags)
             node.edit.atts['href'] %= webitem.id
             node.delete.atts['href'] = '%s/%s?method=delete' % (request.WEBLIB_URL, webitem.id)
-            if webitem.cached:
+            if webitem.fetched:
                 node.cache.atts['href'] = '%s/%s/snapshotFrame' % (request.WEBLIB_URL, webitem.id)
-                node.cache.content = webitem.cached
+                node.cache.content = webitem.fetched
             else:
                 node.cache.atts['href'] = '%s/%s/snapshot/get' % (request.WEBLIB_URL, webitem.id)
                 node.cache.content = 'download'

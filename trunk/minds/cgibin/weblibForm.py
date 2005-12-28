@@ -141,7 +141,7 @@ class Bean(object):
         """
         Parse submission from form
           method: PUT
-          parameters: description, title, url, tags, modified, lastused, cached
+          parameters: description, title, url, tags, created, modified, lastused
              (plus some more auxiliary parameters?)
         """
         wlib = store.getWeblib()
@@ -153,9 +153,9 @@ class Bean(object):
             if 'title'       in req.form: self.item.name         = req.param('title')
             if 'url'         in req.form: self.item.url          = req.param('url')
             if 'description' in req.form: self.item.description  = req.param('description')
+            if 'created'     in req.form: self.item.created      = req.param('created')
             if 'modified'    in req.form: self.item.modified     = req.param('modified')
             if 'lastused'    in req.form: self.item.lastused     = req.param('lastused')
-            if 'cached'      in req.form: self.item.cached       = req.param('cached')
             if 'tags'        in req.form: self._parseTags(req)
         else:
             # create new item
@@ -163,9 +163,9 @@ class Bean(object):
                 name        = req.param('title'),
                 url         = req.param('url'),
                 description = req.param('description'),
+                created     = req.param('created'),
                 modified    = req.param('modified'),
                 lastused    = req.param('lastused'),
-                cached      = req.param('cached'),
             )
             self._parseTags(req)
 
@@ -254,12 +254,12 @@ class FormRenderer(response.CGIRenderer):
             con:url_link
             con:description
             con:tags
+            con:created_txt
             con:modified_txt
             con:lastused_txt
-            con:cached_txt
+            con:created
             con:modified
             con:lastused
-            con:cached
             con:new_tags_js_var
     """
     def render(self, node, bean):
@@ -285,16 +285,16 @@ class FormRenderer(response.CGIRenderer):
             form.url_link   .atts['href']  = item.url
             form.description.content       = item.description
             form.tags       .atts['value'] = bean.item.tags_description
+            form.created    .atts['value'] = item.created
             form.modified   .atts['value'] = item.modified
             form.lastused   .atts['value'] = item.lastused
-            form.cached     .atts['value'] = item.cached
 
+            if item.created:
+                form.created_txt.content = item.created
             if item.modified:
                 form.modified_txt.content = item.modified
             if item.lastused:
                 form.lastused_txt.content = item.lastused
-            if item.cached:
-                form.cached_txt.content = item.cached
 
         tags = bean.newTags and u', '.join(bean.newTags) or ''
         encoded_tags = response.jsEscapeString(tags)

@@ -116,6 +116,7 @@ class Bean(object):
                         name        = req.param('title'),
                         url         = url,
                         description = req.param('description'),
+                        created     = today,
                         modified    = today,
                         lastused    = today,
                     )

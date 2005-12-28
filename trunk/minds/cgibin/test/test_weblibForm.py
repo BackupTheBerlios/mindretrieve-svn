@@ -87,9 +87,9 @@ class TestWeblibForm(test_weblib.TestCGIBase):
             'url': 'http://www.mindretrieve.net/',
             'title': 'Test Title',
             'description': 'some description',
+            'created': '1902',
             'modified': '1900',
             'lastused': '1901',
-            'cached': '1902',
             'tags': 'Kremlin, English',
         }),[
         'HTTP/1.0 302 Found',
@@ -102,9 +102,9 @@ class TestWeblibForm(test_weblib.TestCGIBase):
     self.assertEqual(item.name       , 'Test Title')
     self.assertEqual(item.description, 'some description')
     self.assertEqual(item.url        , 'http://www.mindretrieve.net/')
+    self.assertEqual(item.created    , '1902')
     self.assertEqual(item.modified   , '1900')
     self.assertEqual(item.lastused   , '1901')
-#    self.assertEqual(item.cached     , '1902')
     tags = ','.join(sorted(tag.name.lower() for tag in item.tags))
     self.assertEqual(tags, 'english,kremlin')
 
@@ -123,9 +123,9 @@ class TestWeblibForm(test_weblib.TestCGIBase):
     # the rest is unchanged
     self.assertEqual(item.name       , 'Test Title')
     self.assertEqual(item.description, 'some description')
+    self.assertEqual(item.created    , '1902')
     self.assertEqual(item.modified   , '1900')
     self.assertEqual(item.lastused   , '1901')
-#    self.assertEqual(item.cached     , '1902')
     tags = ','.join(sorted(tag.name.lower() for tag in item.tags))
     self.assertEqual(tags, 'english,kremlin')
 

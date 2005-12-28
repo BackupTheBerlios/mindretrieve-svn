@@ -60,6 +60,7 @@ class TestStore(unittest.TestCase):
     def test_getWriter(self):
         # test _getWriter() prepare fp for non-exist or 0 size file.
         stor = store.Store()
+        self.assert_('test' in stor.pathname)
 
         # ------------------------------------------------------------------------
         # make sure weblib file does not exist
@@ -102,6 +103,46 @@ class TestStore(unittest.TestCase):
         # ------------------------------------------------------------------------
         # clean up
         os.remove(stor.pathname)
+
+
+    def test_upgrade(self):
+        stor = store.Store()
+        self.assert_('test' in stor.pathname)
+
+        # ------------------------------------------------------------------------
+        # build  a old version test file
+        data = """weblib-version: 0.01\r
+encoding: utf-8\r
+\r
+id|name|description
+1|item1|description1
+"""
+        self.assert_(store.VERSION != '0.01')
+        self.assert_(store.VERSION not in data)
+        fp = file(stor.pathname,'wb')
+        fp.write(data)
+        fp.close()
+
+        stor.load()
+        wlib = stor.wlib
+        self.assertEqual(wlib.headers['weblib-version'], '0.01')
+        self.assertEqual(len(wlib.webpages), 1)
+        self.assertEqual(wlib.webpages.getById(1).name, 'item1')
+
+        # this should trigger store to upgrade the file
+        stor.writeHeader('header','value')
+
+        # test the upgraded file
+        fp = file(stor.pathname,'rb')
+        newData = fp.read()
+        fp.close()
+
+        self.assert_('0.01' not in newData)
+        self.assert_(store.VERSION in newData)
+
+        # clean up
+        stor.reset()
+#        os.remove(stor.pathname)
 
 
     def test_write_header(self):

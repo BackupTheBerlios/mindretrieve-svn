@@ -97,20 +97,22 @@ from minds.weblib import util
 
 log = logging.getLogger('wlib.store')
 
-VERSION = '0.6'
+VERSION = '0.61'
 COLUMNS = [
 'id',           # 00
 'name',         # 01
 'description',  # 02
 'tagIds',       # 03
-'modified',     # 04
-'lastused',     # 05
-'cached',       # 06
-'archived',     # 07
+'created',      # 04
+'modified',     # 05
+'lastused',     # 06
+'fetched',      # 07
 'flags',        # 08
 'url',          # 09
 ]
 NUM_COLUMN = len(COLUMNS)
+
+COLUMN_INDEX = dict(zip(map(string.lower, COLUMNS), xrange(NUM_COLUMN)))
 
 
 """ 2005-11-29 Discussion on the _interpretRecord() protocol
@@ -193,7 +195,7 @@ def _parseTimeStamp(s):
 class Store(object):
 
     DEFAULT_FILENAME = 'weblib.dat'
-    ENCODING = 'UTF8'
+    ENCODING = 'UTF-8'
 
     def __init__(self):
         self.lock = threading.RLock()
@@ -220,6 +222,14 @@ class Store(object):
             return self.writer
         if not os.path.isfile(self.pathname) or os.path.getsize(self.pathname) == 0:
             # file not exist? Use save() to write headers first
+            log.info('Create weblib file: %s' % self.pathname)
+            self.save()
+
+        cur_version = self.wlib.headers.get('weblib-version','')
+        if  cur_version != VERSION:
+            # upgrade (or downgrade) weblib file
+            # note that we must ensure the column header match what this version writes
+            log.info('Upgrade weblib file existing verion=%s new version=%s' % (cur_version, VERSION))
             self.save()
 
 # Note: There is a small issue about timing of calling save(). The sequence of
@@ -296,6 +306,7 @@ class Store(object):
                     log.info('Weblib file not exist. Start from an empty library: %s' % self.pathname)
                     fp = StringIO.StringIO()    # dummy
                 else:
+                    log.info('Loading weblib from: %s' % self.pathname)
                     fp = file(self.pathname, 'rb')
 
             try:
@@ -318,21 +329,23 @@ class Store(object):
                     line = line.rstrip()
                     if not line or line.startswith('#'):
                         continue
-                    row_headers = dsv.parse_header(lineno+1, line)
-                    indexes = range(len(row_headers))
-                    row_headers = dict(zip(row_headers, indexes))
+                    row_headers = dsv.parse_header(lineno+1, line, COLUMNS)
                     break
 
                 # data-records
+                full_trace = False
                 for lineno, line in linereader:
                     line = line.rstrip()
                     if not line or line.startswith('#'):
                         continue
                     try:
                         n = self._interpretRecord(line, row_headers)
-                        #print >>sys.stderr, '###DEBUG',n,str(self)
                     except (KeyError, ValueError, AttributeError), e:
-                        log.warn('Error parsing line %s: %s %s', lineno+1, str(e.__class__), e)
+                        if not full_trace:
+                            log.exception('Error parsing line %s' % (lineno+1,))
+                            full_trace = True
+                        else:
+                            log.warn('Error parsing line %s: %s %s', lineno+1, str(e.__class__), e)
                     except Exception, e:
                         log.warn('Error Parsing line %s: %s %s', lineno+1, str(e.__class__), e)
                         raise
@@ -459,10 +472,10 @@ class Store(object):
                 description = row.description,
                 tags        = [],
                 flags       = row.flags,
+                created     = row.created,
                 modified    = row.modified,
                 lastused    = row.lastused,
-                cached      = row.cached,
-                archived    = row.archived,
+                fetched     = row.fetched,
                 url         = row.url,
             )
             # should convert tagids to tags after reading the whole file??
@@ -482,13 +495,6 @@ class Store(object):
     # ------------------------------------------------------------------------
     # Update
 
-    # TODO HACK HACK!!!
-    # this is a hack to build RowObject from by parsing a line
-    # this module has not sufficiently deal with the column header in the data file and
-    # the fact that it may different from the hardcoded COLUMN order of this version.
-    _xheaders = dict(zip(map(string.lower, COLUMNS), range(len(COLUMNS))))
-
-
     def _log(self, line, flush):
         """ Write a log record to the data file """
         writer = self._getWriter()
@@ -504,7 +510,7 @@ class Store(object):
         self.lock.acquire()
         try:
             line = '[%s] h!%s' % (_getTimeStamp(), self._serialize_header(name, value))
-            self._interpretRecord(line, self._xheaders)
+            self._interpretRecord(line, COLUMN_INDEX)
             self._log(line, flush)
 
         finally:
@@ -533,7 +539,7 @@ class Store(object):
             if tag.id < 0:
                 tag.id = self.wlib.tags.acquireId()
             line = '[%s] u!%s' % (_getTimeStamp(), self._serialize_tag(tag))
-            newTag = self._interpretRecord(line, self._xheaders)
+            newTag = self._interpretRecord(line, COLUMN_INDEX)
             self._log(line, flush)
 
             # shred input tag
@@ -562,7 +568,7 @@ class Store(object):
             if webpage.id < 0:
                 webpage.id = self.wlib.webpages.acquireId()
             line = '[%s] u!%s' % (_getTimeStamp(), self._serialize_webpage(webpage))
-            newItem = self._interpretRecord(line, self._xheaders)
+            newItem = self._interpretRecord(line, COLUMN_INDEX)
             self._conv_tagid(self.wlib.webpages.getById(newItem.id))
             self._log(line, flush)
 
@@ -592,7 +598,7 @@ class Store(object):
                 line = '[%s] r!@%s' % (_getTimeStamp(), item.id)
             else:
                 line = '[%s] r!%s' % (_getTimeStamp(), item.id)
-            self._interpretRecord(line, self._xheaders)
+            self._interpretRecord(line, COLUMN_INDEX)
             self._log(line, flush)
 
         finally:
@@ -639,10 +645,10 @@ class Store(object):
             item.name       ,
             item.description,
             tagIds          ,
+            item.created    ,
             item.modified   ,
             item.lastused   ,
-            item.cached     ,
-            item.archived   ,
+            item.fetched    ,
             item.flags      ,
             item.url        ,
         ])
@@ -741,11 +747,12 @@ class Store(object):
 
 store_instance = None
 
-def getStore():
+def getStore(loadWeblib=True):
     global store_instance
     if not store_instance:
         store_instance = Store()
-        store_instance.load()
+        if loadWeblib:
+            store_instance.load()
     return store_instance
 
 def getWeblib():
@@ -762,7 +769,7 @@ def main(argv):
 
     pathname = argv[1]
 
-    store = getStore()
+    store = getStore(False)
     store.load(pathname)
     wlib = getWeblib()
 
@@ -771,10 +778,9 @@ def main(argv):
 
     newTag = weblib.Tag(name='hello tag')
     print >>sys.stderr, 'id', newTag.id
-    store.writeItem(newTag)
+    newTag = store.writeTag(newTag)
     print >>sys.stderr, 'id', newTag.id
     store.removeItem(newTag)
-
 
     # save
     if len(argv) > 2:

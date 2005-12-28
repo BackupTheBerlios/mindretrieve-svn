@@ -107,15 +107,16 @@ def parseFile(fp):
 
             created  = attrs.get('created','')
             created  = import_util._ctime_str_2_iso8601(created)
+            # Opera doesn't have modified. Map visited to modified.
             modified = attrs.get('visited','')
             modified = import_util._ctime_str_2_iso8601(modified)
 
             page = import_util.Bookmark(
                 name,
-                attrs.get('url',''),
-                attrs.get('description',''),
-                created,
-                modified,
+                url         = attrs.get('url',''),
+                description = attrs.get('description',''),
+                created     = created,
+                modified    = modified,
             )
             folder_stack[-1].children.append(page)
 

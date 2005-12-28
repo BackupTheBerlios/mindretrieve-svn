@@ -5,9 +5,6 @@
     -t:     query tag
 """
 
-# TODO: how do I make sure WebPage fields is the right type? e.g. id is int.
-# date fields: modified, cached, accessed
-
 import codecs
 import datetime
 import logging

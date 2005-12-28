@@ -107,12 +107,14 @@ class Tag(object):
         return False
 
     @staticmethod
-    def cleanIllegalChar(s):
+    def cleanIllegalChar(s, dont_clean=''):
         """
         Alternatively replace illegal characters with '?' rather than
         rejecting the input.
         """
         for c in Tag.ILLEGAL_CHARACTERS:
+            if c in dont_clean:
+                continue
             if c in s:
                 s = s.replace(c,'?')
         return s
@@ -471,7 +473,7 @@ class WebLibrary(object):
         if page.tags_description is not None:
             # caller should have checked for illegal characters
             # if you don't, they will be cleaned here
-            page.tags_description = Tag.cleanIllegalChar(page.tags_description)
+            page.tags_description = Tag.cleanIllegalChar(page.tags_description,',')
             page.tags = makeTags(self.store, page.tags_description)
             page.tags_description = None
 

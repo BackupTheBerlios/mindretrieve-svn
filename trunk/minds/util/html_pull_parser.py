@@ -14,15 +14,24 @@ DATA, TAG, ENDTAG, COMMENT = range(1,5)
 
 class HtmlPullParser(sgmllib.SGMLParser):
 
-    retain_entityref = {
-      'gt' : 1,
-      'lt' : 1,
-      'amp': 1,
-    }
-
-    def __init__(self, verbose=0, comment=False):
+    def __init__(self, verbose=0, comment=False, keep_entity_ref={}):
+        """
+        Create and configure HtmlPullParser
+        @verbose
+        @comment
+        @param retain_entity_ref - a map (set) of entity reference that
+            should not be translated to the corresonding character.
+            Default to RETAIN_ENTITY_REF.
+        """
+        # TODO 2005-12-28: ideally we should refactor retain_entity_ref to default to {}
+        # let user who want to retain something to pass a value
+        # right now it defaults to RETAIN_ENTITY_REF to minimize code change
         self.stream = []
         self.includeComment = comment
+        if keep_entity_ref is None:
+            self.keep_entity_ref = {}
+        else:
+            self.keep_entity_ref = keep_entity_ref
         sgmllib.SGMLParser.__init__(self, verbose)
 
     def handle_data(self, data):
@@ -43,7 +52,7 @@ class HtmlPullParser(sgmllib.SGMLParser):
     def handle_entityref(self, ref):
 
         # override handle_entityref() because it converts &gt; etc to >
-        if self.retain_entityref.has_key(ref):
+        if self.keep_entity_ref.has_key(ref):
             self.stream.append((DATA,'&%s;'%ref))
             return
 
@@ -106,8 +115,16 @@ class HtmlPullParser(sgmllib.SGMLParser):
 
 BUFSIZE = 32768
 
-def generate_tokens(fp,comment=False):
-    parser = HtmlPullParser(comment=comment)
+def generate_tokens(fp, comment=False, keep_entity_ref=None):
+
+    if keep_entity_ref is None:
+        # [2005-12-28] default to this set for compatibility with old code
+        keep_entity_ref = {
+                            'gt' : 1,
+                            'lt' : 1,
+                            'amp': 1,
+                            }
+    parser = HtmlPullParser(comment=comment, keep_entity_ref=keep_entity_ref)
     while True:
         data = fp.read(BUFSIZE)
         if data:
@@ -122,9 +139,9 @@ def generate_tokens(fp,comment=False):
 
 # TODO: migrate generate_tokens to generate_tokens3
 # TODO: migrate test
-def generate_tokens3(fp,comment=False):
+def generate_tokens3(fp, **pullparser_args):
     """ Parse HTML and yield (kind, data, attrs) """
-    parser = HtmlPullParser(comment=comment)
+    parser = HtmlPullParser(**pullparser_args)
     while True:
         data = fp.read(BUFSIZE)
         if data:

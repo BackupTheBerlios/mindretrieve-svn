@@ -7,6 +7,7 @@ from minds.util import html_pull_parser as hpp
 DATA   = hpp.DATA
 TAG    = hpp.TAG
 ENDTAG = hpp.ENDTAG
+COMMENT= hpp.COMMENT
 
 DOC = u"""<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3c.org/TR/html4/loose.dtd">
 <html>
@@ -16,6 +17,7 @@ DOC = u"""<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http:/
 <link rel="stylesheet" href="/main.css" type="text/css">
 </head>
 <body>
+<!--this is a comment-->
 text
 
 <p>gt=&gt;
@@ -30,7 +32,6 @@ text
 </body>
 </html>
 """
-
 
 class ChunkedStringIO(object):
     """ Helper to feed SGMLParser with incomplete string chunks """
@@ -49,9 +50,9 @@ class BaseTest(unittest.TestCase):
 
     DEBUG = 0
 
-    def _test_generator(self, doc, expect):
+    def _test_generator(self, doc, expect, **args):
         fp = StringIO.StringIO(doc)
-        tokens = hpp.generate_tokens(fp)
+        tokens = hpp.generate_tokens(fp, **args)
         self._test_generator1(tokens, expect)
 
 
@@ -97,11 +98,40 @@ class TestParser(BaseTest):
 
             ])
 
+    def test_no_retain(self):
+        self._test_generator(
+            DOC,
+            [
+             (DATA,   u'gt='),
+             (DATA,   u'>'),            # entity translated
+             (TAG,    u'p', []),
+             (DATA,   u'aring='),
+            ],
+            keep_entity_ref={}          # suppress the keep_entity_ref feature
+            )
+
     def test_comment(self):
-        self.fail()
-        
+        self._test_generator(
+            DOC, [
+             (COMMENT,  u'this is a comment'),
+             (DATA,     u'\ntext\n\n'),
+            ],
+            comment=True,               # turn on the comment feature
+            )
+
 
 class TestSGMLPatch(BaseTest):
+
+    def test_declaration_good_case(self):
+        self._test_generator(
+            "<html>A<!-- good comment -->B</html>",
+            [
+            (TAG,    u'html', []),
+            (DATA,   u'A'       ),
+            (DATA,   u'B'       ),
+            (ENDTAG, u'html'),
+            ])
+
 
     def test_parse_emptytag(self):
 
@@ -145,18 +175,6 @@ class TestSGMLPatch(BaseTest):
             ])
 
 
-    def test_declaration_good(self):
-
-        self._test_generator(
-            "<html>A<!-- good comment -->B</html>",
-            [
-            (TAG,    u'html', []),
-            (DATA,   u'A'       ),
-            (DATA,   u'B'       ),
-            (ENDTAG, u'html'),
-            ])
-
-
     def test_declaration_incomplete(self):
 
         # verify that the lenient declaration can handle incompete tags
@@ -184,7 +202,17 @@ class TestSGMLPatch(BaseTest):
 
 
     def test_xml_CDATA(self):
-        self.fail()
+        # test use of XML's CDATA, not a standard for HTML?
+        self._test_generator(
+            "<html>A<![CDATA[something <crazy> & <bad/> here]]>B</html>",
+            [
+            (TAG,    u'html', []),
+            (DATA,   u'A'       ),
+            (DATA,   u'something <crazy> & <bad/> here'),
+            (DATA,   u'B'       ),
+            (ENDTAG, u'html'),
+            ])
+
 
 
 if __name__ == '__main__':

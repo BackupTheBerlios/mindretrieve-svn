@@ -25,9 +25,12 @@ class RowObject(object):
         return self.fields[key]
 
     def __getattr__(self, name):
-        if not self.headers.has_key(name):
+        index = self.headers.get(name, None)
+        if index is None:
             raise AttributeError, name
-        return self.fields[self.headers[name]]
+        if index < 0:   # field not found in data record
+            return ''
+        return self.fields[index]
 
     def __repr__(self):
         return str(self.fields)
@@ -46,7 +49,6 @@ class RowObject(object):
 #            continue
 #        if HEADER_ROW and not headers:
 #            headers = parse_header(lineno+1, line)
-#            headers = dict(zip(headers, range(len(headers))))
 #        else:
 #            fields = decode_fields(line)
 #            if STRIP:
@@ -54,12 +56,29 @@ class RowObject(object):
 #            yield lineno+start_line, RowObject(headers,fields)
 
 
-def parse_header(lineno, s):
+def parse_header(lineno, s, expected_col=None):
+    """
+    Parse header line and return a map of field name --> index (0 based)
+    Use -1 as index it is in expected_col but not found in s.
+
+    @param lineno - for error reporting
+    @param s - the string of header line
+    @param expected_col - list of column name the caller expected. This
+           is for file compatibility use. In RowObject if the caller expect
+           some fields but it is not contained in the file, '' is returned
+           instead  of AttributeError.
+    """
     fields = map(string.strip, decode_fields(s))
+    fields = map(string.lower, fields)
     if not fields or filter(None, fields) != fields:
         raise ValueError, 'Header row must contain non-empty field names [line %s]: %s' % (lineno, s)
-    fields = map(string.lower, fields)
-    return fields
+    field_map = dict(zip(fields, xrange(len(fields))))
+    if expected_col:
+        expected_col = map(string.lower, expected_col)
+        for name in expected_col:
+            if name not in field_map:
+                field_map[name] = -1
+    return field_map
 
 
 def decode_fields(s):

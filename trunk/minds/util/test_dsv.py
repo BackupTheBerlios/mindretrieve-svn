@@ -60,6 +60,26 @@ class TestDsv(unittest.TestCase):
         for line, result in DATA1:
             self.assertEqual(dsv.decode_fields(line), result)
 
+    def test_row_object(self):
+        headers = dsv.parse_header(1, 'col1|col2')
+        fields = dsv.decode_fields('a|b')
+        row = dsv.RowObject(headers, fields)
+        self.assertEqual(row.col1, 'a')
+        self.assertEqual(row.col2, 'b')
+        self.assertRaises(AttributeError, row.__getattr__, 'col3')
+
+
+    def test_row_object_compatibility(self):
+        expected_col = ['col2','col3']
+        headers = dsv.parse_header(1, 'col1|col2', expected_col)
+        fields = dsv.decode_fields('a|b')
+        row = dsv.RowObject(headers, fields)
+        self.assertEqual(row.col1, 'a')     # not in expected, but will work
+        self.assertEqual(row.col2, 'b')
+        self.assertEqual(row.col3, '')      # expected col not in data header, gets ''
+        self.assertRaises(AttributeError, row.__getattr__, 'col4')
+
+
 # 2005-12-02 dsv.parse() is disabled
 #    def test_parse_file(self):
 #        fp = dsv.parse(StringIO(SAMPLE_FILE))

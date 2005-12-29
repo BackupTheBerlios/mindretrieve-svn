@@ -1,0 +1,161 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3c.org/TR/html4/loose.dtd">
+<html>
+<head>
+<title node='con:title'>MindRetrieve - Web Library</title>
+<link rel="stylesheet" href="main.css" type="text/css">
+
+<style>
+/* == Header ======================================================================== */
+.midHeader {
+  border-bottom: 1px solid #000;
+}
+
+.midHeader h1 {
+  color:  #930;
+  font-size: 20pt;
+  margin: 0.5ex 1em 0.5ex 0.2em;
+}
+
+.subHeader {
+  color: white;
+  background-color: #003399;
+  margin: 0 0 0 0;
+  padding: 1ex 0.5em 1ex 0.5em;
+  xborder-top: 1px solid #004BE5;
+}
+
+.subHeader .searchBox {
+  float: right;
+  xfont-size: 80%;
+}
+
+.subHeader .searchBox form {
+  margin: 0 0 0 0;
+}
+
+.subHeader .searchBox input {
+    xvertical-align: baseline;
+    font-size: 90%;
+}
+
+.subHeader .searchBox input[type='text'] {
+    padding: 0 0 0 0;
+    xbackground-color: red;
+}
+
+.searchBoxButton      {
+    font-weight: bold;
+    padding-left: 0.5em;
+    padding-right: 0.5em;
+    xbackground-color:#fed;
+    xborder: 2px outset #fed;
+}
+
+
+.subHeader a {
+  color: white;
+  background-color: transparent;
+  text-decoration: none;
+  font-weight: bold;
+  margin: 0;
+  padding: 0 0.75ex 0 0.5ex;
+}
+
+.subHeader a:hover {
+  text-decoration: underline;
+}
+
+#body {
+  width: 100%;
+}
+
+
+/* == footer ======================================================================== */
+
+#footer {
+  color: white;
+  background-color: rgb(100,135,220);
+  font-size: 91%;
+  margin: 0;
+  padding: 0.5ex 2.5mm 1ex 2.5mm;
+  clear: both;
+}
+
+#footer .left {
+  line-height: 1.45em;
+  margin-top:0;
+
+  float: left;
+  clear: left;
+}
+
+#footer .right {
+  text-align: right;
+  line-height: 1.45em;
+}
+
+#footer a {
+  color: white;
+  background-color: transparent;
+  text-decoration: underline;
+}
+
+#footer a:hover {
+  text-decoration: none;
+}
+
+</style>
+
+<span node='-con:contentStyle'></span>
+
+
+</head>
+
+
+
+<body>
+
+<!--==Header=============================================================================-->
+<div>
+<!--
+<div id="header">
+right now we don't use anything header and it has a conflict with other form
+eventually rename other form to something like smallHeader
+-->
+
+  <div class="midHeader">
+    <h1>MindRetrieve</h1>
+  </div>
+
+  <div class="subHeader">
+      <div class='searchBox'>
+        <form action='/weblib' method='get'>
+          <input type='text' name='query' value='' size="25" node="con:querytxt" /><input type='submit' name='submit' value='Search' class='searchBoxButton' />
+          <!--<input type='submit' name='submit' value='&gt;'  class='searchBoxButton' />-->
+        </form>
+      </div>
+    <a href="/weblib">Main</a> |
+    <!--
+    <a href="#">action2</a> |
+    <a href="#">action3</a> |
+    <a href="#">action4</a> |
+    -->
+  </div>
+</div>  <!-- end header -->
+
+
+<span node='-con:content_body'></span>
+
+<!-- == footer ======================================================================== -->
+<div id="footer">
+  <div class="left">
+    <a node="con:bookmarklet" href="#" title='MindRetrieve'><img src='img/favicon16x16.gif' border='0'>bookmarlet</a>
+  </div>
+  <div class="right">
+       <a href="http://mindretrieve.net">MindRetrieve</a>
+  </div>
+</div>  <!-- end footer -->
+
+
+</body>
+</html>

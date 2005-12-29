@@ -285,7 +285,12 @@ def queryTag(wfile, req, nameOrId):
         fakeTagNode = WebItemTagNode(nameOrId)
         webItems = [fakeTagNode]
 
-    WeblibRenderer(wfile).output(
+    renderer = WeblibRenderer(wfile)
+    renderer.setLayoutParam(
+        None,
+        '',
+        response.buildBookmarklet(req.env))
+    renderer.output(
         wlib.tags,
         tag,
         wlib.getDefaultTag(),
@@ -328,7 +333,12 @@ def queryWebLib(wfile, req, tag, querytxt):
     for item,_ in result:
         webItems.append(WebItemNode(item))
 
-    WeblibRenderer(wfile).output(
+    renderer = WeblibRenderer(wfile)
+    renderer.setLayoutParam(
+        None,
+        querytxt,
+        response.buildBookmarklet(req.env))
+    renderer.output(
         wlib.tags,
         None,
         wlib.getDefaultTag(),
@@ -345,7 +355,12 @@ def queryRoot(wfile, req):
     # webitem pane
     webItems = map(WebItemNode, query_wlib.queryRoot(wlib))
 
-    WeblibRenderer(wfile).output(
+    renderer = WeblibRenderer(wfile)
+    renderer.setLayoutParam(
+        None,
+        '',
+        response.buildBookmarklet(req.env))
+    renderer.output(
         wlib.tags,
         None,
         wlib.getDefaultTag(),
@@ -355,11 +370,11 @@ def queryRoot(wfile, req):
 
 # ----------------------------------------------------------------------
 
-#class WeblibRenderer(response.CGIRendererHeadnFoot):
-class WeblibRenderer(response.CGIRenderer):
-    TEMPLATE_FILE = 'weblib.html'
-    """ weblib.html 2005-11-11
-    con:header
+class WeblibRenderer(response.WeblibLayoutRenderer):
+    TEMPLATE_FILE = 'weblibContent.html'
+    """ weblibContent.html 2005-12-29
+    con:tagListForm
+            rep:tag
     con:rootTag
     con:defaultTag
     rep:catList
@@ -369,9 +384,10 @@ class WeblibRenderer(response.CGIRenderer):
                     rep:catItem
                             con:link
     con:found_msg
-            con:count
             con:search_engine
                     con:querytxt
+                    rep:engine
+            con:count
     con:web_items
             con:headerTemplateHolder
                     con:headerTemplate
@@ -386,7 +402,6 @@ class WeblibRenderer(response.CGIRenderer):
                             con:edit
                             con:delete
                             con:cache
-    con:footer
     """
     def render(self, node,
         tags,
@@ -428,7 +443,6 @@ class WeblibRenderer(response.CGIRenderer):
 
         # ------------------------------------------------------------------------
         # Matching message
-        self.querytxt=''###
         if self.querytxt:
             count = sum(1 for item in webItems if isinstance(item, WebItemNode))
             node.found_msg.count.content = str(count)

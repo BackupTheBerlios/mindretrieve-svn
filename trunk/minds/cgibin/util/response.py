@@ -116,7 +116,7 @@ class CGIRenderer(object):
         tpath = cfg.getpath('docBase')/self.TEMPLATE_FILE
         fp = tpath.open('rb')
         try:
-            self.template = HTMLTemplate.Template(self._render0, fp.read())
+            self.template = HTMLTemplate.Template(self.render, fp.read())
         finally:
             fp.close()
 
@@ -134,11 +134,6 @@ class CGIRenderer(object):
         self.out.write(self.template.render(*args))
 
 
-    def _render0(self, node, *args):
-        # To be overridden by subclass to define pre-render logic
-        self.render(node, *args)
-
-
     def render(self, node, *args):
         # To be overridden by user
         raise NotImplementedError()
@@ -147,46 +142,49 @@ class CGIRenderer(object):
 
 # ----------------------------------------------------------------------
 
-class CGIRendererHeadnFoot(CGIRenderer):
+class WeblibLayoutRenderer(CGIRenderer):
     """
-    A CGIRenderer with header and footer substitution.
+    Put the output of CGIRender within the WeblibLayout.html
     """
-    HEADER_TMPL = 'header.html'
-    FOOTER_TMPL = 'footer.html'
-    REMOVE_TEXT = '<!-- remove above -->'
 
-    def __init__(self, wfile, env, querytxt='', *args):
-        super(CGIRendererHeadnFoot, self).__init__(wfile, *args)
-        self.env = env
-        self.querytxt = querytxt
+    LAYOUT_TMPL = 'weblibLayout.html'
 
-    def _format_template(self, tmpl, render, *args):
-        """ helper to render header and footer """
-        tpath = cfg.getpath('docBase')/tmpl
+    def __init__(self, *args, **kargs):
+        CGIRenderer.__init__(self, *args, **kargs)
+        self.title          = ''
+        self.querytxt       = ''
+        self.bookmarkletURL = ''
+        self.content_text   = ''
+
+
+    def setLayoutParam(self, title='', querytxt='', bookmarkletURL=''):
+        self.title          = title
+        self.querytxt       = querytxt
+        self.bookmarkletURL = bookmarkletURL
+
+    def render_layout(self, node):
+        if self.title:
+            node.title.content = self.title
+        node.querytxt.atts['value'] = self.querytxt
+        node.bookmarklet.atts['href'] = self.bookmarkletURL
+        node.content_body.raw = self.content_text
+
+
+    def output(self, *args):
+        # generates the content first
+        self.content_text = self.template.render(*args)
+
+        # render the layout frame; insert content inside
+        tpath = cfg.getpath('docBase')/self.LAYOUT_TMPL
         fp = tpath.open('rb')
         try:
-            template = HTMLTemplate.Template(render, fp.read())
+            tmpl = fp.read()
         finally:
             fp.close()
-        text = template.render(*args)
+        layoutTemplate = HTMLTemplate.Template(self.render_layout, tmpl)
+        output = layoutTemplate.render()
 
-        # remove some extra data from text to make it embeddable.
-        # raise exception if REMOVE_TEXT is not found
-        i = text.index(self.REMOVE_TEXT)
-        return text[i+len(self.REMOVE_TEXT):]
-
-    def _renderHeader(self, node, querytxt):
-        node.querytxt.atts['value'] = querytxt
-
-    def _renderFooter(self, node, href):
-        node.bookmarklet.atts['href'] = href.replace("'",'&apos;')
-
-    def _render0(self, node, *args):
-        b = buildBookmarklet(self.env)
-        node.header.raw = self._format_template(self.HEADER_TMPL, self._renderHeader, self.querytxt)
-        node.footer.raw = self._format_template(self.FOOTER_TMPL, self._renderFooter, b)
-        self.render(node, *args)
-
+        self.out.write(output)
 
 
 # ----------------------------------------------------------------------

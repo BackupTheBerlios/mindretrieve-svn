@@ -10,7 +10,28 @@ TEST_HTML_TEMPLATE = u"""<meta http-equiv="Content-Type" content="text/html; cha
 alert("%s");
 </script>"""
 
+
+class SampleRenderer(response.CGIRenderer):
+    TEMPLATE_FILE = 'weblibForm.html'
+    def render(self,node):
+        pass
+
+
+class SampleWeblibLayoutRenderer(response.WeblibLayoutRenderer):
+    TEMPLATE_FILE = 'weblibContent.html'
+    def render(self,node):
+        pass
+
+
 class TestResponse(unittest.TestCase):
+
+    def test_redirect(self):
+        url = u'http://www.\N{euro sign}.com/'
+        buf = StringIO.StringIO()
+        response.redirect(buf, url)
+        # this URL is actually registered!
+        self.assert_('http://www.%E2%82%AC.com/' in buf.getvalue())
+
 
     def test_jsEscapeString(self):
         text = u"""You should see
@@ -34,6 +55,29 @@ class TestResponse(unittest.TestCase):
         self.assert_('\\\\' in escaped_test)
         self.assert_('<'  not in escaped_test)
         self.assert_('>' not in escaped_test)
+
+
+    def test_buildBookmarklet_need_test(self):
+        env = {'SERVER_NAME':'test', 'SERVER_PORT':'9876'}
+        # sanity run
+        url = response.buildBookmarklet(env)
+        self.assert_('9876' in url)
+
+
+    def test_CGIRenderer(self):
+        buf = StringIO.StringIO()
+        SampleRenderer(buf).output()
+        # Render is fairly completed to check. CGI test would better verify them.
+        # Just do some sanity check on the output here
+        self.assert_('</html>' in buf.getvalue())
+
+
+    def test_WeblibLayoutRenderer(self):
+        buf = StringIO.StringIO()
+        SampleWeblibLayoutRenderer(buf).output()
+        # Render is fairly completed to check. CGI test would better verify them.
+        # Just do some sanity check on the output here
+        self.assert_('</html>' in buf.getvalue())
 
 
 if __name__ == '__main__':

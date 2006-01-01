@@ -1,0 +1,37 @@
+<style>
+#content {
+    margin: 2em;
+}
+
+.info {
+    color: #777;
+}
+
+.bottomLink {
+    margin-top:6ex;
+    margin-bottom:8ex;
+}
+</style>
+
+<div id='content'>
+
+<span node='-con:status'>
+<h3>Import completed</h3>
+<p>
+Items
+<span node='con:added'>added: %s</span>
+<span node='con:updated'>updated: %s</span>
+<span node='con:skipped'>skipped: %s</span>
+</p>
+<p class='bottomLink'>Return to <a href="/weblib">Main</a>
+</span>
+
+
+<span node='-con:error_msg'>
+<h3 node='con:message'>Authorization Error</h3>
+<p node='con:view_url' class='info'>%url</p>
+
+<p class='bottomLink'>Return to <a href="javascript:window.back();void(0);">import</a></p>
+</span>
+
+</div>

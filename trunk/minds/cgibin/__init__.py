@@ -11,6 +11,7 @@ import search
 import snoop
 import updateParent
 import weblib
+import weblibImport
 import weblibMultiForm
 import weblibTagCategorize
 
@@ -28,8 +29,9 @@ cgi_registry = [
   ('/search'               , search),
   ('/snoop'                , snoop),
   ('/updateParent'         , updateParent),
-  ('/weblib/tag_categorize', weblibTagCategorize),
+  ('/weblib/import'        , weblibImport),
   ('/weblib/multiform'     , weblibMultiForm),
+  ('/weblib/tag_categorize', weblibTagCategorize),
   ('/weblib'               , weblib),
   ('/'                     , home),
 ]

@@ -142,6 +142,25 @@ class CGIRenderer(object):
 
 # ----------------------------------------------------------------------
 
+def _split_style_block(text):
+    """
+    Parse text and extract the style block.
+    We do simple search for <style> and </style> only. Make sure you
+    don't use anything fancy in your template.
+
+    @return (style text (without the style tag) or '', rest of text)
+    """
+    b = text.find('<style>')
+    e = text.rfind('</style>')
+    if b < 0 or e < 0:
+        return '', text
+
+    e += len('</style>')
+    style_text = text[b:e]
+    rest_text = text[:b] + text[e:]
+    return style_text, rest_text
+
+
 class WeblibLayoutRenderer(CGIRenderer):
     """
     Put the output of CGIRender within the WeblibLayout.html
@@ -154,6 +173,8 @@ class WeblibLayoutRenderer(CGIRenderer):
         self.title          = ''
         self.querytxt       = ''
         self.bookmarkletURL = ''
+
+        self.style_text     = ''
         self.content_text   = ''
 
 
@@ -167,12 +188,16 @@ class WeblibLayoutRenderer(CGIRenderer):
             node.title.content = self.title
         node.querytxt.atts['value'] = self.querytxt
         node.bookmarklet.atts['href'] = self.bookmarkletURL
-        node.content_body.raw = self.content_text
+
+        # a simplistic way to insert style in the <head> block and the body in the <body> block.
+        node.contentStyle.raw = self.style_block
+        node.contentBody.raw = self.content_text
 
 
     def output(self, *args):
         # generates the content first
         self.content_text = self.template.render(*args)
+        self.style_block, self.content_text = _split_style_block(self.content_text)
 
         # render the layout frame; insert content inside
         tpath = cfg.getpath('docBase')/self.LAYOUT_TMPL

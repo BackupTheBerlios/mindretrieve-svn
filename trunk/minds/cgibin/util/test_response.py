@@ -80,5 +80,12 @@ class TestResponse(unittest.TestCase):
         self.assert_('</html>' in buf.getvalue())
 
 
+    def test_split_style_block(self):
+        self.assertEqual(response._split_style_block('abc <style> def</style>ghi'), ('<style> def</style>', 'abc ghi'))
+        self.assertEqual(response._split_style_block('abc def ghi'), ('', 'abc def ghi'))                # ok if no <style>
+        self.assertEqual(response._split_style_block('abc <style>def ghi'), ('', 'abc <style>def ghi'))  # must come in pair
+
+
+
 if __name__ == '__main__':
     unittest.main()

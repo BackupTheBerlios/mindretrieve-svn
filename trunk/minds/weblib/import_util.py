@@ -1,5 +1,5 @@
 """
-Import Netscape bookmark.
+Import bookmarks
 """
 
 import codecs
@@ -10,11 +10,9 @@ import sys
 import urllib
 
 from minds.config import cfg
-from minds import app_httpserver
 from minds import weblib
 from minds.weblib import query_wlib
 from minds.weblib import store
-from minds.util import fileutil
 
 log = logging.getLogger('wlib.imprt')
 
@@ -115,6 +113,7 @@ def import_tree(root_folder):
     wlib.category.setDescription(new_cat)
 
     log.info('Import completed items added=%s updated=%s' % (state.add_count, state.update_count))
+    return (state.add_count, state.update_count)
 
 
 def import_bookmarks(bookmarks):
@@ -136,6 +135,7 @@ def import_bookmarks(bookmarks):
         else:
             add_count += 1
     log.info('Import completed items added=%s updated=%s' % (add_count, update_count))
+    return (add_count, update_count)
 
 
 def main(argv):

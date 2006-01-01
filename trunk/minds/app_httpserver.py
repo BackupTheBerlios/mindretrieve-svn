@@ -25,7 +25,6 @@ from StringIO import StringIO
 
 from minds.config import cfg
 from minds import base_config
-from minds import cgibin
 from minds.util import fileutil
 from toollib import HTMLTemplate
 
@@ -127,6 +126,8 @@ class AppHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         @return module, /SCRIPT_NAME, /PATH_INFO, QUERY_STRING or None
         """
         if not path: path = '/' # just in case
+
+        from minds import cgibin
         for name, mod in cgibin.cgi_registry:
             if not path.startswith(name):
                 continue

@@ -1,4 +1,6 @@
 """
+Usage: import_delicious.py filename | (username password)
+
 """
 import base64
 import codecs
@@ -21,14 +23,6 @@ TAG_FILLER = 'system:unfiled'
 
 
 POSTS_URL = 'http://del.icio.us/api/posts/all'
-
-def fetch(user, password):
-    request = urllib2.Request(POSTS_URL)
-    auth = base64.encodestring('%s:%s' % (user, password)).rstrip()
-    request.add_header("Authorization", "Basic %s" % auth)
-    fp = urllib2.urlopen(request)
-    return fp
-
 
 def parse(fp):
     parser = xml.sax.make_parser()
@@ -71,17 +65,30 @@ class DeliciousHandler(xml.sax.handler.ContentHandler):
         self.bookmarks.append(page)
 
 
+def fetch_delicious(url, user, password):
+    request = urllib2.Request(url)
+    auth = base64.encodestring('%s:%s' % (user, password)).rstrip()
+    request.add_header("Authorization", "Basic %s" % auth)
+    fp = urllib2.urlopen(request)
+    return fp
 
-def import_bookmark(pathname):
-    fp = file(pathname,'rb')
-#    fp = fetch('aurora','***')
+
+def import_bookmark(fp):
     bookmarks = parse(fp)
-    import_util.import_bookmarks(bookmarks)
+    return import_util.import_bookmarks(bookmarks)
+
 
 
 def main(argv):
-    pathname = argv[1]
-    import_bookmark(pathname)
+    if len(argv) <= 1:
+        print __doc__
+        sys.exit(-1)
+    elif len(argv) == 2:
+        pathname = argv[1]
+        fp = file(pathname,'rb')
+    else:
+        fp = fetch_delicious(POSTS_URL, argv[1],argv[2])
+    import_bookmark(fp)
 
 
 if __name__ =='__main__':

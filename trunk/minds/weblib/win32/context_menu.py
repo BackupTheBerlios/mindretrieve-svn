@@ -52,6 +52,10 @@ class ShellExtension:
         files = self.getFiles()
         msg =  len(files) > 1 and '&Tag %s files' % len(files) or '&Tag with MindRetrieve'
 
+        # TODO: we do not support tagging multiple files now
+        if not(files):
+            return
+
         idCmd = idCmdFirst
         items = []
         if (uFlags & 0x000F) == shellcon.CMF_NORMAL: # Check == here, since CMF_NORMAL=0
@@ -157,8 +161,13 @@ def DllUnregisterServer():
     print ShellExtension._reg_desc_, "unregistration complete."
 
 
-if __name__=='__main__':
+def main(argv):
+    # assume argv == sys.argv
     from win32com.server import register
     register.UseCommandLine(ShellExtension,
                    finalize_register = DllRegisterServer,
                    finalize_unregister = DllUnregisterServer)
+
+
+if __name__=='__main__':
+    main()

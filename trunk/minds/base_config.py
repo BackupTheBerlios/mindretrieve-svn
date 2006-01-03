@@ -65,8 +65,9 @@ PREFERENCE_FILE = 'preference.ini'
 # Note: the default path section points to testdata and testlogs for unit testing.
 SYSTEM_DEFAULT_CONFIG="""
 [version]
-number=0.5.0
-created=2005-09-17
+number=0.6.1
+created=2006-01-03
+copyright=2005-2006 BSD license
 
 [path]
 data=testdata
@@ -322,5 +323,5 @@ def testReadObject():
 
 
 if __name__ =='__main__':
-    testReadObject()
-    #main(sys.argv)
+    #testReadObject()
+    main(sys.argv)

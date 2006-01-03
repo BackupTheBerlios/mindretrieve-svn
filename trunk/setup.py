@@ -1,4 +1,3 @@
-#!/usr/bin/python
 from distutils.core import setup
 import os
 import py2exe
@@ -7,20 +6,35 @@ import stat
 import sys
 import tarfile
 
-from minds import config
+from minds.config import cfg
+from minds import base_config
 
 
-# If run without args, build executables, in quiet mode.
-#if len(sys.argv) == 1:
-#    sys.argv.append("py2exe")
-#    sys.argv.append("-q")
-
-APP_NAME = config.APPLICATION_NAME + config.cfg.get('version', 'number')
+APP_NAME = cfg.application_name
 APP_NAME = APP_NAME.lower()
 
 ### todo: hack to include modules below:
 from toollib import reindex
 
+
+################################################################
+# win32com.shell and py2exe hack
+#   http://starship.python.net/crew/theller/moin.cgi/WinShell
+
+# ModuleFinder can't handle runtime changes to __path__, but win32com uses them
+try:
+    import modulefinder
+    import win32com
+    for p in win32com.__path__[1:]:
+        modulefinder.AddPackagePath("win32com", p)
+    for extra in ["win32com.shell"]: #,"win32com.mapi"
+        __import__(extra)
+        m = sys.modules[extra]
+        for p in m.__path__[1:]:
+            modulefinder.AddPackagePath(extra, p)
+except ImportError:
+    # no build path setup, no worries.
+    pass
 
 ################################################################
 
@@ -65,10 +79,10 @@ class Target:
     def __init__(self, **kw):
         self.__dict__.update(kw)
         # for the versioninfo resources
-        self.version = config.cfg.get('version', 'number')
-        self.company_name = config.APPLICATION_NAME
-        self.copyright = "Copyright " + config.cfg.get('version', 'copyright')
-        self.name = config.APPLICATION_NAME
+        self.version = cfg.get('version.number')
+        self.company_name = base_config.APPLICATION_NAME
+        self.copyright = "Copyright " + cfg.get('version.copyright')
+        self.name = base_config.APPLICATION_NAME
 
 
 ################################################################
@@ -129,6 +143,7 @@ else:
             ('docs/img',                glob.glob('docs/website/img/opera_proxy.gif')),
             ('.',                       ['lib/msvcr71.dll',]),
             ('lib/htdocs',              glob.glob('lib/htdocs/*.*')),
+            ('lib/htdocs/img',          glob.glob('lib/htdocs/img/*.*')),
             ('lib/testdocs',            glob.glob('lib/testdocs/*.*')),
             ('lib/testdocs/js',         glob.glob('lib/testdocs/js/*.*')),
             ('lib/testdocs/test_magic', glob.glob('lib/testdocs/test_magic/*.*')),

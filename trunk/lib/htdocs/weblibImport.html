@@ -135,30 +135,48 @@ Duplicated items
 </div>
 -->
 </form>
+</div>
 
+
+
+<div id='iePane'>
+<h3>Internet Explorer</h3>
+Please export favorites into a file.<br />
+Then import as a <a href='javascript:showTab("moz");'>Mozilla</a> bookmark.
+</div>
+
+<div id='mozPane'>
+<h3>Import Netscape/Mozilla/Firefox Bookmarks</h3>
+<form method='POST' action='/weblib/import/moz' enctype='multipart/form-data'>
+<table cellpadding='4' cellspacing='0'>
+    <tr><td>Bookmark file</td><td><input type='file' name='file' size='50'/>
+    <tr><td>&nbsp;</td><td><span class='info'>e.g. c:\Documents and Settings\username\Application Data\Mozilla\Firefox\Profiles\__\bookmarks.html</span></td></tr>
+    <tr><td>&nbsp;  </td><td><input type='submit' name='submit' /></td></tr>
+</table>
+</form>
 </div>
 
 
 
 <div id='operaPane'>
-<h3>Opera</h3>
-Bookmark file <input type='file' name='file' />
+<h3>Import Opera Bookmarks</h3>
+<form method='POST' action='/weblib/import/opera' enctype='multipart/form-data'>
+<table cellpadding='4' cellspacing='0'>
+    <tr><td>Bookmark file</td><td><input type='file' name='file' size='50'/>
+    <tr><td>&nbsp;</td><td><span class='info'>e.g. c:\Documents and Settings\username\Application Data\Opera\Opera\profile\opera6.adr</span></td></tr>
+    <tr><td>&nbsp;  </td><td><input type='submit' name='submit' /></td></tr>
+</table>
+</form>
 </div>
+
+
 
 <div id='safariPane'>
 <h3>Safari</h3>
-Coming soon.
+Please export bookmark into an HTML file.<br />
+Then import as a <a href='javascript:showTab("moz");'>Mozilla</a> bookmark.
 </div>
 
-<div id='iePane'>
-<h3>Internet Explorer</h3>
-Bookmark file <input type='file' name='file' />
-</div>
-
-<div id='mozPane'>
-<h3>Mozilla</h3>
-Bookmark file <input type='file' name='file' />
-</div>
 
 <p class='bottomLink'>Return to <a href="/weblib">Main</a>
 </div>  <!-- formContent -->

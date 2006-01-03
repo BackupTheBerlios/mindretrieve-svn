@@ -1,7 +1,9 @@
 import logging
 import os
+import StringIO
 import sys
 import urllib2
+from xml import sax
 
 from minds.config import cfg
 from minds.cgibin.util import request
@@ -64,6 +66,8 @@ def doDeli(wfile,req):
         except IOError, e:
             log.exception('import_delicious.fetch_delicious error: %s:%s' % (username,'***'))
             error_msg = str(e)
+        except sax.SAXParseException, e:
+            error_msg = str(e)
     else:
         fp = _openDeliTestDocument()
 
@@ -71,8 +75,45 @@ def doDeli(wfile,req):
         added, updated = import_delicious.import_bookmark(fp)
 
     ImportStatusRenderer(wfile)\
-        .output(error_msg, added, updated, None)
+        .output(error_msg, import_delicious.POSTS_URL, added, updated, None)
 
+
+def doMoz(wfile,req):
+    error_msg = ''
+    added = None
+    updated = None
+
+    file_field = req.form['file']
+    fp = StringIO.StringIO(file_field.value)
+
+    # sanity check first
+    if file_field.value.find('NETSCAPE-Bookmark-file',0,256) >= 0:
+        added, updated = import_netscape.import_bookmark(fp)
+    else:
+        log.warn('Incorrect netscape bookmark format: %s' % file_field.value[:50].encode('string_escape'))
+        error_msg = 'Error: incorrect bookmark file format'
+
+    ImportStatusRenderer(wfile)\
+        .output(error_msg, '', added, updated, None)
+
+
+def doOpera(wfile,req):
+    error_msg = ''
+    added = None
+    updated = None
+
+    file_field = req.form['file']
+    fp = StringIO.StringIO(file_field.value)
+
+    # sanity check first
+    if file_field.value.find('Opera',0,100) >= 0:
+        added, updated = import_opera.import_bookmark(fp)
+    else:
+        log.warn('Incorrect opera bookmark format: %s' % file_field.value[:50].encode('string_escape'))
+        error_msg = 'Error: incorrect bookmark file format'
+
+    ImportStatusRenderer(wfile)\
+        .output(error_msg, '', added, updated, None)
 
 
 # ----------------------------------------------------------------------
@@ -89,14 +130,14 @@ class ImportStatusRenderer(response.WeblibLayoutRenderer):
 
     TEMPLATE_FILE = 'weblibImportStatus.html'
 
-    def render(self, node, error_msg, added, updated, skipped):
+    def render(self, node, error_msg, error_detail, added, updated, skipped):
         if error_msg:
             node.status.omit()
             if error_msg == '401':
                 pass # canned error
             else:
-                node.error_msg.message.content = error_msg
-            node.error_msg.view_url.content = import_delicious.POSTS_URL
+                node.error_msg.header.content = error_msg
+            node.error_msg.detail.content = error_detail
 
         else:
             node.error_msg.omit()

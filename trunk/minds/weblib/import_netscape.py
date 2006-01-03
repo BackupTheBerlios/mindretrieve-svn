@@ -168,15 +168,15 @@ def parseDescription(tokens):
     return _join_text(description)
 
 
-def import_bookmark(pathname):
-    fp = file(pathname,'rb')
+def import_bookmark(fp):
     folder = parseFile(fp)
-    import_util.import_tree(folder)
+    return import_util.import_tree(folder)
 
 
 def main(argv):
     pathname = argv[1]
-    import_bookmark(pathname)
+    fp = file(pathname,'rb')
+    import_bookmark(fp)
 
 
 if __name__ =='__main__':

@@ -58,7 +58,11 @@ def makeWebPage(file_url):
 
     from minds import weblib
     if not props:
-        page = weblib.WebPage(name='', url=file_url)
+        # extract name from last part of path
+        head, tail = os.path.split(p)
+        if head and not tail:   # i.e. end in trailing \
+            head, tail = os.path.split(head)
+        page = weblib.WebPage(name=tail, url=file_url)
         return page, ''
     else:
         title, comments, category = props

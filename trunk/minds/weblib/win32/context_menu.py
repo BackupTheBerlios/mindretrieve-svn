@@ -10,6 +10,8 @@
 # * Right-Click on a .py file - locate and click on 'Hello from Python' on
 #   the context menu.
 
+import ConfigParser
+import os.path
 import urllib
 import pythoncom
 from win32com.shell import shell, shellcon
@@ -34,10 +36,14 @@ TYPES = [
     ]
 SUBKEY = 'MindRetrieve'
 
+def alertError(hWnd, exc):
+    win32gui.MessageBox(hwnd, str(exc), str(exc.__class__), win32con.MB_OK)
+
+
 class ShellExtension:
     _reg_progid_ = "MindRetrieve.ShellExtension.ContextMenu"
     _reg_desc_ = "MindRetrieve Shell Extension (context menu)"
-    _reg_clsid_ = "{d4193e50-70fa-11da-9808-00123f0d59a8}"
+    _reg_clsid_ = "{ABB05546-EB55-4433-B068-A57667706828}"
 
     _com_interfaces_ = [shell.IID_IShellExtInit, shell.IID_IContextMenu]
     _public_methods_ = IContextMenu_Methods + IShellExtInit_Methods
@@ -48,82 +54,97 @@ class ShellExtension:
 
     def QueryContextMenu(self, hMenu, indexMenu, idCmdFirst, idCmdLast, uFlags):
         print "QCM", hMenu, indexMenu, idCmdFirst, idCmdLast, uFlags
-        # Query the items clicked on
-        files = self.getFiles()
-        msg =  len(files) > 1 and '&Tag %s files' % len(files) or '&Tag with MindRetrieve'
 
-        # TODO: we do not support tagging multiple files now
-        if not(files):
-            return
+        try:
+            # Query the items clicked on
+#            files = self.getFiles()
+#            msg =  len(files) > 1 and '&Tag %s files' % len(files) or '&Tag with MindRetrieve'
+#            # TODO: we do not support tagging multiple files now
+#            if not(files):
+#                return
+            msg = '&Tag with MindRetrieve'
 
-        idCmd = idCmdFirst
-        items = []
-        if (uFlags & 0x000F) == shellcon.CMF_NORMAL: # Check == here, since CMF_NORMAL=0
-            print "CMF_NORMAL..."
-            items.append(msg)
-        elif uFlags & shellcon.CMF_VERBSONLY:
-            print "CMF_VERBSONLY..."
-            items.append(msg + " - shortcut")
-        elif uFlags & shellcon.CMF_EXPLORE:
-            print "CMF_EXPLORE..."
-            items.append(msg + " - normal file, right-click in Explorer")
-        elif uFlags & CMF_DEFAULTONLY:
-            print "CMF_DEFAULTONLY...\r\n"
-        else:
-            print "** unknown flags", uFlags
-        win32gui.InsertMenu(hMenu, indexMenu,
-                            win32con.MF_SEPARATOR|win32con.MF_BYPOSITION,
-                            0, None)
-        indexMenu += 1
-        for item in items:
+            idCmd = idCmdFirst
+            items = []
+            if (uFlags & 0x000F) == shellcon.CMF_NORMAL: # Check == here, since CMF_NORMAL=0
+                print "CMF_NORMAL..."
+                items.append(msg)
+            elif uFlags & shellcon.CMF_VERBSONLY:
+                print "CMF_VERBSONLY..."
+                items.append(msg)# + " - shortcut")
+            elif uFlags & shellcon.CMF_EXPLORE:
+                print "CMF_EXPLORE..."
+                items.append(msg)# + " - normal file, right-click in Explorer")
+            elif uFlags & CMF_DEFAULTONLY:
+                print "CMF_DEFAULTONLY...\r\n"
+            else:
+                print "** unknown flags", uFlags
             win32gui.InsertMenu(hMenu, indexMenu,
-                                win32con.MF_STRING|win32con.MF_BYPOSITION,
-                                idCmd, item)
+                                win32con.MF_SEPARATOR|win32con.MF_BYPOSITION,
+                                0, None)
             indexMenu += 1
-            idCmd += 1
+            for item in items:
+                win32gui.InsertMenu(hMenu, indexMenu,
+                                    win32con.MF_STRING|win32con.MF_BYPOSITION,
+                                    idCmd, item)
+                indexMenu += 1
+                idCmd += 1
 
-        win32gui.InsertMenu(hMenu, indexMenu,
-                            win32con.MF_SEPARATOR|win32con.MF_BYPOSITION,
-                            0, None)
-        indexMenu += 1
-        return idCmd-idCmdFirst # Must return number of menu items we added.
+            win32gui.InsertMenu(hMenu, indexMenu,
+                                win32con.MF_SEPARATOR|win32con.MF_BYPOSITION,
+                                0, None)
+            indexMenu += 1
+            return idCmd-idCmdFirst # Must return number of menu items we added.
+
+        except Exception, e:
+            alertError(hwnd, e)
+            raise
 
 
     def InvokeCommand(self, ci):
         mask, hwnd, verb, params, dir, nShow, hotkey, hicon = ci
 
-        files = self.getFiles()
-        if not files:
-            return
+        try:
+            files = self.getFiles()
+            if not files:
+                return
+            fname = files[0]
 
-        fname = files[0]
-        file_url = urllib.pathname2url(fname)
+#            win32gui.MessageBox(hwnd, fname,  str(fname.__class__), win32con.MB_OK)
 
-# 2005-12-20 Test urllib.pathname2url()
-#
-#>>> urllib.pathname2url(r'c:\tung\wäi')
-#'///C|/tung/w%84i'
-#>>> urllib.pathname2url(r'\tung\wäi')
-#'/tung/w%84i'
-#>>> urllib.pathname2url(r'tung\wäi')
-#'tung/w%84i'
+            fname = fname.encode('utf-8')
+            file_url = urllib.pathname2url(fname)
 
-        # prefer ':' as the drive separator rather than '|'
-        if file_url.startswith('///') and file_url[4:5] == '|':
-            file_url = file_url.replace('|',':',1)
+    # 2005-12-20 Test urllib.pathname2url()
+    #
+    #>>> urllib.pathname2url(r'c:\tung\wäi')
+    #'///C|/tung/w%84i'
+    #>>> urllib.pathname2url(r'\tung\wäi')
+    #'/tung/w%84i'
+    #>>> urllib.pathname2url(r'tung\wäi')
+    #'tung/w%84i'
 
-        if file_url.startswith('//'):
-            file_url = 'file:' + file_url
-        elif file_url.startswith('/'):
-            file_url = 'file://' + file_url
-        else:
-            # fname is a relative filename? Should not happen!
-            file_url = 'file:///' + file_url
+            # prefer ':' as the drive separator rather than '|'
+            if file_url.startswith('///') and file_url[4:5] == '|':
+                file_url = file_url.replace('|',':',1)
 
-        shell.ShellExecuteEx(fMask=shellcon.SEE_MASK_NOCLOSEPROCESS,
-                             lpFile='http://localhost:8052/weblib/_?url=' + file_url,
-                             nShow=win32con.SW_NORMAL,
-                            )
+            if file_url.startswith('//'):
+                file_url = 'file:' + file_url
+            elif file_url.startswith('/'):
+                file_url = 'file://' + file_url
+            else:
+                # fname is a relative filename? Should not happen!
+                file_url = 'file:///' + file_url
+
+            url = getBaseURL() + '?url=' + urllib.quote(file_url)
+            shell.ShellExecuteEx(fMask=shellcon.SEE_MASK_NOCLOSEPROCESS,
+                                 lpFile=url,
+                                 nShow=win32con.SW_NORMAL,
+                                )
+        except Exception, e:
+            alertError(hwnd, e)
+            raise
+
 
     def GetCommandString(self, cmd, typ):
         return "&Tag with MindRetrieve"
@@ -135,6 +156,49 @@ class ShellExtension:
         num_files = shell.DragQueryFile(sm.data_handle, -1)
         files = [shell.DragQueryFile(sm.data_handle, i) for i in range(num_files)]
         return files
+
+
+def getConfigPath():
+    """ get the DLL path from registry """
+    import _winreg
+
+    # _winreg.QueryValue() may throw WindowsError
+
+    # COM server registration in deployed environment
+    # e.g. HKEY_CLASSES_ROOT\CLSID\{ABB05546-EB55-4433-B068-A57667706828}\InprocServer32
+    #       =c:\Program Files\MindRetrieve\context_menu.dll
+    subkey = 'CLSID\\%s\\InprocServer32' % ShellExtension._reg_clsid_
+    path = _winreg.QueryValue(_winreg.HKEY_CLASSES_ROOT, subkey)
+    head, tail = os.path.split(path)
+    # quick check if this is in deployed environment
+    if os.path.isabs(head):
+        return head
+
+    # Otherwise assume in development environment
+    # e.g. HKEY_CLASSES_ROOT\CLSID\{ABB05546-EB55-4433-B068-A57667706828}\PythonCOMPath
+    #       =g:\bin\py_repos\mindretrieve\trunk\minds\weblib\win32
+    subkey = 'CLSID\\%s\\PythonCOMPath' % ShellExtension._reg_clsid_
+    path = _winreg.QueryValue(_winreg.HKEY_CLASSES_ROOT, subkey)
+    idx = path.lower().rfind('minds')   # truncate trailing 'minds\weblib\win32'
+    if idx > 0:
+        path = path[:idx-1]
+    return path
+
+
+
+def getHTTPAdminPort():
+    """ get HTTP.admin_port from config.ini """
+    pathname = os.path.join(getConfigPath(), 'config.ini')
+    cp = ConfigParser.ConfigParser()
+    cp.read(pathname)
+    admin_port = cp.getint('http','admin_port')
+    return admin_port
+
+
+def getBaseURL():
+    """ get the base URL """
+    port = getHTTPAdminPort()
+    return 'http://localhost:%s/weblib/_' % port
 
 
 def DllRegisterServer():
@@ -169,5 +233,14 @@ def main(argv):
                    finalize_unregister = DllUnregisterServer)
 
 
+def test(argv):
+    """ adhoc tests """
+    print 'URL:', getBaseURL()
+
+
 if __name__=='__main__':
-    main()
+    import sys
+    if '-t' not in sys.argv:
+        main(sys.argv)
+    else:
+        test(sys.argv)

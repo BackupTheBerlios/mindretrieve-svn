@@ -135,6 +135,7 @@ class LogFileObj(object):
 
 
 def shutdown():
+    log.fatal('System shutting down.')
     _shutdownEvent.set()
 
 
@@ -183,7 +184,6 @@ def main():
     _shutdownEvent.wait()
 
     # shutdown
-    log.fatal('System shutting down.')
     indexThread.join()
     log.fatal('indexThread terminated.')
     adminThread.join()

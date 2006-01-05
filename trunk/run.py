@@ -51,13 +51,8 @@ def main(argv):
         proxy.main()
 
     elif option == '--inproc_stop':
-        from minds.config import cfg
-        port = cfg.getint('http','admin_port',0)
-        url = 'http://localhost:%d/config?action=shutdown' % port
-        print url
-        fp = urllib.urlopen(url)
-        print fp.read()
-        fp.close()
+        from minds import proxy
+        proxy.shutdown()
 
     elif option == '--stop':
         from minds.config import cfg

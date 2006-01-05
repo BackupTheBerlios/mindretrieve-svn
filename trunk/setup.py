@@ -63,7 +63,8 @@ def make_sdist(argv):
     files += [(f, 'lib/'+f) for f in glob.glob('toollib/*.py')]
 
     # make the distribution file
-    tf = tarfile.open(APP_NAME+'.tar.gz','w:gz')
+    filename = APP_NAME.replace(' ','') + '.tar.gz'
+    tf = tarfile.open(filename,'w:gz')
     for name, arcname in files:
         tf.add(name, APP_NAME + '/' + arcname)
     addscript(tf, 'run.py',   APP_NAME + '/' +'run.py')
@@ -95,6 +96,14 @@ myservice = Target(
     modules = ["MindRetrieve"]
     )
 
+context_menu_handler = Target(
+    description = "Context Menu Handler",
+    # what to build.  For COM servers, the module name (not the
+    # filename) must be specified!
+    modules = ["minds.weblib.win32.context_menu"],
+    create_exe = False,
+##    create_dll = False,
+    )
 
 ################################################################
 # COM pulls in a lot of stuff which we don't want or need.
@@ -131,11 +140,10 @@ else:
 
         console=['run.py'],
         service = [myservice],
+        com_server = [context_menu_handler],
         data_files=[
-            ('.', [
-                'config.ini',
-                'docs/license.txt',
-            ]),
+            ('.',                       ['docs/license.txt',]),
+            ('.',                       ['lib/config.ini',]),
             ('docs',                    ['docs/website/readme.html',]),
             ('docs',                    ['docs/build.txt',]),
             ('docs/img',                glob.glob('docs/website/img/firefox_proxy.gif')),

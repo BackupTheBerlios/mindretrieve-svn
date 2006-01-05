@@ -18,8 +18,8 @@ OutputDir=.
 OutputBaseFilename=mindretrieve0.6.1win32
 
 [Files]
-Source: "g:\bin\py_repos\mindretrieve\trunk\dist\MindRetrieve.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "g:\bin\py_repos\mindretrieve\trunk\dist\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
+Source: "g:\bin\py_repos\mindretrieve\trunk\dist\MindRetrieve.exe"; DestDir: "{app}"; Flags: ignoreversion restartreplace
+Source: "g:\bin\py_repos\mindretrieve\trunk\dist\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs restartreplace
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 ;[InstallDelete]
@@ -32,11 +32,11 @@ Name: {app}\MindRetrieve.exe; Type: files; Check: StopAndRemoveService
 [Run]
 Filename: "{app}\MindRetrieve.exe"; Description: "Register I-identd service"; Parameters: "-install -auto";
 Filename: "{sys}\net.exe"; Parameters: "start MindRetrieve"
-Filename: "{app}\run.exe"; Parameters: "--run minds.weblib.win32.context_menu --register";
+Filename: "{sys}\regsvr32.exe"; Parameters: "/s ""{app}\context_menu.dll""";
 Filename: {app}\docs\readme.html; Flags: shellexec
 
 [UninstallRun]
-Filename: "{app}\run.exe"; Parameters: "--run minds.weblib.win32.context_menu --unregister";
+Filename: "{sys}\regsvr32.exe"; Parameters: "/s /u ""{app}\context_menu.dll""";
 Filename: "{sys}\net.exe"; Parameters: "stop MindRetrieve"; RunOnceId: "StopService"
 Filename: "{app}\MindRetrieve.exe"; Parameters: "-remove"; RunOnceId: "RemoveService"
 

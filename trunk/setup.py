@@ -118,22 +118,24 @@ if 'sdist' in sys.argv:
     make_sdist(sys.argv)
 
 else:
+    options = {"py2exe": {
+        #"bundle_files": 1,
+        # create a compressed zip archive
+        #"compressed": 1,
+        "optimize": 2,
+        "excludes": excludes,
+        "packages": [
+            "minds",
+            "minds.cgibin",
+            "minds.cgibin.test",
+            "minds.test",
+            "minds.util",
+            ],
+        }}
 
     setup(
-        options = {"py2exe": {
-    #                          # create a compressed zip archive
-    #                          "compressed": 1,
-                              "optimize": 2,
-                              "excludes": excludes,
-                              "packages": [
-                                  "encodings",
-                                  "minds",
-                                  "minds.cgibin",
-                                  "minds.cgibin.test",
-                                  "minds.test",
-                                  "minds.util",
-                                  ],
-                              }},
+        options = options,
+
         # The lib directory contains everything except the executables and the python dll.
         # Can include a subdirectory name.
         zipfile = "lib/shared.zip",
@@ -149,7 +151,6 @@ else:
             ('docs/img',                glob.glob('docs/website/img/firefox_proxy.gif')),
             ('docs/img',                glob.glob('docs/website/img/ie_proxy.gif')),
             ('docs/img',                glob.glob('docs/website/img/opera_proxy.gif')),
-            ('.',                       ['lib/msvcr71.dll',]),
             ('lib/htdocs',              glob.glob('lib/htdocs/*.*')),
             ('lib/htdocs/img',          glob.glob('lib/htdocs/img/*.*')),
             ('lib/testdocs',            glob.glob('lib/testdocs/*.*')),

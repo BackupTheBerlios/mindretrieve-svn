@@ -35,11 +35,13 @@ def main(rfile, wfile, env):
     elif path == '/safari':
         doSafari(wfile, req)
     else:
-        doShowForm(wfile)
+        doShowForm(wfile,req)
 
 
-def doShowForm(wfile):
-    ImportRenderer(wfile).output()
+def doShowForm(wfile,req):
+    renderer = ImportRenderer(wfile)
+    renderer.setLayoutParam(None, '', response.buildBookmarklet(req.env))
+    renderer.output()
 
 
 def doDeli(wfile,req):
@@ -74,8 +76,9 @@ def doDeli(wfile,req):
     if fp:
         added, updated = import_delicious.import_bookmark(fp)
 
-    ImportStatusRenderer(wfile)\
-        .output(error_msg, import_delicious.POSTS_URL, added, updated, None)
+    renderer = ImportStatusRenderer(wfile)
+    renderer.setLayoutParam(None, '', response.buildBookmarklet(req.env))
+    renderer.output(error_msg, import_delicious.POSTS_URL, added, updated, None)
 
 
 def doMoz(wfile,req):
@@ -93,8 +96,9 @@ def doMoz(wfile,req):
         log.warn('Incorrect netscape bookmark format: %s' % file_field.value[:50].encode('string_escape'))
         error_msg = 'Error: incorrect bookmark file format'
 
-    ImportStatusRenderer(wfile)\
-        .output(error_msg, '', added, updated, None)
+    renderer = ImportStatusRenderer(wfile)
+    renderer.setLayoutParam(None, '', response.buildBookmarklet(req.env))
+    renderer.output(error_msg, '', added, updated, None)
 
 
 def doOpera(wfile,req):
@@ -112,8 +116,9 @@ def doOpera(wfile,req):
         log.warn('Incorrect opera bookmark format: %s' % file_field.value[:50].encode('string_escape'))
         error_msg = 'Error: incorrect bookmark file format'
 
-    ImportStatusRenderer(wfile)\
-        .output(error_msg, '', added, updated, None)
+    renderer = ImportStatusRenderer(wfile)
+    renderer.setLayoutParam(None, '', response.buildBookmarklet(req.env))
+    renderer.output(error_msg, '', added, updated, None)
 
 
 # ----------------------------------------------------------------------

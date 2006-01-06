@@ -527,11 +527,8 @@ class WeblibRenderer(response.WeblibLayoutRenderer):
             node.checkbox.atts['name'] = str(webitem.id)
             node.itemDescription.content = unicode(webitem)
             if util.isFileURL(webitem.url):
-                node.itemDescription.atts['href'] = '%s/%s/url#%s' % (
-                    request.WEBLIB_URL,
-                    webitem.id,
-                    urllib.quote(webitem.url, ':/'),
-                    )
+                href = 'javascript:open_url(%s,"%s")' % (webitem.id, webitem.url)
+                node.itemDescription.atts['href'] = href
             else:
                 node.itemDescription.atts['href'] = webitem.url
             node.itemDescription.atts['title'] = '%s %s' % (webitem.modified, webitem.description)

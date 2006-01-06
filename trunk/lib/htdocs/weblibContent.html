@@ -397,6 +397,14 @@ function countSelected() {
     return count
 }
 
+function open_url(rid,view_url) {
+    var form = document.getElementById('asyncForm');
+    var url = '/weblib/' + rid + '/url';
+    form.action = url;
+    form.elements['method'].value = 'GET';
+    form.submit();
+}
+
 // event fire by child window
 function onupdate(url) {
     if (!url) {

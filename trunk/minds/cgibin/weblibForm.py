@@ -100,9 +100,9 @@ class Bean(object):
             item = self.oldItem.__copy__()
             # overwritten with request parameters (only if defined)
             # usually only defined if it is redirected from case 3 request.
-            if req.param('title')      : item.name        = req.param('title')
-            if req.param('url')        : item.url         = req.param('url')
-            if req.param('description'): item.description = req.param('description')
+#            if req.param('title')      : item.name        = req.param('title')
+#            if req.param('url')        : item.url         = req.param('url')
+#            if req.param('description'): item.description = req.param('description')
         else:
             url = req.param('url')
             matches = query_wlib.find_url(wlib, url)

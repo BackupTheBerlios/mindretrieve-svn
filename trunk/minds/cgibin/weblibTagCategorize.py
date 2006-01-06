@@ -54,7 +54,9 @@ def doShowForm(wfile, req):
     un_list.sort()
     uncategorized = [t for l,t in un_list]
 
-    CategorizeRenderer(wfile).output([], tag_base, wlib.category.getDescription(), uncategorized)
+    renderer = CategorizeRenderer(wfile)
+    renderer.setLayoutParam(None, '', response.buildBookmarklet(req.env))
+    renderer.output([], tag_base, wlib.category.getDescription(), uncategorized)
 
 
 def doPost(wfile, req):
@@ -66,7 +68,7 @@ def doPost(wfile, req):
     # setDescription() has a quick & dirty way to get rid of illegal characters
     wlib.category.setDescription(text)
 
-    response.redirect(wfile, '/weblib/tag_categorize')
+    response.redirect(wfile, '/weblib')
 
 
 # ----------------------------------------------------------------------
@@ -94,7 +96,8 @@ def _format_tag_base(tag_info):
     return statement
 
 
-class CategorizeRenderer(response.CGIRenderer):
+class CategorizeRenderer(response.WeblibLayoutRenderer):
+
     TEMPLATE_FILE = 'weblibTagCategorize.html'
     """ 2005-10-03
     tem:

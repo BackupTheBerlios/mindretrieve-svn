@@ -1,9 +1,7 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3c.org/TR/html4/loose.dtd">
-<html>
-<head>
-<title>MindRetrieve - Categorize tags</title>
-<link rel="stylesheet" href="/main.css" type="text/css">
 <style>
+  #content {
+    margin: 2ex;
+  }
   .error_message {
     color:red;
   }
@@ -165,7 +163,7 @@ function tags_changed(tag_name) {
     if (info == null) {
         document.getElementById('hint_tag').href = '';
         setChildText('hint_count', '');
-        setChildText('hint_webpages', '');
+        setChildText('hint_webpages', '\u00a0');    // &nbsp;
     }
     else {
         document.getElementById('hint_tag').href = '/weblib?tag=' + encodeURIComponent(tag_name);
@@ -203,24 +201,10 @@ tag_base['tag2'] = [10,'webpage2'];
 tag_base['tag3'] = [5 ,'webpage3'];
 </script>
 
-</head>
 
-
-<body>
-
-<div id='header'>
-<form action='/weblib' method='get'>
-<table width="100%" cellspacing='0' cellpadding='0'>
-<tr>
-  <td>
-  <a id='homeLink' href='javascript:void(0);' onclick='javascript:openHome();' style='font-size:150%'>MindRetrieve</a>
-  </td>
-</tr>
-</table>
-</form>
-</div>
 
 <!-- main content -->
+<div id='content'>
 <form method='post' action='/weblib/tag_categorize'>
 
 <table cellspacing='0' cellpadding='2'>
@@ -257,7 +241,7 @@ tag1
 <!-- action buttons -->
 <input class='btn' type='submit' name='action' value='Save' />
 &nbsp;
-<input class='btn' type='button' name='action' value='Close' onclick='javascript:window.close()' />
+<input class='btn' type='button' name='cancel' value='Cancel' onclick='javascript:location="/weblib";'/>
 </td>
 
 
@@ -291,8 +275,6 @@ travel
 
 </td>
 
-
-
 </tr>
 
 
@@ -301,6 +283,7 @@ travel
 <td colspan='1'>
 </td>
 -->
+
 <!-- hint area -->
 <td colspan='4'>
 <p>
@@ -312,6 +295,4 @@ travel
 </tr>
 </table>
 </form>
-
-</body>
-</html>
+</div>

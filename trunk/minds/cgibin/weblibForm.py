@@ -287,15 +287,11 @@ class FormRenderer(response.CGIRenderer):
             form.description.content       = item.description
             form.tags       .atts['value'] = bean.item.tags_description
             form.created    .atts['value'] = item.created
-            form.modified   .atts['value'] = item.modified
-            form.lastused   .atts['value'] = item.lastused
 
-            if item.created:
-                form.created_txt.content = item.created
             if item.modified:
                 form.modified_txt.content = item.modified
-            if item.lastused:
-                form.lastused_txt.content = item.lastused
+            if item.fetched:
+                form.snapshot_txt.content = item.fetched
 
         tags = bean.newTags and u', '.join(bean.newTags) or ''
         encoded_tags = response.jsEscapeString(tags)

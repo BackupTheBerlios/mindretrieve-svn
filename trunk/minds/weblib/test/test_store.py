@@ -117,8 +117,8 @@ encoding: utf-8\r
 id|name|description
 1|item1|description1
 """
-        self.assert_(store.VERSION != '0.01')
-        self.assert_(store.VERSION not in data)
+        self.assert_(stor.VERSION != '0.01')
+        self.assert_(stor.VERSION not in data)
         fp = file(stor.pathname,'wb')
         fp.write(data)
         fp.close()
@@ -138,7 +138,7 @@ id|name|description
         fp.close()
 
         self.assert_('0.01' not in newData)
-        self.assert_(store.VERSION in newData)
+        self.assert_(stor.VERSION in newData)
 
         # clean up
         stor.reset()
@@ -453,20 +453,7 @@ id|name|description
 
     def test_timestamp(self):
         ts = store._getTimeStamp()
-        self.assertTrue(len(ts) == len('1234-06-18 12:34:56'))
-        d = store._parseTimeStamp(ts)
-        self.assertTrue(d <= datetime.datetime.now())
-
-
-    def test_invalid_timestamp(self):
-        dt = store._parseTimeStamp('1234-06-18 12:34:56')
-        self.assertEqual(dt, datetime.datetime(1234,6,18,12,34,56))
-
-        self.assertRaises( ValueError, store._parseTimeStamp, '')
-        self.assertRaises( ValueError, store._parseTimeStamp, '1234-06-18 12:34:56Z')
-        self.assertRaises( ValueError, store._parseTimeStamp, '1234/06/18 12:34:56')
-        self.assertRaises( ValueError, store._parseTimeStamp, 'abcd-06-18 12:34:56')
-        self.assertRaises( ValueError, store._parseTimeStamp, '9999-99-99 99:99:99')
+        self.assertTrue(len(ts) == len('1234-06-18T12:34:56Z'))
 
 
 if __name__ == '__main__':

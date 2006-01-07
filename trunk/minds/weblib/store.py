@@ -21,7 +21,7 @@ column-header   = column-name *( "|" column-name)
 column-name     = token
 comment-line    = "#" any string
 data-line       = [change-prefix] (data-record | header)
-change-prefix   = '[' YYYY-MM-DD SP HH:MM:SS ']' SP ['r' | 'u' | 'h'] '!'
+change-prefix   = '[' YYYY-MM-DD 'T' HH:MM:SS 'Z]' SP ['r' | 'u' | 'h'] '!'
 data-record     = ["@"] id *( "|" field-value)
 BR              = CR | LF | CR LF
 SP              = space characters
@@ -91,28 +91,13 @@ import threading
 
 from minds.config import cfg
 from minds import weblib
+from minds.util import dateutil
 from minds.util import dsv
 from minds.weblib import util
 
 
 log = logging.getLogger('wlib.store')
 
-VERSION = '0.61'
-COLUMNS = [
-'id',           # 00
-'name',         # 01
-'description',  # 02
-'tagIds',       # 03
-'created',      # 04
-'modified',     # 05
-'lastused',     # 06
-'fetched',      # 07
-'flags',        # 08
-'url',          # 09
-]
-NUM_COLUMN = len(COLUMNS)
-
-COLUMN_INDEX = dict(zip(map(string.lower, COLUMNS), xrange(NUM_COLUMN)))
 
 
 """ 2005-11-29 Discussion on the _interpretRecord() protocol
@@ -167,35 +152,30 @@ if os.name == 'nt':
 
 
 
-TIMESTAMP_FORMAT = 'YYYY-MM-DD HH:MM:SS'
-
 def _getTimeStamp():
-    """ Format:  """
-    now = datetime.datetime.today()
-    return now.isoformat(' ')[:len(TIMESTAMP_FORMAT)]
-
-
-def _parseTimeStamp(s):
-    if len(s) != len(TIMESTAMP_FORMAT):
-        raise ValueError('Invalid timestamp length: "%s"' % s)
-    if (s[4],s[7],s[13],s[16]) != ('-','-',':',':'):
-        raise ValueError('Invalid timestamp separators: "%s"' % s)
-    try:
-        Y = s[0:4]
-        M = s[5:7]
-        D = s[8:10]
-        h = s[11:13]
-        m = s[14:16]
-        d = s[17:19]
-        return datetime.datetime(int(Y),int(M),int(D),int(h),int(m),int(d))
-    except Exception, e:
-        raise ValueError('Invalid timestamp - "%s": %s' % (s, str(e)))
+    now = datetime.datetime.utcnow()
+    return dateutil.isoformat(now) + 'Z'
 
 
 class Store(object):
 
     DEFAULT_FILENAME = 'weblib.dat'
+    VERSION = '0.62'
     ENCODING = 'UTF-8'
+    COLUMNS = [
+    'id',           # 00
+    'name',         # 01
+    'description',  # 02
+    'tagIds',       # 03
+    'created',      # 04
+    'modified',     # 05
+    'lastused',     # 06
+    'fetched',      # 07
+    'flags',        # 08
+    'url',          # 09
+    ]
+    NUM_COLUMN = len(COLUMNS)
+    COLUMN_INDEX = dict(zip(map(string.lower, COLUMNS), xrange(NUM_COLUMN)))
 
     def __init__(self):
         self.lock = threading.RLock()
@@ -226,10 +206,10 @@ class Store(object):
             self.save()
 
         cur_version = self.wlib.headers.get('weblib-version','')
-        if  cur_version != VERSION:
+        if  cur_version != self.VERSION:
             # upgrade (or downgrade) weblib file
             # note that we must ensure the column header match what this version writes
-            log.info('Upgrade weblib file existing verion=%s new version=%s' % (cur_version, VERSION))
+            log.info('Upgrade weblib file existing verion=%s new version=%s' % (cur_version, self.VERSION))
             self.save()
 
 # Note: There is a small issue about timing of calling save(). The sequence of
@@ -329,7 +309,7 @@ class Store(object):
                     line = line.rstrip()
                     if not line or line.startswith('#'):
                         continue
-                    row_headers = dsv.parse_header(lineno+1, line, COLUMNS)
+                    row_headers = dsv.parse_header(lineno+1, line, self.COLUMNS)
                     break
 
                 # data-records
@@ -370,8 +350,7 @@ class Store(object):
             self.lock.release()
 
 
-    CHANGE_TEMPLATE = '[1234-06-18 12:34:56] u!'
-    CHANGE_PREFIX = re.compile('\[([\d:\- ]{19})\] (\w)!')
+    CHANGE_PREFIX = re.compile('\[([\d:\-T ]{19})Z?\] (\w)!')
 
     def _interpretRecord(self, line, row_headers):
         """
@@ -384,9 +363,9 @@ class Store(object):
         mode = 'u'
         m = self.CHANGE_PREFIX.match(line)
         if m:
-            timestamp = _parseTimeStamp(m.group(1))
+            timestamp = dateutil.parse_iso8601_date(m.group(1))
             mode = m.group(2)
-            line =  line[len(self.CHANGE_TEMPLATE):]
+            line =  line[m.end():]
 
         if mode == 'h':
             self._interpretHeaderRecord(line)
@@ -510,7 +489,7 @@ class Store(object):
         self.lock.acquire()
         try:
             line = '[%s] h!%s' % (_getTimeStamp(), self._serialize_header(name, value))
-            self._interpretRecord(line, COLUMN_INDEX)
+            self._interpretRecord(line, self.COLUMN_INDEX)
             self._log(line, flush)
 
         finally:
@@ -539,7 +518,7 @@ class Store(object):
             if tag.id < 0:
                 tag.id = self.wlib.tags.acquireId()
             line = '[%s] u!%s' % (_getTimeStamp(), self._serialize_tag(tag))
-            newTag = self._interpretRecord(line, COLUMN_INDEX)
+            newTag = self._interpretRecord(line, self.COLUMN_INDEX)
             self._log(line, flush)
 
             # shred input tag
@@ -568,7 +547,7 @@ class Store(object):
             if webpage.id < 0:
                 webpage.id = self.wlib.webpages.acquireId()
             line = '[%s] u!%s' % (_getTimeStamp(), self._serialize_webpage(webpage))
-            newItem = self._interpretRecord(line, COLUMN_INDEX)
+            newItem = self._interpretRecord(line, self.COLUMN_INDEX)
             self._conv_tagid(self.wlib.webpages.getById(newItem.id))
             self._log(line, flush)
 
@@ -598,7 +577,7 @@ class Store(object):
                 line = '[%s] r!@%s' % (_getTimeStamp(), item.id)
             else:
                 line = '[%s] r!%s' % (_getTimeStamp(), item.id)
-            self._interpretRecord(line, COLUMN_INDEX)
+            self._interpretRecord(line, self.COLUMN_INDEX)
             self._log(line, flush)
 
         finally:
@@ -683,7 +662,7 @@ class Store(object):
                 wlib = self.wlib
 
                 # udpate timestamp
-                wlib.setHeader('weblib-version', VERSION)
+                wlib.setHeader('weblib-version', self.VERSION)
                 wlib.setHeader('date', _getTimeStamp())
 
                 # write headers
@@ -704,7 +683,7 @@ class Store(object):
 
                 writer.write('\r\n')
 
-                header = dsv.encode_fields(COLUMNS)
+                header = dsv.encode_fields(self.COLUMNS)
                 writer.write(header)
                 writer.write('\r\n')
 

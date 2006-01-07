@@ -255,7 +255,7 @@ class WebLibrary(object):
 
         # default headers
         from minds.weblib import store as store_module
-        self.setHeader('weblib-version', store_module.VERSION)
+        self.setHeader('weblib-version', store_module.Store.VERSION)
         self.setHeader('encoding', 'utf8')
         self.setHeader('category_description','')
 
@@ -438,6 +438,48 @@ class WebLibrary(object):
 
     # ------------------------------------------------------------------------
     # Webpage methods
+
+
+    # 2006-01-06 Need to think twice about this. Import has 2 possibilities, use new or use existing.
+
+#    def draftWebPage(self, page_in):
+#        """
+#        Draft a WebPage by taking input from page_in and looking up
+#        existing webpage by the same URL.
+#
+#        The fields of page_in are interpreted by:
+#
+#        id              - ignored, either generates a new id or lookup an existing id
+#        url             - used to match existing item in the wlib
+#        name            - proposed name (overridden by existing item)
+#        description     - proposed description (overridden by existing item)
+#        created         - if None, substitute with today or the value of the existing item
+#        modified        - if None, substitute with today
+#        tags_description- if not None, used to build the tags list; create any new tags
+#
+#        @return - a draft WebPage. If its id is not -1, it matches an existing item.
+#        """
+#        today = datetime.date.today().isoformat()
+#
+#        import query_wlib
+#        matches = query_wlib.find_url(self, page_in.url)
+#        if matches:
+#            existing = matches[0]
+#                self.oldItem = matches[0]
+#                item = existing.__copy__()
+#                # however override with possibly new title and description
+#                item.name        = req.param('title')
+#                item.description = req.param('description')
+#                # actually the item is not very important because we
+#                # are going to redirect the request to the proper rid.
+#
+#        else:
+#            page_in.id = -1
+#            if page_in.created is None:
+#                page_in.created = today
+#            if page_in.modified is None:
+#                page_in.modified = today
+
 
     def putWebPage(self, page):
         """

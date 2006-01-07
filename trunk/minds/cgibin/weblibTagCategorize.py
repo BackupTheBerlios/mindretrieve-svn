@@ -55,7 +55,7 @@ def doShowForm(wfile, req):
     uncategorized = [t for l,t in un_list]
 
     renderer = CategorizeRenderer(wfile)
-    renderer.setLayoutParam(None, '', response.buildBookmarklet(req.env))
+    renderer.setLayoutParam('Categorize Tags', '', response.buildBookmarklet(req.env))
     renderer.output([], tag_base, wlib.category.getDescription(), uncategorized)
 
 

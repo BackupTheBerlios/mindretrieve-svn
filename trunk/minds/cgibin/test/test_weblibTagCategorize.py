@@ -12,14 +12,14 @@ class TestWeblibTagCategorize(test_weblib.TestCGIBase):
 
   def test_GET(self):
     self.checkPathForPattern("/weblib/tag_categorize", [
-        '<html>', 'Categorize tags', '</html>',
+        '<html>', 'Categorize Tags', '</html>',
     ])
 
 
   def test_POST0(self):
     self.checkPathForPattern('/weblib/tag_categorize?category_description=&method=POST', [
         'HTTP/1.0 302 Found',
-        'location: /weblib/tag_categorize',
+        'location: /weblib',
     ])
     self.assertEqual(self.wlib.category.getDescription(), '')
 
@@ -28,7 +28,7 @@ class TestWeblibTagCategorize(test_weblib.TestCGIBase):
     test_data = 'a\r\n  b'
     self.checkPathForPattern('/weblib/tag_categorize?category_description=' + urllib.quote(test_data) + '&method=POST', [
         'HTTP/1.0 302 Found',
-        'location: /weblib/tag_categorize',
+        'location: /weblib',
     ])
     self.assertEqual(self.wlib.category.getDescription(), test_data)
 
@@ -37,8 +37,10 @@ class TestWeblibTagCategorize(test_weblib.TestCGIBase):
     test_data = '@bad1\r\n#bad2\r\ngood'
     self.checkPathForPattern('/weblib/tag_categorize?category_description=' + urllib.quote(test_data) + '&method=POST', [
         'HTTP/1.0 302 Found',
-        'location: /weblib/tag_categorize',
+        'location: /weblib',
     ])
+
+    # no error. But illegal characters got converted to '?'
     wlib = self.wlib
     self.assertEqual(wlib.category.getDescription(), '?bad1\r\n?bad2\r\ngood')
     self.assert_(wlib.tags.getByName('?bad1'))

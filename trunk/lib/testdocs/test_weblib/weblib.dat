@@ -1,16 +1,18 @@
-weblib-version: 0.6
-encoding: UTF8
-category_description: Kremlin\r\n  Русский\r\n  Français\r\n  日本語\r\n  English\r\n
+weblib-version: 0.7
+encoding: UTF-8
+date: 20060112T173220Z
+tag-columns: id|version|name|description|flags
+url-columns: id|version|name|nickname|description|tagIds|created|modified|lastused|fetched|flags|url
 
-id|name|description|tagIds|modified|lastused|cached|archived|flags|url
-@120|inbox||||||||
-@121|Русский||||||||
-@122|Français||||||||
-@123|日本語||||||||
-@124|Kremlin||||||||
-@125|English||||||||
-1|MindRetrieve - Search Your Personal Web|MindRetrieve is an open source personal desktop search engine.|@120|2005-08-24|2005-08-24||||http://www.mindretrieve.net/
-2|Московский Кремль — Википедия|Кремль Московский — географический и исторический центр Москвы, расположенный на левом берегу Москвы-реки, на Боровицком холме, наиболее древняя часть города, в настоящее время являющаяся резиденцией высших органов государственной власти РФ и одним из главных историко-художественных комплексов страны.|@124,@121|2005-08-23|2005-08-23||||http://ru.wikipedia.org/wiki/Московский_Кремль
-3|Kremlin de Moscou - Wikipédia|Le Kremlin de Moscou (en russe : Московский Кремль) marque le centre géographique de Moscou et le centre politique de la Russie (résidence officielle du Président de la Fédération de Russie après avoir été celle des Tsars et des dirigeants soviétiques).|@122,@124|2005-08-23|2005-08-23||||http://fr.wikipedia.org/wiki/Kremlin_de_Moscou
-4|クレムリン - Wikipedia|クレムリン（Kremlin、Кремль）とは、ロシア連邦の首都、モスクワ市の中心を流れるモスクワ川沿いにある旧ロシア帝国の皇居。ロシア語では、「城塞」の意味である。|@124,@123|2005-08-23|2005-08-23||||http://ja.wikipedia.org/wiki/クレムリン
-5|Moscow Kremlin - Wikipedia, the free encyclopedia|The Moscow Kremlin (Russian: Московский Кремль) is the best known kremlin (Russian citadel). It is a historical fortified complex overlooking the Red Square in Moscow, which includes Kremlin Palaces, Kremlin Cathedrals, and the enclosing Kremlin Wall with Kremlin towers. The complex serves as the official residence and principal workplace of the President of the Russian Federation.|@125,@124|2005-08-23|2005-08-23||||http://en.wikipedia.org/wiki/Moscow_Kremlin
+20060112T173220Z!U category_description|1|Kremlin\r\n  Русский\r\n  Français\r\n  日本語\r\n  English
+20060112T173220Z!U tag.120|1|inbox||
+20060112T173220Z!U tag.121|1|Русский||
+20060112T173220Z!U tag.122|1|Français||
+20060112T173220Z!U tag.123|1|日本語||
+20060112T173220Z!U tag.124|1|Kremlin||
+20060112T173220Z!U tag.125|1|English||
+20060112T173220Z!U url.1|1|MindRetrieve - Search Your Personal Web||MindRetrieve is an open source personal desktop search engine.|tag.120||2005-08-24|2005-08-24|||http://www.mindretrieve.net/
+20060112T173220Z!U url.2|1|Московский Кремль — Википедия||Кремль Московский — географический и исторический центр Москвы, расположенный на левом берегу Москвы-реки, на Боровицком холме, наиболее древняя часть города, в настоящее время являющаяся резиденцией высших органов государственной власти РФ и одним из главных историко-художественных комплексов страны.|tag.124,tag.121||2005-08-23|2005-08-23|||http://ru.wikipedia.org/wiki/Московский_Кремль
+20060112T173220Z!U url.3|1|Kremlin de Moscou - Wikipédia||Le Kremlin de Moscou (en russe : Московский Кремль) marque le centre géographique de Moscou et le centre politique de la Russie (résidence officielle du Président de la Fédération de Russie après avoir été celle des Tsars et des dirigeants soviétiques).|tag.122,tag.124||2005-08-23|2005-08-23|||http://fr.wikipedia.org/wiki/Kremlin_de_Moscou
+20060112T173220Z!U url.4|1|クレムリン - Wikipedia||クレムリン（Kremlin、Кремль）とは、ロシア連邦の首都、モスクワ市の中心を流れるモスクワ川沿いにある旧ロシア帝国の皇居。ロシア語では、「城塞」の意味である。|tag.124,tag.123||2005-08-23|2005-08-23|||http://ja.wikipedia.org/wiki/クレムリン
+20060112T173220Z!U url.5|1|Moscow Kremlin - Wikipedia, the free encyclopedia||The Moscow Kremlin (Russian: Московский Кремль) is the best known kremlin (Russian citadel). It is a historical fortified complex overlooking the Red Square in Moscow, which includes Kremlin Palaces, Kremlin Cathedrals, and the enclosing Kremlin Wall with Kremlin towers. The complex serves as the official residence and principal workplace of the President of the Russian Federation.|tag.125,tag.124||2005-08-23|2005-08-23|||http://en.wikipedia.org/wiki/Moscow_Kremlin

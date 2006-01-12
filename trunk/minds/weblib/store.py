@@ -2,7 +2,9 @@
 """
 
 """
-MindRetrieve Weblib Data File Specification Version 0.6
+TODO: significant change ini v0.7. Need to update this doc.
+
+MindRetrieve Weblib Data File Specification Version 0.7
 
 MindRetrieve weblib data is an UTF-8 encoded text file (no other
 encoding is supported as this time). The overall format is a block of
@@ -21,7 +23,8 @@ column-header   = column-name *( "|" column-name)
 column-name     = token
 comment-line    = "#" any string
 data-line       = [change-prefix] (data-record | header)
-change-prefix   = '[' YYYY-MM-DD 'T' HH:MM:SS 'Z]' SP ['r' | 'u' | 'h'] '!'
+change-prefix   = YYYYMMDD 'T' HHMMSS 'Z]!' operation SP
+operation       = '_' | 'C' | 'U' | 'X'
 data-record     = ["@"] id *( "|" field-value)
 BR              = CR | LF | CR LF
 SP              = space characters
@@ -81,6 +84,7 @@ time zone or reset their clock.
 
 import codecs
 import datetime
+import itertools
 import logging
 import os
 import re
@@ -154,28 +158,54 @@ if os.name == 'nt':
 
 def _getTimeStamp():
     now = datetime.datetime.utcnow()
-    return dateutil.isoformat(now) + 'Z'
+    return dateutil.isoformat(now).replace(':','').replace('-','') + 'Z'
+
+
+def _make_index(names):
+    """ make a map of column name to 0-based index """
+    lnames = map(string.lower, names)
+    idx = range(len(names))
+    return dict(zip(lnames,idx))
 
 
 class Store(object):
 
     DEFAULT_FILENAME = 'weblib.dat'
-    VERSION = '0.62'
+    VERSION = '0.7'
     ENCODING = 'UTF-8'
-    COLUMNS = [
+
+    NAME_VALUE_COLUMNS = [
     'id',           # 00
-    'name',         # 01
-    'description',  # 02
-    'tagIds',       # 03
-    'created',      # 04
-    'modified',     # 05
-    'lastused',     # 06
-    'fetched',      # 07
-    'flags',        # 08
-    'url',          # 09
+    'version',      # 01
+    'value',        # 02
     ]
-    NUM_COLUMN = len(COLUMNS)
-    COLUMN_INDEX = dict(zip(map(string.lower, COLUMNS), xrange(NUM_COLUMN)))
+    NAME_VALUE_COLUMN_INDEX = _make_index(NAME_VALUE_COLUMNS)
+
+    URL_COLUMNS = [
+    'id',           # 00
+    'version',      # 01
+    'name',         # 02
+    'nickname',     # 03
+    'description',  # 04
+    'tagIds',       # 05
+    'created',      # 06
+    'modified',     # 07
+    'lastused',     # 08
+    'fetched',      # 09
+    'flags',        # 10
+    'url',          # 11
+    ]
+    URL_COLUMN_INDEX = _make_index(URL_COLUMNS)
+
+    TAG_COLUMNS = [
+    'id',           # 00
+    'version',      # 01
+    'name',         # 02
+    'description',  # 03
+    'flags',        # 04
+    ]
+    TAG_COLUMN_INDEX = _make_index(TAG_COLUMNS)
+
 
     def __init__(self):
         self.lock = threading.RLock()
@@ -205,11 +235,10 @@ class Store(object):
             log.info('Create weblib file: %s' % self.pathname)
             self.save()
 
-        cur_version = self.wlib.headers.get('weblib-version','')
-        if  cur_version != self.VERSION:
+        if self.wlib.version != self.VERSION:
             # upgrade (or downgrade) weblib file
             # note that we must ensure the column header match what this version writes
-            log.info('Upgrade weblib file existing verion=%s new version=%s' % (cur_version, self.VERSION))
+            log.info('Upgrade weblib file existing verion=%s new version=%s' % (self.wlib.version, self.VERSION))
             self.save()
 
 # Note: There is a small issue about timing of calling save(). The sequence of
@@ -305,12 +334,12 @@ class Store(object):
 
                 # parse row header
                 row_headers = {}
-                for lineno, line in linereader:
-                    line = line.rstrip()
-                    if not line or line.startswith('#'):
-                        continue
-                    row_headers = dsv.parse_header(lineno+1, line, self.COLUMNS)
-                    break
+#                for lineno, line in linereader:
+#                    line = line.rstrip()
+#                    if not line or line.startswith('#'):
+#                        continue
+#                    row_headers = dsv.parse_header(lineno+1, line, self.URL_COLUMNS)
+#                    break
 
                 # data-records
                 full_trace = False
@@ -342,17 +371,28 @@ class Store(object):
                 # don't close it or you would this buffer
                 self.writer = codecs.getwriter(self.ENCODING)(fp,'replace')
 
-            # post-processing, convert tagIds to tag
+            # Post-processing
+            # 1. convert tagIds to tag
             map(self._conv_tagid, wlib.webpages)
+            # 2. compile category
             wlib.category._compile()
 
         finally:
             self.lock.release()
 
 
-    CHANGE_PREFIX = re.compile('\[([\d:\-T ]{19})Z?\] (\w)!')
+    # match "20060112T063529Z!U " with some flexibility
+    RECORD_PREFIX = re.compile('([\d\-]{4,10}T[\d:]{0,8}Z)!(.) ')
 
-    def _interpretRecord(self, line, row_headers):
+    def _parseVersion(self, s):
+        if not s:
+            # assume 0 for capatibility; also removal record does not need to define version
+            return 0
+        else:
+            return int(s)
+
+
+    def _interpretRecord(self, line, row_headers):              ###TODO: row_headers obsoleted
         """
         Interpret the parsed record 'row'.
         Create, updated or remove WebPage or Tag records.
@@ -360,26 +400,28 @@ class Store(object):
         @raise ValueError or KeyError for parsing problem
         @return - the item created or removed
         """
-        mode = 'u'
-        m = self.CHANGE_PREFIX.match(line)
-        if m:
-            timestamp = dateutil.parse_iso8601_date(m.group(1))
-            mode = m.group(2)
-            line =  line[m.end():]
+        m = self.RECORD_PREFIX.match(line)
+        if not m:
+            raise ValueError('Invalid record: [%s...]' % line[:50])
 
-        if mode == 'h':
-            self._interpretHeaderRecord(line)
+        #timestamp = dateutil.parse_iso8601_date(m.group(1))
+        timestamp = m.group(1)
+        op = m.group(2)
+        line =  line[m.end():]
 
+        fields = dsv.decode_fields(line)
+        fields = map(string.strip, fields)
+        # TODO: issue - linebreaks after category_description deliberately added by user would be stripped.
+        id = fields[0]
+
+        # TODO: field validation
+        if id.startswith('tag.'):
+            return self._interpretTagRecord(timestamp, op, fields)
+        elif id.startswith('url.'):
+            return self._interpretWebPageRecord(timestamp, op, fields)
         else:
-            fields = dsv.decode_fields(line)
-            fields = map(string.strip, fields)
-            row = dsv.RowObject(row_headers,fields)
-
-            # TODO: field validation
-            if row.id.startswith('@'):
-                return self._interpretTagRecord(mode, row)
-            else:
-                return self._interpretWebPageRecord(mode, row)
+            # otherwise assume name-value record
+            return self._interpretNameValueRecord(timestamp, op, fields)
 
 
     def _interpretHeaderRecord(self, line):
@@ -390,35 +432,68 @@ class Store(object):
         value = pair[1].strip()
         # borrow dsv.decode_fields() to decode \ and line breaks.
         value = dsv.decode_fields(value)[0]
-        self.wlib.setHeader(name,value)
+
+        # support these headers
+        if name == 'weblib-version':
+            self.wlib.version = value
+        elif name == 'date':
+            self.wlib.date = value
+        elif name == 'tag-columns':
+            pass###TODO
+        elif name == 'url-columns':
+            pass###TODO
 
 
-    def _interpretTagRecord(self, mode, row):
+    def _interpretNameValueRecord(self, timestamp, op, fields):
+        if op == '_':
+            return
+        if op == 'X':
+            # right now don't really support removal.
+            return
+        row = dsv.RowObject(self.NAME_VALUE_COLUMN_INDEX,fields)
+        if row.id == 'category_description':
+            self.wlib.category.description = row.value
+            # note: use low level method to set descripton. Call _compile() at the end
+        else:
+            log.warn('Ignore unknown id: "%s"' % row.id)
+
+
+    def _interpretTagRecord(self, timestamp, op, fields):
+        row = dsv.RowObject(self.TAG_COLUMN_INDEX,fields)              # TODO: column need to be read from file
+        # expect numerial id like 'tag.ddd'
+        id = int(fields[0][4:])
+        version = self._parseVersion(row.version)
+
         wlib = self.wlib
-
-        id = int(row.id[1:])
         oldTag = wlib.tags.getById(id)
 
-        if mode == 'r':
+        if op == 'X':
             if oldTag:
                 wlib.tags.remove(oldTag)
             return oldTag
+        elif op == '_':
+            # no-op
+            return
         else:
-    # old logic say delete old tag and append a new version of tag.
-    # This causes problem that references in webpage objects are invalidated.
-    #
-    #                if oldTag:
-    #                    wlib.tags.remove(oldTag)
+            # old logic say delete old tag and append a new version of tag.
+            # This causes problem that references in webpage objects are invalidated.
+            #
+            # if oldTag:
+            #     wlib.tags.remove(oldTag)
             if oldTag:
                 # update object in-memory
                 if oldTag.name != row.name:
                     wlib.tags.rename(oldTag, row.name)
+                oldTag.timestamp    = timestamp
+                oldTag.version      = version
                 oldTag.description  = row.description
                 oldTag.flags        = row.flags
                 return oldTag
             else:
                 tag = weblib.Tag(
                     id          = id,
+                    timestamp   = timestamp,
+                    version     = version,
                     name        = row.name,
                     description = row.description,
                     flags       = row.flags,
@@ -427,26 +502,35 @@ class Store(object):
                 return tag
 
 
-    def _interpretWebPageRecord(self, mode, row):
+    def _interpretWebPageRecord(self, timestamp, op, fields):
+        row = dsv.RowObject(self.URL_COLUMN_INDEX,fields)          # TODO: this need to be read from file
+        # expect numerial id like 'url.ddd'
+        id = int(fields[0][4:])
+        version = self._parseVersion(row.version)
+
         wlib = self.wlib
-        id = int(row.id)
+        oldItem = wlib.webpages.getById(id)
+
         if row.tagids:
-            s = row.tagids.replace('@','')
+            s = row.tagids.replace('tag.','')
             tagids = [int(tid) for tid in s.split(',')]
         else:
             tagids = []
 
-        oldItem = wlib.webpages.getById(id)
-
-        if mode == 'r':
+        if op == 'X':
             if oldItem:
                 wlib.webpages.remove(oldItem)
             return oldItem
+        elif op == '_':
+            # no-op
+            return
         else:
             if oldItem:
                 wlib.webpages.remove(oldItem)
             webpage = weblib.WebPage(
                 id          = id,
+                timestamp   = timestamp,
+                version     = version,
                 name        = row.name,
                 description = row.description,
                 tags        = [],
@@ -483,13 +567,26 @@ class Store(object):
             writer.flush()
 
 
-    def writeHeader(self, name, value, flush=True):
+#    def writeHeader(self, name, value, flush=True):
+#        """
+#        """
+#        self.lock.acquire()
+#        try:
+#            line = '[%s] h!%s' % (_getTimeStamp(), self._serialize_header(name, value))
+#            self._interpretRecord(line, self.URL_COLUMN_INDEX)
+#            self._log(line, flush)
+#
+#        finally:
+#            self.lock.release()
+
+    ### TODO: support timestamp and version?
+    def writeNameValue(self, name, value, flush=True):
         """
         """
         self.lock.acquire()
         try:
-            line = '[%s] h!%s' % (_getTimeStamp(), self._serialize_header(name, value))
-            self._interpretRecord(line, self.COLUMN_INDEX)
+            line = self._serialize_name_value('U', 1, name, value)
+            self._interpretRecord(line, self.NAME_VALUE_COLUMN_INDEX)
             self._log(line, flush)
 
         finally:
@@ -515,10 +612,14 @@ class Store(object):
         """
         self.lock.acquire()
         try:
+            op = 'U'
+            tag.timestamp = _getTimeStamp()
+            tag.version += 1
             if tag.id < 0:
+                op = 'C'
                 tag.id = self.wlib.tags.acquireId()
-            line = '[%s] u!%s' % (_getTimeStamp(), self._serialize_tag(tag))
-            newTag = self._interpretRecord(line, self.COLUMN_INDEX)
+            line = self._serialize_tag(op,tag)
+            newTag = self._interpretRecord(line, self.URL_COLUMN_INDEX)
             self._log(line, flush)
 
             # shred input tag
@@ -544,10 +645,14 @@ class Store(object):
         """
         self.lock.acquire()
         try:
+            op = 'U'
+            webpage.timestamp = _getTimeStamp()
+            webpage.version += 1
             if webpage.id < 0:
+                op = 'C'
                 webpage.id = self.wlib.webpages.acquireId()
-            line = '[%s] u!%s' % (_getTimeStamp(), self._serialize_webpage(webpage))
-            newItem = self._interpretRecord(line, self.COLUMN_INDEX)
+            line = self._serialize_webpage(op, webpage)
+            newItem = self._interpretRecord(line, self.URL_COLUMN_INDEX)
             self._conv_tagid(self.wlib.webpages.getById(newItem.id))
             self._log(line, flush)
 
@@ -574,10 +679,10 @@ class Store(object):
         self.lock.acquire()
         try:
             if isinstance(item, weblib.Tag):
-                line = '[%s] r!@%s' % (_getTimeStamp(), item.id)
+                line = '%s!X tag.%s' % (_getTimeStamp(), item.id)
             else:
-                line = '[%s] r!%s' % (_getTimeStamp(), item.id)
-            self._interpretRecord(line, self.COLUMN_INDEX)
+                line = '%s!X url.%s' % (_getTimeStamp(), item.id)
+            self._interpretRecord(line, self.URL_COLUMN_INDEX)
             self._log(line, flush)
 
         finally:
@@ -596,32 +701,36 @@ class Store(object):
     # ------------------------------------------------------------------------
     # save
 
-    def _serialize_header(self, name, value):
-        return '%s: %s' % (name,dsv.encode_fields([value]))
+    def _serialize_name_value(self, op, version, name, value):
+        data = dsv.encode_fields([name, str(version), value])
+        line = '%s!%s %s' % (_getTimeStamp(), op, data)
+        return line
 
 
-    def _serialize_tag(self, tag):
-        id = '@%d' % tag.id
-        return dsv.encode_fields([
+    def _serialize_tag(self, op, tag):
+        assert tag.timestamp
+        id = 'tag.%d' % tag.id
+        data = dsv.encode_fields([
             id,
+            str(tag.version),
             tag.name,
             '',
-            '',
-            '',
-            '',
-            '',
-            '',
             tag.flags,
-            '',
         ])
+        line = '%s!%s %s' % (tag.timestamp, op, data)
+        return line
 
 
-    def _serialize_webpage(self, item):
-        id = str(item.id)
-        tagIds = ','.join(['@%s' % t.id for t in item.tags])
-        return dsv.encode_fields([
+    def _serialize_webpage(self, op, item):
+        assert item.timestamp
+        id = 'url.%d' % item.id
+        version = str(item.version)
+        tagIds = ','.join(['tag.%s' % t.id for t in item.tags])
+        data = dsv.encode_fields([
             id              ,
+            version         ,
             item.name       ,
+            item.nickname   ,
             item.description,
             tagIds          ,
             item.created    ,
@@ -631,6 +740,17 @@ class Store(object):
             item.flags      ,
             item.url        ,
         ])
+        line = '%s!%s %s' % (item.timestamp, op, data)
+        return line
+
+
+    def _write_file_headers(self, writer):
+        writer.write('weblib-version: %s\r\n'   % self.VERSION)
+        writer.write('encoding: %s\r\n'         % self.ENCODING)
+        writer.write('date: %s\r\n'             % _getTimeStamp())
+        writer.write('tag-columns: %s\r\n'      % '|'.join(self.TAG_COLUMNS))
+        writer.write('url-columns: %s\r\n'      % '|'.join(self.URL_COLUMNS))
+        writer.write('\r\n')
 
 
     def save(self, pathname=None, fp=None):
@@ -661,41 +781,24 @@ class Store(object):
                 writer = codecs.getwriter(self.ENCODING)(fp,'replace')
                 wlib = self.wlib
 
-                # udpate timestamp
-                wlib.setHeader('weblib-version', self.VERSION)
-                wlib.setHeader('date', _getTimeStamp())
+                self._write_file_headers(writer)
 
-                # write headers
-                _headers = wlib.headers.copy()
-                for name in wlib.header_names:
-                    if name not in _headers:
-                        continue
-                    # borrow dsv.encode_fields() to encode \ and line breaks.
-                    v = dsv.encode_fields([])
-                    writer.write(self._serialize_header(name,_headers[name]))
-                    writer.write('\r\n')
-                    del _headers[name]
-
-                # write remaining headers not listed in wlib.header_names
-                for n,v in _headers.items():
-                    v = dsv.encode_fields([v])
-                    writer.write('%s: %s\r\n' % (n,v))
-
+                # write data
+                line = self._serialize_name_value('U', 1, 'category_description', wlib.category.getDescription())
+                writer.write(line)
                 writer.write('\r\n')
 
-                header = dsv.encode_fields(self.COLUMNS)
-                writer.write(header)
-                writer.write('\r\n')
-
+                # write tags
                 tags = [(tag.id, tag) for tag in wlib.tags]
                 for id, tag in sorted(tags):
-                    line = self._serialize_tag(tag)
+                    line = self._serialize_tag('U', tag)
                     writer.write(line)
                     writer.write('\r\n')
 
+                # write webpages
                 webpages = [(page.id, page) for page in wlib.webpages]
                 for id, page in sorted(webpages):
-                    line = self._serialize_webpage(page)
+                    line = self._serialize_webpage('U', page)
                     writer.write(line)
                     writer.write('\r\n')
 
@@ -703,6 +806,7 @@ class Store(object):
                 if use_temp_file:
                     fp.close()
 
+            # swap files: backup <- pathname <- tmp
             if use_temp_file:
 #                print >>sys.stderr, 'v -', tmp_pathname
 #                print >>sys.stderr, 'v -', pathname
@@ -720,6 +824,35 @@ class Store(object):
 
         finally:
             self.lock.release()
+
+
+    # ------------------------------------------------------------------------
+    # upgrade
+
+    def _upgrade0_7(self, wlib):
+        # assign version and timestamp that was introduced in 0.7
+        timestamp = _getTimeStamp()
+        for item in itertools.chain(wlib.webpages, wlib.tags):
+            if not item.timestamp:
+                item.timestamp = timestamp
+            if item.version < 1:
+                item.version = 1
+
+    def upgrade(self, wlib):
+        """
+        wlib is loaded from older version of Store.
+        Upgrade and attach to self.
+
+        Note load() itself has certain flexibility regarding version compatibility.
+        upgrade() should only be necessary for major incompatibility.
+        """
+
+        self._upgrade0_7(wlib)
+        wlib.version = self.VERSION
+
+        # attach wlib to self
+        wlib.store = self
+        self.wlib = wlib
 
 
 # ------------------------------------------------------------------------

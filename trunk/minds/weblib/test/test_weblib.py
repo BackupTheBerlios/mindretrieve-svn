@@ -18,30 +18,34 @@ class TestTag(unittest.TestCase):
         self.assertRaises(ValueError, weblib.Tag, name='')
 
     def test_hasIllegalChar(self):
-        illegal = ',@#+:'
+        illegal = ',@#+:<>'
         self.assert_(weblib.Tag.hasIllegalChar(illegal))
         self.assert_(weblib.Tag.hasIllegalChar('filler,'))
         self.assert_(weblib.Tag.hasIllegalChar('filler@'))
         self.assert_(weblib.Tag.hasIllegalChar('filler#'))
         self.assert_(weblib.Tag.hasIllegalChar('filler+'))
         self.assert_(weblib.Tag.hasIllegalChar('filler:'))
+        self.assert_(weblib.Tag.hasIllegalChar('filler<'))
+        self.assert_(weblib.Tag.hasIllegalChar('filler>'))
 
-        xascii = r""" !"$%&'()*-./0123456789;<=>?ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~""" + '\x7f'
+        xascii = r""" !"$%&'()*-./0123456789;=?ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~""" + '\x7f'
         self.failIf(weblib.Tag.hasIllegalChar(xascii))
 
         # covered all printable ascii?
         self.assertEqual(len(illegal)+len(xascii), 96)
 
     def test_cleanIllegalChar(self):
-        illegal = ',@#+:'
-        self.assertEqual(weblib.Tag.cleanIllegalChar(illegal)  , '?????')
+        illegal = ',@#+:<>'
+        self.assertEqual(weblib.Tag.cleanIllegalChar(illegal)  , '???????')
         self.assertEqual(weblib.Tag.cleanIllegalChar('filler,'), 'filler?')
         self.assertEqual(weblib.Tag.cleanIllegalChar('filler@'), 'filler?')
         self.assertEqual(weblib.Tag.cleanIllegalChar('filler#'), 'filler?')
         self.assertEqual(weblib.Tag.cleanIllegalChar('filler+'), 'filler?')
         self.assertEqual(weblib.Tag.cleanIllegalChar('filler:'), 'filler?')
+        self.assertEqual(weblib.Tag.cleanIllegalChar('filler<'), 'filler?')
+        self.assertEqual(weblib.Tag.cleanIllegalChar('filler>'), 'filler?')
 
-        xascii = r""" !"$%&'()*-./0123456789;<=>?ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~""" + '\x7f'
+        xascii = r""" !"$%&'()*-./0123456789;=?ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~""" + '\x7f'
         self.assertEqual(weblib.Tag.cleanIllegalChar(xascii), xascii)
 
 

@@ -110,12 +110,11 @@ class TestStore(unittest.TestCase):
         self.assert_('test' in stor.pathname)
 
         # ------------------------------------------------------------------------
-        # build  a old version test file
+        # build a barebone old version test file
         data = """weblib-version: 0.01\r
 encoding: utf-8\r
 \r
-id|name|description
-1|item1|description1
+20060112T063529Z!U url.1|1|item1|description1
 """
         self.assert_(stor.VERSION != '0.01')
         self.assert_(stor.VERSION not in data)
@@ -125,12 +124,12 @@ id|name|description
 
         stor.load()
         wlib = stor.wlib
-        self.assertEqual(wlib.headers['weblib-version'], '0.01')
+        self.assertEqual(wlib.version, '0.01')
         self.assertEqual(len(wlib.webpages), 1)
         self.assertEqual(wlib.webpages.getById(1).name, 'item1')
 
         # this should trigger store to upgrade the file
-        stor.writeHeader('header','value')
+        stor.writeNameValue('a_name','a_value')
 
         # test the upgraded file
         fp = file(stor.pathname,'rb')
@@ -145,22 +144,20 @@ id|name|description
 #        os.remove(stor.pathname)
 
 
-    def test_write_header(self):
+    def test_write_name_value(self):
         wlib = self.store.wlib
         self._make_test_data()
 
         # before
-        self.assertEqual(wlib.headers['encoding'], 'utf8')
-        self.assertEqual(wlib.headers.get('test','?'), '?')
+        self.assertEqual(wlib.category.getDescription(), '')
         nt, nw = len(wlib.tags), len(wlib.webpages)
 
         # write
-        self.store.writeHeader('encoding', 'new')
-        self.store.writeHeader('test', '123')
+        self.store.writeNameValue('category_description', 'xyz')
+        self.store.writeNameValue('a_name', 'a_value')  # would be ignored, just try to run it
 
         # after
-        self.assertEqual(wlib.headers['encoding'], 'new')
-        self.assertEqual(wlib.headers.get('test','?'), '123')
+        self.assertEqual(wlib.category.getDescription(), 'xyz')
         self._assert_weblib_size(nt, nw)
 
 
@@ -282,7 +279,8 @@ id|name|description
         # after
         self._assert_weblib_size(nt-1, nw)
         self.assertEqual(wlib.tags.getById(1), None)
-        self.assertTrue('r!@1' in self.buf.getvalue())
+        # got the delete line
+        self.assertTrue('!X tag.1' in self.buf.getvalue())
 
 
     def test_remove_webpage(self):
@@ -298,8 +296,9 @@ id|name|description
 
         # after
         self._assert_weblib_size(nt, nw-1)
-        self.assertTrue('r!1' in self.buf.getvalue())
         self.assertEqual(wlib.webpages.getById(1), None)
+        # got the delete line
+        self.assertTrue('!X url.1' in self.buf.getvalue())
 
 
     def test_load0(self):
@@ -370,15 +369,16 @@ id|name|description
         output.seek(0)
         for lineno, line0 in iter0:
             while line0.startswith('date:'):
-                lineno, line0 = iter0.next()        # don't match date header
+                lineno, line0 = iter0.next()        # skip date header
             line1 = output.next()
             while line1.startswith('date:'):
-                line1 = output.next()               # don't match date header
+                line1 = output.next()               # skip date header
 
             # compare it line by line so error is easier to spot
             line0 = line0.rstrip()
             line1 = line1.rstrip()
-            self.assertEqual(line0, line1, 'line %s\nfile0: %s\nfile1: %s' % (lineno+1,
+            timestamp_idx = len('20010101T010203Z')
+            self.assertEqual(line0[timestamp_idx:], line1[timestamp_idx:], 'line %s\nfile0: %s\nfile1: %s' % (lineno+1,
                 line0.encode('string_escape'),
                 line1.encode('string_escape'),
             ))
@@ -392,7 +392,7 @@ id|name|description
         #print >>sys.stderr, self.store
         wlib = self.store.wlib
         self._assert_weblib_size(7, 4)
-        self.assertEqual(wlib.headers['category_description'], 'Kremlin')
+        self.assertEqual(wlib.category.getDescription(), 'Kremlin')
         self.assertTrue(wlib.tags.getByName('tag1'))
         self.assertTrue(wlib.tags.getByName('tag2'))
         self.assertTrue(not wlib.tags.getByName('English'))
@@ -407,8 +407,8 @@ id|name|description
         self._assert_weblib_size(6, 5)
         wlib = self.store.wlib
 
-        # change header
-        self.store.writeHeader('category_description', 'Kremlin')
+        # change data
+        self.store.writeNameValue('category_description', 'Kremlin')
 
         # add tag
         tag1 = weblib.Tag(name='tag1')
@@ -453,7 +453,7 @@ id|name|description
 
     def test_timestamp(self):
         ts = store._getTimeStamp()
-        self.assertTrue(len(ts) == len('1234-06-18T12:34:56Z'))
+        self.assertTrue(len(ts) == len('12340618T123456Z'))
 
 
 if __name__ == '__main__':

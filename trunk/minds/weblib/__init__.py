@@ -32,7 +32,10 @@ class WebPage(object):
 
     def __init__(self,
         id          =-1,
+        timestamp   ='',
+        version     =0,
         name        ='',
+        nickname    ='',
         url         ='',
         description ='',
         tags        =[],
@@ -43,7 +46,10 @@ class WebPage(object):
         flags       ='',
         ):
         self.id          = id
+        self.timestamp   = timestamp
+        self.version     = version
         self.name        = name
+        self.nickname    = nickname
         self.url         = url
         self.description = description
         self.tags        = tags[:]
@@ -60,7 +66,10 @@ class WebPage(object):
     def __copy__(self):
         item = WebPage(
             id          = self.id           ,
+            timestamp   = self.timestamp    ,
+            version     = self.version      ,
             name        = self.name         ,
+            nickname    = self.nickname     ,
             url         = self.url          ,
             description = self.description  ,
             tags        = self.tags[:]      ,
@@ -84,16 +93,19 @@ class WebPage(object):
 
 class Tag(object):
 
-    ILLEGAL_CHARACTERS = ',@#+:'
+    ILLEGAL_CHARACTERS = ',@#+:<>'
 
     # ',' is used to separate tags
     # '@' is used to denote tag id
     # '#' is used to denote comment
+    # '<' reserve as operator for category description
+    # '>' reserve as operator for category description
     # '+' reserve as operator for category description
     # ':' reserve as operator for category description
     #     e.g.
     #       SanFran+museum
     #       SanFran:museum
+    #       SanFran>museum
     #
     # Note that we have O(n) algorithm with respect to the length of
     # ILLEGAL_CHARACTERS. It is only suppose to have a small number
@@ -119,12 +131,21 @@ class Tag(object):
                 s = s.replace(c,'?')
         return s
 
-    def __init__(self, id=-1, name='', description='', flags=''):
+    def __init__(self,
+        id          =-1,
+        timestamp   ='',
+        version     =0,
+        name        ='',
+        description ='',
+        flags       ='',
+        ):
 
         if not name:
             raise ValueError('Tag name required')
 
         self.id         = id
+        self.timestamp  = timestamp
+        self.version    = version
         self.name       = name
         self.description= description
         self.flags      = flags
@@ -134,6 +155,8 @@ class Tag(object):
     def __copy__(self):
         tag = Tag(
             id          = self.id           ,
+            timestamp   = self.timestamp    ,
+            version     = self.version      ,
             name        = self.name         ,
             description = self.description  ,
             flags       = self.flags        ,
@@ -160,7 +183,7 @@ class Category(object):
         # root of tree of tags
         # note: the root is always an pseudo empty node (usually not visible)
         self.root = graph.Node(None,[])
-
+        self.description = ''
 
     def getUncategorized(self):
         """
@@ -173,11 +196,11 @@ class Category(object):
 
 
     def getDescription(self):
-        return self.wlib.headers['category_description']
+        return self.description
 
 
     def setDescription(self, description):
-        description = Tag.cleanIllegalChar(description)
+        self.description = Tag.cleanIllegalChar(description)
 
         # TODO: Note that setDescription() is called by renameTag() and
         # deleteTag() for each tag. It does compile() and write to disk.
@@ -185,8 +208,8 @@ class Category(object):
         # However, so far only edit and delete of individual tag is
         # used [2005-12-07].
         # TODO: clean up
-        self._compile(description)
-        self.wlib.store.writeHeader('category_description', description)
+        self._compile(self.description)
+        self.wlib.store.writeNameValue('category_description', self.description)
 
 
     def renameTag(self, tag0, tag1):
@@ -207,8 +230,8 @@ class Category(object):
         """
         Build root from category_description
         """
-        # the description is here because sometimes we need to call
-        # _compile() before changing the description header
+        # try a description parameter instead of using self.description because
+        # sometimes we need to call _compile() before changing the description
         if description == None:
             description = self.getDescription()
 
@@ -248,16 +271,8 @@ class WebLibrary(object):
     def __init__(self, store):
 
         self.store = store
-
-        # headers
-        self.headers = {}
-        self.header_names = []      # ordered list of keys of self.headers
-
-        # default headers
-        from minds.weblib import store as store_module
-        self.setHeader('weblib-version', store_module.Store.VERSION)
-        self.setHeader('encoding', 'utf8')
-        self.setHeader('category_description','')
+        self.version = ''
+        self.date = ''
 
         self.webpages = util.IdList()
         self.tags = util.IdNameList()
@@ -344,15 +359,6 @@ class WebLibrary(object):
 #            n = self.index_reader.deleteDocuments(term)  # IndexReader.delete(Term)?
 #            print >>sys.stderr, '##deleted docid=%s: %s' % (item.id, n)
 
-
-
-    # ------------------------------------------------------------------------
-    # Header methods
-
-    def setHeader(self, name, value):
-        if name not in self.header_names:
-            self.header_names.append(name)
-        self.headers[name] = value
 
 
     # ------------------------------------------------------------------------
@@ -564,8 +570,9 @@ class WebLibrary(object):
     # ------------------------------------------------------------------------
 
     def __repr__(self):
-        return 'WebLibraray date=%s #tags=%s #pages=%s' % (
-            self.headers.get('date','?'),
+        return 'WebLibraray date=%s version=%s #tags=%s #pages=%s' % (
+            self.date,
+            self.version,
             len(self.tags),
             len(self.webpages),
             )

@@ -144,6 +144,42 @@ encoding: utf-8\r
 #        os.remove(stor.pathname)
 
 
+    def test_colum_compatibility(self):
+        stor = store.Store()
+        self.assert_('test' in stor.pathname)
+
+        # ------------------------------------------------------------------------
+        # build a barebone test file
+        #
+        # Note the column is assignment is different from what defined in Store
+        # column 'anme' and 'description' comes in different order
+        # column 'wacky' is not fined in Store
+        # column 'url' is missing
+
+        data = """weblib-version: 0.07\r
+encoding: utf-8\r
+url-columns: id|version|wacky|description|name
+\r
+20060112T063529Z!U url.1|1|xxx|description1|item1
+"""
+        fp = file(stor.pathname,'wb')
+        fp.write(data)
+        fp.close()
+
+        stor.load()
+        wlib = stor.wlib
+        self.assertEqual(wlib.version, '0.07')
+        self.assertEqual(len(wlib.webpages), 1)
+
+        # test item is loaded ok
+        item = wlib.webpages.getById(1)
+        self.assertEqual(item.name, 'item1')
+        self.assertEqual(item.description, 'description1')
+        # column 'url' not exist and assumed to be ''
+        self.assertEqual(item.url, '')
+        # column 'wacky' is just ignored
+
+
     def test_write_name_value(self):
         wlib = self.store.wlib
         self._make_test_data()

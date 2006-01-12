@@ -325,21 +325,17 @@ class Store(object):
                 self.wlib = weblib.WebLibrary(self)
                 wlib = self.wlib
 
+                # set default column interpretation
+                # expect to be overridden by explicit header
+                self.tag_column_index = self.TAG_COLUMN_INDEX
+                self.url_column_index = self.URL_COLUMN_INDEX
+
                 # parse headers
                 for lineno, line in linereader:
                     line = line.rstrip()
                     if not line: # end of headers?
                         break
-                    self._interpretHeaderRecord(line)
-
-                # parse row header
-                row_headers = {}
-#                for lineno, line in linereader:
-#                    line = line.rstrip()
-#                    if not line or line.startswith('#'):
-#                        continue
-#                    row_headers = dsv.parse_header(lineno+1, line, self.URL_COLUMNS)
-#                    break
+                    self._interpretHeaderRecord(lineno+1, line)
 
                 # data-records
                 full_trace = False
@@ -348,7 +344,7 @@ class Store(object):
                     if not line or line.startswith('#'):
                         continue
                     try:
-                        n = self._interpretRecord(line, row_headers)
+                        n = self._interpretRecord(line)
                     except (KeyError, ValueError, AttributeError), e:
                         if not full_trace:
                             log.exception('Error parsing line %s' % (lineno+1,))
@@ -392,7 +388,7 @@ class Store(object):
             return int(s)
 
 
-    def _interpretRecord(self, line, row_headers):              ###TODO: row_headers obsoleted
+    def _interpretRecord(self, line):
         """
         Interpret the parsed record 'row'.
         Create, updated or remove WebPage or Tag records.
@@ -424,24 +420,28 @@ class Store(object):
             return self._interpretNameValueRecord(timestamp, op, fields)
 
 
-    def _interpretHeaderRecord(self, line):
+    def _interpretHeaderRecord(self, lineno, line):
+        """
+        @params lineno - 1 based for error reporting
+        @params line
+        """
         pair = line.split(':',1)
         if len(pair) != 2:
             raise SyntaxError('Invalid header (format=name: value) - "%s"' % line)
         name = pair[0].strip().lower()
         value = pair[1].strip()
         # borrow dsv.decode_fields() to decode \ and line breaks.
-        value = dsv.decode_fields(value)[0]
+        value0 = dsv.decode_fields(value)[0]
 
         # support these headers
         if name == 'weblib-version':
-            self.wlib.version = value
+            self.wlib.version = value0
         elif name == 'date':
-            self.wlib.date = value
+            self.wlib.date = value0
         elif name == 'tag-columns':
-            pass###TODO
+            self.tag_column_index = dsv.parse_header(lineno, value, expected_col=self.TAG_COLUMNS)
         elif name == 'url-columns':
-            pass###TODO
+            self.url_column_index = dsv.parse_header(lineno, value, expected_col=self.URL_COLUMNS)
 
 
     def _interpretNameValueRecord(self, timestamp, op, fields):
@@ -459,7 +459,7 @@ class Store(object):
 
 
     def _interpretTagRecord(self, timestamp, op, fields):
-        row = dsv.RowObject(self.TAG_COLUMN_INDEX,fields)              # TODO: column need to be read from file
+        row = dsv.RowObject(self.tag_column_index,fields)              # TODO: column need to be read from file
         # expect numerial id like 'tag.ddd'
         id = int(fields[0][4:])
         version = self._parseVersion(row.version)
@@ -503,7 +503,7 @@ class Store(object):
 
 
     def _interpretWebPageRecord(self, timestamp, op, fields):
-        row = dsv.RowObject(self.URL_COLUMN_INDEX,fields)          # TODO: this need to be read from file
+        row = dsv.RowObject(self.url_column_index,fields)          # TODO: this need to be read from file
         # expect numerial id like 'url.ddd'
         id = int(fields[0][4:])
         version = self._parseVersion(row.version)
@@ -567,18 +567,6 @@ class Store(object):
             writer.flush()
 
 
-#    def writeHeader(self, name, value, flush=True):
-#        """
-#        """
-#        self.lock.acquire()
-#        try:
-#            line = '[%s] h!%s' % (_getTimeStamp(), self._serialize_header(name, value))
-#            self._interpretRecord(line, self.URL_COLUMN_INDEX)
-#            self._log(line, flush)
-#
-#        finally:
-#            self.lock.release()
-
     ### TODO: support timestamp and version?
     def writeNameValue(self, name, value, flush=True):
         """
@@ -586,7 +574,7 @@ class Store(object):
         self.lock.acquire()
         try:
             line = self._serialize_name_value('U', 1, name, value)
-            self._interpretRecord(line, self.NAME_VALUE_COLUMN_INDEX)
+            self._interpretRecord(line)
             self._log(line, flush)
 
         finally:
@@ -619,7 +607,7 @@ class Store(object):
                 op = 'C'
                 tag.id = self.wlib.tags.acquireId()
             line = self._serialize_tag(op,tag)
-            newTag = self._interpretRecord(line, self.URL_COLUMN_INDEX)
+            newTag = self._interpretRecord(line)
             self._log(line, flush)
 
             # shred input tag
@@ -652,7 +640,7 @@ class Store(object):
                 op = 'C'
                 webpage.id = self.wlib.webpages.acquireId()
             line = self._serialize_webpage(op, webpage)
-            newItem = self._interpretRecord(line, self.URL_COLUMN_INDEX)
+            newItem = self._interpretRecord(line)
             self._conv_tagid(self.wlib.webpages.getById(newItem.id))
             self._log(line, flush)
 
@@ -682,7 +670,7 @@ class Store(object):
                 line = '%s!X tag.%s' % (_getTimeStamp(), item.id)
             else:
                 line = '%s!X url.%s' % (_getTimeStamp(), item.id)
-            self._interpretRecord(line, self.URL_COLUMN_INDEX)
+            self._interpretRecord(line)
             self._log(line, flush)
 
         finally:
@@ -872,6 +860,24 @@ def getWeblib():
 
 
 # ------------------------------------------------------------------------
+# Commandline Upgrade
+
+def upgrade(argv):
+    # this will be the current version of store
+    import store
+
+    pathname = argv[1]
+    old_store = getStore(False)
+    old_store.load(pathname)
+    print >>sys.stderr, 'Loaded %s Version %s' % (pathname, old_store.wlib.version)
+
+    new_store = store.getStore(False)
+    new_store.upgrade(old_store.wlib)
+    new_store.save(pathname)
+    print >>sys.stderr, 'Saved %s Version %s' % (pathname, new_store.wlib.version)
+
+
+# ------------------------------------------------------------------------
 # command line testing
 
 def main(argv):
@@ -901,3 +907,4 @@ def main(argv):
 
 if __name__ == '__main__':
     main(sys.argv)
+    #upgrade(sys.argv)

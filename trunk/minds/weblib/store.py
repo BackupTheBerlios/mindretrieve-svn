@@ -692,6 +692,11 @@ class Store(object):
         try:
             op = 'U'
             tag.timestamp = _getTimeStamp()
+            # TODO: this relies on call has the version of existing item.
+            # On the other hand caller are suppose to create a new item
+            # instead of updating the object in memory. Probably the only
+            # right way to do it is call original item's __copy__().
+            # Expect too high of discipline?
             tag.version += 1
             if tag.id < 0:
                 op = 'C'
@@ -725,6 +730,11 @@ class Store(object):
         try:
             op = 'U'
             webpage.timestamp = _getTimeStamp()
+            # TODO: this relies on call has the version of existing item.
+            # On the other hand caller are suppose to create a new item
+            # instead of updating the object in memory. Probably the only
+            # right way to do it is call original item's __copy__().
+            # Expect too high of discipline?
             webpage.version += 1
             if webpage.id < 0:
                 op = 'C'

@@ -13,6 +13,10 @@
   padding:0;
 }
 
+#tagList a {
+    text-decoration: none;
+}
+
 #tagList form         {
   margin:0;
 }
@@ -197,6 +201,7 @@
   float: right;
 }
 .itemSmallLink        {
+  color:black;
   font-size:75%;
 }
 .itemSmallLink img    {
@@ -477,8 +482,7 @@ window.addEventListener('load', onload, false);
         onclick='deleteTag();'>
         <img src='img/delete_icon.gif' />
     </a>
-    <a href='javascript:void(0)' class='itemSmallLink' title='Categorize'
-        onclick='javascript:openWeblibFormFull("/weblib/tag_categorize");'>
+    <a href='/weblib/tag_categorize' class='itemSmallLink' title='Categorize'>
         <img src='img/category.gif' />
     </a>
     </td></tr>
@@ -550,7 +554,7 @@ window.addEventListener('load', onload, false);
   <col class='col2' />
   <col class='col3' />
   <col class='col4' />
-  <col class='col5' />
+<!--  <col class='col5' />-->
 
   <!--==header========================================================================-->
   <tr class='libTableHeader'>
@@ -589,7 +593,7 @@ window.addEventListener('load', onload, false);
     </td>
     <td><a node='con:edit' href='javascript:editWebItem(%s);' class='itemSmallLink'><img src='img/edit_icon.gif' /></a></td>
     <td><a node='con:delete' href='#' class='itemSmallLink' target='asyncFrame'><img src='img/delete_icon.gif' /></a></td>
-    <td><a node='con:cache' href='#' class='itemSmallLink'>2005-12-01</a></td>
+    <td><!-- <a node='con:cache' href='#' class='itemSmallLink'>2005-12-01</a> --></td>
     </span>
   </tr>
 
@@ -608,7 +612,7 @@ window.addEventListener('load', onload, false);
     </td>
     <td><a node='con:edit' href='#' class='itemSmallLink'><img src='img/edit_icon.gif' /></a></td>
     <td><a node='con:delete' href='#' class='itemSmallLink'><img src='img/delete_icon.gif' /></a></td>
-    <td><a node='con:cache' href='#' class='itemSmallLink'>2005-12-01</a></td>
+    <td><!-- <a node='con:cache' href='#' class='itemSmallLink'>2005-12-01</a> --></td>
     </span>
   </tr>
 
@@ -627,7 +631,7 @@ window.addEventListener('load', onload, false);
     </td>
     <td><a node='con:edit' href='#' class='itemSmallLink'><img src='img/edit_icon.gif' /></a></td>
     <td><a node='con:delete' href='#' class='itemSmallLink'><img src='img/delete_icon.gif' /></a></td>
-    <td><a node='con:cache' href='#' class='itemSmallLink'>2005-12-01</a></td>
+    <td><!-- <a node='con:cache' href='#' class='itemSmallLink'>2005-12-01</a> --></td>
     </span>
   </tr>
 
@@ -646,7 +650,7 @@ window.addEventListener('load', onload, false);
     </td>
     <td><a node='con:edit' href='#' class='itemSmallLink'><img src='img/edit_icon.gif' /></a></td>
     <td><a node='con:delete' href='#' class='itemSmallLink'><img src='img/delete_icon.gif' /></a></td>
-    <td><a node='con:cache' href='#' class='itemSmallLink'>2005-12-01</a></td>
+    <td><!-- <a node='con:cache' href='#' class='itemSmallLink'>2005-12-01</a> --></td>
     </span>
   </tr>
 

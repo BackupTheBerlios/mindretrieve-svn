@@ -535,12 +535,12 @@ class WeblibRenderer(response.WeblibLayoutRenderer):
             node.itemTag.tag.repeat(self.renderWebItemTag, webitem.tags)
             node.edit.atts['href'] %= webitem.id
             node.delete.atts['href'] = '%s/%s?method=delete' % (request.WEBLIB_URL, webitem.id)
-            if webitem.fetched:
-                node.cache.atts['href'] = '%s/%s/snapshotFrame' % (request.WEBLIB_URL, webitem.id)
-                node.cache.content = webitem.fetched
-            else:
-                node.cache.atts['href'] = '%s/%s/snapshot/get' % (request.WEBLIB_URL, webitem.id)
-                node.cache.content = 'download'
+#            if webitem.fetched:
+#                node.cache.atts['href'] = '%s/%s/snapshotFrame' % (request.WEBLIB_URL, webitem.id)
+#                node.cache.content = webitem.fetched
+#            else:
+#                node.cache.atts['href'] = '%s/%s/snapshot/get' % (request.WEBLIB_URL, webitem.id)
+#                node.cache.content = 'download'
         else:
             tag = webItemNode.tag
             node.placeHolder = headerTemplate

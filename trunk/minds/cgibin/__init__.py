@@ -9,6 +9,7 @@ import indexnow
 import library
 import search
 import snoop
+import history
 import updateParent
 import weblib
 import weblibImport
@@ -28,6 +29,7 @@ cgi_registry = [
   ('/library'              , library),
   ('/search'               , search),
   ('/snoop'                , snoop),
+  ('/history'              , history),
   ('/updateParent'         , updateParent),
   ('/weblib/import'        , weblibImport),
   ('/weblib/multiform'     , weblibMultiForm),

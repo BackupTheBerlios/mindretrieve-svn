@@ -1,64 +1,59 @@
-"""Look for a series of patterns in a file object.
+"""
+Look for a series of patterns in a file object.
 This is used as a helper to unit testing.
 """
 
 import re
 from StringIO import StringIO
+import sys
 import unittest
 
+# this is a debugging aid. Can we make it easier to activate?
+def _debug_mismatch(data, i, pattern):
+    left = max(0,i-10)
+    print >>sys.stderr, data[left:i] + '<$>' + data[i:i+20]
+    print >>sys.stderr, 'Pattern not matched: ', pattern
+    assert pattern
 
-def checkStrings(fp, strings, no_pattern=None):
+
+def checkStrings(data, patterns, no_pattern=None):
     """
-    Search for the series of strings in fp (one per line at most).
+    Search for the series of strings in data.
     In addition check for 'no_pattern' does not appear after the last pattern.
     Return none if all matched; or return the pattern not matched.
     """
-    for s in strings:
-        while True:
-            line = fp.readline()
-            if not line:
-                return s            # fail to find s
-            if s in line:
-                break
+    i = 0
+    for p in patterns:
+        j = data.find(p,i)
+        if j < 0:
+            return p
+        i = j+len(p)
 
-    if no_pattern == None:
-        return None                 # no_pattern not defined, we're done
+    if no_pattern and (data.find(no_pattern, i) >= 0):
+        return no_pattern
 
-    while True:
-        line = fp.readline()
-        if not line:
-            return None             # end of file, we are still good
-        if no_pattern in line:
-            return no_pattern       # oops, we got the no_pattern
+    return None
 
 
-
-def checkPatterns(fp, patterns, no_pattern=None):
+def checkPatterns(data, patterns, no_pattern=None):
     """
     Similar to checkStrings() but use regular expressions.
 
     Note: the whole re pattern must appear within a line.
     """
+    i = 0
     for p in patterns:
-        pre = re.compile(p, re.I)
-        while True:
-            line = fp.readline()
-            if not line:
-                return p            # fail to find pattern p
-            if pre.search(line):
-                break
+        m = re.compile(p,re.I).search(data, i)
+        if not m:
+            #_debug_mismatch(data,i,p)
+            return p
+        i = m.end()
 
-    if no_pattern == None:
-        return None                 # no_pattern not defined, we're done
+    if no_pattern and re.compile(no_pattern,re.I).search(data, i):
+        #_debug_mismatch(data,i,no_pattern)
+        return no_pattern
 
-    pre = re.compile(no_pattern, re.I)
-    while True:
-        line = fp.readline()
-        if not line:
-            return None             # end of file, we are still good
-        if pre.search(line):
-            return no_pattern       # oops, we got the no_pattern
-
+    return None
 
 
 def showFile(fp, label, maxchars=1024):
@@ -95,45 +90,44 @@ SAMPLE_FILE = """
 """
 
 # todo: give a little explanation on each test
-# todo: use assertEqual instead of assert_
 
 class TestPatternTester(unittest.TestCase):
 
     def test00(self):
-        p = checkPatterns(StringIO(''), [])
+        p = checkPatterns('', [])
         self.assertEqual(p, None)
 
     def test01(self):
-        p = checkPatterns(StringIO(''), ['X'])
+        p = checkPatterns('', ['X'])
         self.assertEqual(p, 'X')
 
     def test10(self):
-        p = checkPatterns(StringIO('xyz'), [])
+        p = checkPatterns('xyz', [])
         self.assertEqual(p, None)
 
     def testCheckedOK(self):
-        p = checkPatterns(StringIO(SAMPLE_FILE),
+        p = checkPatterns(SAMPLE_FILE,
             ['html', '.text.css.', '</html>'])      # <-- .text.css. is an re
         self.assertEqual(p, None)
 
     def testCheckedRe(self):
-        p = checkPatterns(StringIO(SAMPLE_FILE),
+        p = checkPatterns(SAMPLE_FILE,
             ['html', '<title>.*</title>', '</html>'])
         self.assertEqual(p, None)
 
     def testOrderWrong(self):
-        p = checkPatterns(StringIO(SAMPLE_FILE),
+        p = checkPatterns(SAMPLE_FILE,
             ['html', r'\</html\>', '.text.css.'])
         self.assertEqual(p, '.text.css.')
 
     def testNoPatternGood(self):
-        p = checkPatterns(StringIO(SAMPLE_FILE),
+        p = checkPatterns(SAMPLE_FILE,
             ['html', '.text.css.', '</html>'],
             '<')
         self.assertEqual(p, None)
 
     def testNoPatternBad(self):
-        p = checkPatterns(StringIO(SAMPLE_FILE),
+        p = checkPatterns(SAMPLE_FILE,
             ['html', '.text.css.', '</head>'],
             '<')
         self.assertEqual(p, '<')
@@ -142,35 +136,35 @@ class TestPatternTester(unittest.TestCase):
 class TestCheckStrings(unittest.TestCase):
 
     def test00(self):
-        p = checkStrings(StringIO(''), [])
+        p = checkStrings('', [])
         self.assertEqual(p, None)
 
     def test01(self):
-        p = checkStrings(StringIO(''), ['X'])
+        p = checkStrings('', ['X'])
         self.assertEqual(p, 'X')
 
     def test10(self):
-        p = checkStrings(StringIO('xyz'), [])
+        p = checkStrings('xyz', [])
         self.assertEqual(p, None)
 
     def testCheckedOK(self):
-        p = checkStrings(StringIO(SAMPLE_FILE),
+        p = checkStrings(SAMPLE_FILE,
             ['html', 'text/css', '</html>'])
         self.assertEqual(p, None)
 
     def testOrderWrong(self):
-        p = checkStrings(StringIO(SAMPLE_FILE),
+        p = checkStrings(SAMPLE_FILE,
             ['html', '</html>', 'text/css'])
         self.assertEqual(p, 'text/css')
 
     def testNoPatternGood(self):
-        p = checkStrings(StringIO(SAMPLE_FILE),
+        p = checkStrings(SAMPLE_FILE,
             ['html', 'text/css', '</html>'],
             '<')
         self.assertEqual(p, None)
 
     def testNoPatternBad(self):
-        p = checkStrings(StringIO(SAMPLE_FILE),
+        p = checkStrings(SAMPLE_FILE,
             ['html', 'text/css', '</head>'],
             '<')
         self.assertEqual(p, '<')

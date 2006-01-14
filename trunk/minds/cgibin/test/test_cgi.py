@@ -16,7 +16,7 @@ class TestCGI(unittest.TestCase):
     buf = fileutil.aStringIO()
     app_httpserver.handlePath(path, buf)
     buf.seek(0)
-    p = patterns_tester.checkPatterns(buf, patterns, nopattern)
+    p = patterns_tester.checkPatterns(buf.read(), patterns, nopattern)
     # BUG: p can also be nopattern. In this case the msg should be 'pattern found!'
     self.assert_(not p,
         'Test failed path:%s\n  pattern not found: %s%s' % (path, p, patterns_tester.showFile(buf, 'out'))

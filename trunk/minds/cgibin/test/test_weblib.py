@@ -38,14 +38,12 @@ class TestCGIBase(unittest.TestCase):
 
   # TODO: we have switched from checkPatterns() to checkStrings(). Clean up the code below.
   def checkPathForPattern(self, path, patterns, no_pattern=None):
-    buf = StringIO.StringIO(self._run_url(path))
-    # Beware of the limitation of patterns_tester()
-    # It test for string occurance line by line
-    p = patterns_tester.checkStrings(buf, patterns, no_pattern)
+    data = self._run_url(path)
+    p = patterns_tester.checkStrings(data, patterns, no_pattern)
     msg = (p == no_pattern) and 'unexpected pattern found' or 'pattern missing'
     self.assert_(not p,
         'failed:%s\n  %s: %s%s' % (path, msg, p,
-            patterns_tester.showFile(buf, 'out', 10240),
+            patterns_tester.showFile(StringIO.StringIO(data), 'out', 10240),
     ))
 
 

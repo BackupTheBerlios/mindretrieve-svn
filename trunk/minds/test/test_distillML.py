@@ -115,7 +115,7 @@ class TestDistill(unittest.TestCase):
 
         # check content
         self.buf.seek(0)
-        p = patterns_tester.checkPatterns(self.buf, ['Copyright', 'All rights reserved.', 'OF SUCH DAMAGE.'])
+        p = patterns_tester.checkStrings(self.buf.read(), ['Copyright', 'All rights reserved.', 'OF SUCH DAMAGE.'])
         self.assert_(not p, 'unexpected: %s' % p)
 
 

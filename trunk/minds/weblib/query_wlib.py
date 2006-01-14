@@ -16,7 +16,6 @@ import sys
 import urlparse
 
 from minds.config import cfg
-from minds.util import dsv
 from minds import weblib
 from minds.weblib import util
 from minds.weblib import mhtml

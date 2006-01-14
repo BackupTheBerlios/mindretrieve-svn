@@ -96,7 +96,6 @@ import threading
 from minds.config import cfg
 from minds import weblib
 from minds.util import dateutil
-from minds.util import dsv
 from minds.weblib import util
 
 
@@ -155,6 +154,97 @@ if os.name == 'nt':
     updateFileMetaData = nt_updateFileMetaData
 
 
+# ------------------------------------------------------------------------
+# DSV utils
+
+def encode_dsv(fields):
+    """ Encode a sequence of fields into a DSV line """
+    lst = []
+    for s in fields:
+        s = s.replace('\\', '\\\\')     # must first escape '\' to '\\'
+        s = s.replace('|' , '\\x7C')
+        s = s.replace('\n', '\\n')
+        s = s.replace('\r', '\\r')
+        lst.append(s)
+    return '|'.join(lst)
+
+
+def decode_dsv(s):
+    """ parse DSV encoded fields and return as list of string """
+    fields = s.split('|')
+
+    # Ref: ASPN : Python Cookbook : Efficient character escapes decoding
+    #      http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/466293
+    #
+    # note: Python's string_escape has a richer syntax rules
+    # although we only expect to encounter the escape returned from encode_dsv()
+    #
+    # Also beware of invalid sequence
+    #
+    # >>> 'a\\'.decode('string_escape')
+    # Traceback (most recent call last):
+    #   File "<stdin>", line 1, in ?
+    # ValueError: Trailing \ in string
+    return [f.encode('utf-8').decode('string_escape').decode('utf-8') for f in fields]
+
+
+def parse_header(lineno, s, expected_col=None):
+    """
+    Parse header line and return a map of field name --> index (0 based)
+    Use -1 as index it is in expected_col but not found in s.
+
+    @param lineno - for error reporting
+    @param s - the string of header line
+    @param expected_col - list of column name the caller expected. This
+           is for file compatibility use. In RowObject if the caller expect
+           some fields but it is not contained in the file, '' is returned
+           instead  of AttributeError.
+    """
+    fields = map(string.strip, decode_dsv(s))
+    fields = map(string.lower, fields)
+    if not fields or filter(None, fields) != fields:
+        raise ValueError, 'Header row must contain non-empty field names [line %s]: %s' % (lineno, s)
+    field_map = dict(zip(fields, xrange(len(fields))))
+    if expected_col:
+        expected_col = map(string.lower, expected_col)
+        for name in expected_col:
+            if name not in field_map:
+                field_map[name] = -1
+    return field_map
+
+
+class RowObject(object):
+    """ Access a row as a sequence or using attributes name defined in the headers. """
+
+    def __init__(self, headers, fields):
+        """ headers is a dict mapping field name to an index. It can be empty.
+            fields is the sequence of fields.
+        """
+        self.headers = headers
+        self.fields = fields
+        if len(fields) < len(headers):
+            # note fields is not altered
+            self.fields = self.fields + [''] * (len(headers) - len(self.fields))
+
+    def __len__(self):
+        return len(self.fields)
+
+    def __getitem__(self, key):
+        return self.fields[key]
+
+    def __getattr__(self, name):
+        index = self.headers.get(name, None)
+        if index is None:
+            raise AttributeError, name
+        if index < 0:   # field not found in data record
+            return ''
+        return self.fields[index]
+
+    def __repr__(self):
+        return str(self.fields)
+
+
+# ------------------------------------------------------------------------
 
 def _getTimeStamp():
     now = datetime.datetime.utcnow()
@@ -405,7 +495,7 @@ class Store(object):
         op = m.group(2)
         line =  line[m.end():]
 
-        fields = dsv.decode_fields(line)
+        fields = decode_dsv(line)
         fields = map(string.strip, fields)
         # TODO: issue - linebreaks after category_description deliberately added by user would be stripped.
         id = fields[0]
@@ -430,8 +520,8 @@ class Store(object):
             raise SyntaxError('Invalid header (format=name: value) - "%s"' % line)
         name = pair[0].strip().lower()
         value = pair[1].strip()
-        # borrow dsv.decode_fields() to decode \ and line breaks.
-        value0 = dsv.decode_fields(value)[0]
+        # borrow decode_dsv() to decode \ and line breaks.
+        value0 = decode_dsv(value)[0]
 
         # support these headers
         if name == 'weblib-version':
@@ -439,9 +529,9 @@ class Store(object):
         elif name == 'date':
             self.wlib.date = value0
         elif name == 'tag-columns':
-            self.tag_column_index = dsv.parse_header(lineno, value, expected_col=self.TAG_COLUMNS)
+            self.tag_column_index = parse_header(lineno, value, expected_col=self.TAG_COLUMNS)
         elif name == 'url-columns':
-            self.url_column_index = dsv.parse_header(lineno, value, expected_col=self.URL_COLUMNS)
+            self.url_column_index = parse_header(lineno, value, expected_col=self.URL_COLUMNS)
 
 
     def _interpretNameValueRecord(self, timestamp, op, fields):
@@ -450,7 +540,7 @@ class Store(object):
         if op == 'X':
             # right now don't really support removal.
             return
-        row = dsv.RowObject(self.NAME_VALUE_COLUMN_INDEX,fields)
+        row = RowObject(self.NAME_VALUE_COLUMN_INDEX,fields)
         if row.id == 'category_description':
             self.wlib.category.description = row.value
             # note: use low level method to set descripton. Call _compile() at the end
@@ -459,7 +549,7 @@ class Store(object):
 
 
     def _interpretTagRecord(self, timestamp, op, fields):
-        row = dsv.RowObject(self.tag_column_index,fields)              # TODO: column need to be read from file
+        row = RowObject(self.tag_column_index,fields)              # TODO: column need to be read from file
         # expect numerial id like 'tag.ddd'
         id = int(fields[0][4:])
         version = self._parseVersion(row.version)
@@ -503,7 +593,7 @@ class Store(object):
 
 
     def _interpretWebPageRecord(self, timestamp, op, fields):
-        row = dsv.RowObject(self.url_column_index,fields)          # TODO: this need to be read from file
+        row = RowObject(self.url_column_index,fields)          # TODO: this need to be read from file
         # expect numerial id like 'url.ddd'
         id = int(fields[0][4:])
         version = self._parseVersion(row.version)
@@ -690,7 +780,7 @@ class Store(object):
     # save
 
     def _serialize_name_value(self, op, version, name, value):
-        data = dsv.encode_fields([name, str(version), value])
+        data = encode_dsv([name, str(version), value])
         line = '%s!%s %s' % (_getTimeStamp(), op, data)
         return line
 
@@ -698,7 +788,7 @@ class Store(object):
     def _serialize_tag(self, op, tag):
         assert tag.timestamp
         id = 'tag.%d' % tag.id
-        data = dsv.encode_fields([
+        data = encode_dsv([
             id,
             str(tag.version),
             tag.name,
@@ -714,7 +804,7 @@ class Store(object):
         id = 'url.%d' % item.id
         version = str(item.version)
         tagIds = ','.join(['tag.%s' % t.id for t in item.tags])
-        data = dsv.encode_fields([
+        data = encode_dsv([
             id              ,
             version         ,
             item.name       ,

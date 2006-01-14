@@ -14,6 +14,57 @@ from minds.weblib import store
 testpath = testcfg.getpath('testDoc')
 
 
+class TestDsvUtil(unittest.TestCase):
+
+    # list of (encoded string, decoded fields)
+    DATA = [
+    ('',                ['']),                  # 0 field
+    (r'a',              ['a']),                 # 1 field
+    (r'a|b|c',          ['a','b','c']),         # 3 fields
+
+    (r'|b',             ['','b']),              # start with bar
+    (r'a|',             ['a','']),              # end with bar
+    (r'a||b',           ['a','','b']),          # consecutive bars
+    (r'\x7Ca|b\x7C|\x7Cc\x7C',
+                        ['|a','b|','|c|']),     # bars escaped
+
+    (r'\\a|b\\|\\c\\',  ['\\a','b\\','\\c\\']), # slashes escaped
+    (r'\\a|\\\x7C|\x7Cc\\',
+                        ['\\a','\\|','|c\\']),  # bars and slashes escaped
+
+    (r'1\n2|3\n\n4',    ['1\n2','3\n\n4']),     # \n escaped
+    (r'm\\n',           ['m\\n']),              # escape \, not \n
+    (r'\n1|2\n',        ['\n1','2\n']),         # start with \n, end with \n
+
+    (r'1\r2|3\r\n4',    ['1\r2','3\r\n4']),     # \r escaped
+    ]
+
+    def test_encode_and_decode(self):
+        # Test a round trip of decode and encode
+        for line, result in self.DATA:
+            self.assertEqual(store.decode_dsv(line), result)
+            self.assertEqual(store.encode_dsv(result), line)
+
+    def test_row_object(self):
+        headers = store.parse_header(1, 'col1|col2')
+        fields = store.decode_dsv('a|b')
+        row = store.RowObject(headers, fields)
+        self.assertEqual(row.col1, 'a')
+        self.assertEqual(row.col2, 'b')
+        self.assertRaises(AttributeError, row.__getattr__, 'col3')
+
+    def test_row_object_compatibility(self):
+        expected_col = ['col2','col3']
+        headers = store.parse_header(1, 'col1|col2', expected_col)
+        fields = store.decode_dsv('a|b')
+        row = store.RowObject(headers, fields)
+        self.assertEqual(row.col1, 'a')     # not in expected, but will work
+        self.assertEqual(row.col2, 'b')
+        self.assertEqual(row.col3, '')      # expected col not in data header, gets ''
+        self.assertRaises(AttributeError, row.__getattr__, 'col4')
+
+
+
 class TestStore(unittest.TestCase):
 
     TESTFILE_PATH = testpath/'test_weblib/weblib.dat'
@@ -111,15 +162,15 @@ class TestStore(unittest.TestCase):
 
         # ------------------------------------------------------------------------
         # build a barebone old version test file
-        data = """weblib-version: 0.01\r
+        test_data = """weblib-version: 0.01\r
 encoding: utf-8\r
 \r
 20060112T063529Z!U url.1|1|item1|description1
 """
         self.assert_(stor.VERSION != '0.01')
-        self.assert_(stor.VERSION not in data)
+        self.assert_(stor.VERSION not in test_data)
         fp = file(stor.pathname,'wb')
-        fp.write(data)
+        fp.write(test_data)
         fp.close()
 
         stor.load()
@@ -149,21 +200,18 @@ encoding: utf-8\r
         self.assert_('test' in stor.pathname)
 
         # ------------------------------------------------------------------------
-        # build a barebone test file
-        #
         # Note the column is assignment is different from what defined in Store
         # column 'anme' and 'description' comes in different order
         # column 'wacky' is not fined in Store
         # column 'url' is missing
-
-        data = """weblib-version: 0.07\r
+        test_data = """weblib-version: 0.07\r
 encoding: utf-8\r
 url-columns: id|version|wacky|description|name
 \r
 20060112T063529Z!U url.1|1|xxx|description1|item1
 """
         fp = file(stor.pathname,'wb')
-        fp.write(data)
+        fp.write(test_data)
         fp.close()
 
         stor.load()
@@ -178,6 +226,36 @@ url-columns: id|version|wacky|description|name
         # column 'url' not exist and assumed to be ''
         self.assertEqual(item.url, '')
         # column 'wacky' is just ignored
+
+
+    def test_dsv_encode_error(self):
+        stor = store.Store()
+        self.assert_('test' in stor.pathname)
+
+        # ------------------------------------------------------------------------
+        # Note url.1's name is not properly encoded. Make sure it is dropped
+        # without affecting the reading of the rest of record.
+        test_data = """weblib-version: 0.07\r
+encoding: utf-8\r
+\r
+20060112T063529Z!U url.1|1|item\\|description1
+20060112T063529Z!U url.2|1|item\\\\|description2
+"""
+        fp = file(stor.pathname,'wb')
+        fp.write(test_data)
+        fp.close()
+
+        stor.load()
+        wlib = stor.wlib
+
+        self.assertEqual(len(wlib.webpages), 1)
+
+        # url.1 is dropped
+        self.assert_(not wlib.webpages.getById(1))
+
+        # url.2 is ok
+        item = wlib.webpages.getById(2)
+        self.assertEqual(item.name, 'item\\')
 
 
     def test_write_name_value(self):

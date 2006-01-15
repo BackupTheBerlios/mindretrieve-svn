@@ -34,14 +34,24 @@
 </style>
 
 
-
 <div id='content'>
+
+<h3>Web History</h3>
 
 <!-- search form -->
 <form action='/history' method='get'>
 <input type='text' name='query' value="%query" size="50" node="con:query" />
 <input type='submit' name='submit' value='Search' />
 </form>
+
+<div id='indexStatus' node='con:indexStatus'>
+    <p>
+    <span node='-con:numIndexed'>0</span> documents since <span node='-con:dateIndexed'>undetermined date</span>.
+    </p>
+    <p node='con:newDocuments'>
+    <span node='-con:numQueued'>0</span> new documents to be <a href='/history/indexnow'>indexed</a>.
+    </p>
+</div>
 
 
 <div node='con:search_result'>

@@ -3,6 +3,7 @@ import logging
 import os
 import sys
 
+from minds import qmsg_processor
 from minds.config import cfg
 from minds.cgibin.util import request
 from minds.cgibin.util import response
@@ -15,7 +16,6 @@ PAGE_SIZE = 10
 
 
 class QueryForm:
-
     def __init__(self, req):
         self.query = req.param('query')
         self.start = req.param('start')
@@ -32,21 +32,30 @@ class QueryForm:
         return uri
 
 
-
 def main(rfile, wfile, env):
     req = request.Request(rfile, env)
     qform = QueryForm(req)
-    if qform.query:
+    path = env.get('PATH_INFO', '')
+    if path == '/indexnow':
+        doIndexNow(wfile, req)
+    elif qform.query:
         doSearch(wfile, req, qform)
     else:
-        title = 'MindRetrieve query: %s' % qform.query  ######
-        renderer = HistoryRenderer(wfile)
-        renderer.setLayoutParam(title, '', response.buildBookmarklet(req.env))
-        renderer.output(qform, None, qform.query, '', [])
+        doGET(wfile, req, qform)
 
 
-#    form = cgi.FieldStorage(fp=rfile, environ=env)
-#    qform = QueryForm(form)
+def doGET(wfile, req, qform):
+    title = 'MindRetrieve - History'
+    numIndexed, archive_date, numQueued = qmsg_processor.getQueueStatus()
+    renderer = HistoryRenderer(wfile)
+    renderer.setLayoutParam(title, '', response.buildBookmarklet(req.env))
+    renderer.output(qform, numIndexed, archive_date, numQueued, None, qform.query, '', [])
+
+
+def doIndexNow(wfile, req):
+    transformed, indexed, discarded = qmsg_processor.backgroundIndexTask(forceIndex=True)
+    response.redirect(wfile, '/history')
+
 
 def doSearch(wfile, req, qform):
     from minds import search
@@ -63,24 +72,11 @@ def doSearch(wfile, req, qform):
             num_match, matchList = search.search(query, qform.start, qform.start+PAGE_SIZE)
 
     page = pagemeter.PageMeter(qform.start, num_match, PAGE_SIZE)
-    title = 'MindRetrieve query: %s' % qform.query
+    title = 'MindRetrieve - History: %s' % qform.query
 
     renderer = HistoryRenderer(wfile)
     renderer.setLayoutParam(title, '', response.buildBookmarklet(req.env))
-    renderer.output(qform, page, qform.query, error_msg, matchList)
-
-#    wfile.write(
-#"""Content-type: text/html; charset=UTF-8\r
-#Cache-control: no-cache\r
-#\r
-#""")
-#
-#    sw = codecs.getwriter('utf-8')
-#    wfile = sw(wfile,'replace')
-#
-#    from minds import app_httpserver
-#    app_httpserver.forwardTmpl(wfile, env, 'search.html',
-#        searchTmpl, qform, page, title, qform.query, error_msg, matchList)
+    renderer.output(qform, 0, '', 0, page, qform.query, error_msg, matchList)
 
 
 #------------------------------------------------------------------------
@@ -96,6 +92,9 @@ class HistoryRenderer(response.WeblibLayoutRenderer):
     TEMPLATE_FILE = 'history.html'
     """ 2006-01-13
     con:query
+    con:indexStatus
+            con:numIndexed
+            con:numQueued
     con:search_result
             con:error_msg
             con:num_match
@@ -112,12 +111,20 @@ class HistoryRenderer(response.WeblibLayoutRenderer):
                     rep:goto_page
                     con:goto_next
     """
-    def render(self, node, qform, page, query, error_msg, matchList):
+    def render(self, node, qform, numIndexed, archive_date, numQueued, page, query, error_msg, matchList):
         node.query.atts['value'] = query
 
         if not query:
             node.search_result.omit()
+            node.indexStatus.numIndexed.content = str(numIndexed)
+            node.indexStatus.dateIndexed.content = archive_date[:10]
+            if numQueued > 0:
+                node.indexStatus.newDocuments.numQueued.content = str(numQueued)
+            else:
+                node.indexStatus.newDocuments.omit()
             return
+
+        node.indexStatus.omit()
 
         ### TODO: clean up
         node = node.search_result

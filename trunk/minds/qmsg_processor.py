@@ -26,22 +26,30 @@ from minds.util import rspreader
 
 log = logging.getLogger('qmsg')
 
-totalIndexed = -1     # number of document indexed (informational only, maybe staled)
+totalIndexed = -1   # number of document indexed (informational only, maybe staled)
+archive_date = ''   # date of first document (informational only, maybe staled)
 
 def getQueueStatus():
     """ Return the number of docs indexed and number of docs queued. """
 
     from minds import lucene_logic
 
-    global totalIndexed
+    global totalIndexed, archive_date
     if totalIndexed < 0:
         indexpath = cfg.getpath('archiveindex')
         reader = lucene_logic.Reader(indexpath)
-        totalIndexed = reader.reader.	numDocs()
+        totalIndexed = reader.reader.numDocs()
+        # find out archive_date from the first 10 document
+        for i in range(1,11):
+            doc = reader.reader.document(i)
+            d = doc.get('date')
+            if d:
+                archive_date = d
+                break
         reader.close()
     logpath = cfg.getpath('logs')
     numQueued = len(_getQueuedText(logpath)) + len(_getQueuedLogs(logpath))
-    return totalIndexed, numQueued
+    return totalIndexed, archive_date, numQueued
 
 
 
@@ -570,7 +578,7 @@ def main(argv):
     option = argv[1]
 
     if option == '-q':
-        print 'getQueueStatus numIndexed %s numQueued %s' % getQueueStatus()
+        print 'getQueueStatus numIndexed %s date %s numQueued %s' % getQueueStatus()
 
     elif option == '-t':
         logpath = cfg.getpath('logs')

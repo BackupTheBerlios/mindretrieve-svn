@@ -22,24 +22,17 @@ class TestCGI(unittest.TestCase):
         'Test failed path:%s\n  pattern not found: %s%s' % (path, p, patterns_tester.showFile(buf, 'out'))
     )
 
-  def test_root(self):
-    self.checkPathForPattern("/", ['<h1>MindRetrieve</h1>', '</html>'])
-
-  def test_home(self):
-    self.checkPathForPattern("/home", ['<h1>MindRetrieve</h1>', '</html>'])
-
-  def test_library(self):
-    self.checkPathForPattern("/library", ['<h1>MindRetrieve</h1>', '</html>'])
-
-  def test_config(self):
-    self.checkPathForPattern("/config", ['<h1>MindRetrieve</h1>', '</html>'])
-
-  def test_help(self):
-    self.checkPathForPattern("/help", ['<h1>MindRetrieve</h1>', '</html>'])
+#  def test_root(self):
+#    self.checkPathForPattern("/", ['<h1>MindRetrieve</h1>', '</html>'])
+#
+#  def test_help(self):
+#    self.checkPathForPattern("/help", ['<h1>MindRetrieve</h1>', '</html>'])
 
   def test_updateParent_input_escape(self):
     self.checkPathForPattern("/updateParent?url='\"</bad_tag>", ['<html>'], '</bad_tag>')
 
+  def test_control(self):
+    self.checkPathForPattern("/___", ['Date'])
 
 
 if __name__ == '__main__':

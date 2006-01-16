@@ -70,22 +70,22 @@ javascript:
     w = window.innerWidth * 0.8;
     s = 'width=' + w + ',height=' + h;
     win = window.open(
-        'http://%s/weblib/_?url='+encodeURIComponent(d.location)+'&title='+encodeURIComponent(d.title)+'&description='+encodeURIComponent(ds),
+        '%s/weblib/_?url='+encodeURIComponent(d.location)+'&title='+encodeURIComponent(d.title)+'&description='+encodeURIComponent(ds),
         'weblibForm', s);
     win.focus();
     void(0);
 """
 
-def buildBookmarklet(env):
-    # find host & port from CGI environment
-    host = env.get('SERVER_NAME','')
-    port = env.get('SERVER_PORT','80')
-    # SERVER_NAME is actually not that good. Override with 'localhost'
-    host = 'localhost'
-
-    b = BOOKMARKLET % ('%s:%s' %  (host, port))
+def buildBookmarklet():
+    b = BOOKMARKLET % getMindRetrieveBaseURL()
     # dehydrate spaces
-    return b.replace('\n','').replace(' ','')
+    b = b.replace('\n','').replace(' ','')
+    return b
+
+
+def getMindRetrieveBaseURL():
+    port = cfg.getint('http.admin_port')
+    return 'http://localhost:%s' % port
 
 
 # ----------------------------------------------------------------------
@@ -172,22 +172,21 @@ class WeblibLayoutRenderer(CGIRenderer):
         CGIRenderer.__init__(self, *args, **kargs)
         self.title          = ''
         self.querytxt       = ''
-        self.bookmarkletURL = ''
 
         self.style_text     = ''
         self.content_text   = ''
 
 
-    def setLayoutParam(self, title='', querytxt='', bookmarkletURL=''):
+    def setLayoutParam(self, title='', querytxt=''):
         self.title          = title
         self.querytxt       = querytxt
-        self.bookmarkletURL = bookmarkletURL
+
 
     def render_layout(self, node):
         if self.title:
             node.title.content = self.title
         node.querytxt.atts['value'] = self.querytxt
-        node.bookmarklet.atts['href'] = self.bookmarkletURL
+        node.bookmarklet.atts['href'] = buildBookmarklet()
 
         # a simplistic way to insert style in the <head> block and the body in the <body> block.
         node.contentStyle.raw = self.style_block

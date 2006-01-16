@@ -23,9 +23,10 @@ class TestAppHTTPRequestHandler(unittest.TestCase):
     def test_lookup_cgi(self):
         from minds.cgibin import home
         from minds.cgibin import history
+        from minds.cgibin import weblib
         from minds.cgibin import weblibMultiForm
-        self._test_lookup('',                       (home, '/', '', ''))
-        self._test_lookup('/',                      (home, '/', '', ''))
+        self._test_lookup('',                       (weblib, '/', '', ''))
+        self._test_lookup('/',                      (weblib, '/', '', ''))
         self._test_lookup('/history/item?1',        (history, '/history', '/item', '1'))
         self._test_lookup('/weblib/multiform/100',  (weblibMultiForm, '/weblib/multiform', '/100', ''))
 

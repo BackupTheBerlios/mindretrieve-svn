@@ -14,36 +14,37 @@ log = logging.getLogger('cgi.help')
 
 
 def main(rfile, wfile, env):
-    req = request.Request(rfile, env)
     path = env.get('PATH_INFO', '')
     if path == '/GettingStarted':
-        doGettingStarted(wfile, req)
+        doGettingStarted(wfile)
     elif path == '/ProxyInstruction':
         renderer = ProxyInstructionRenderer(wfile)
-        renderer.setLayoutParam('MindRetrieve - Getting Started', '', response.buildBookmarklet(req.env))
+        renderer.setLayoutParam('MindRetrieve - Proxy Instruction')
         renderer.output()
     else:
         # filler
-        doGettingStarted(wfile, req)
+        doGettingStarted(wfile)
 
 
-def doGettingStarted(wfile,req):
+def doGettingStarted(wfile):
     renderer = GettingStartedRenderer(wfile)
-    renderer.setLayoutParam('MindRetrieve - Getting Started', '', response.buildBookmarklet(req.env))
-    renderer.output(response.buildBookmarklet(req.env))
+    renderer.setLayoutParam('MindRetrieve - Getting Started')
+    renderer.output()
 
 
 #------------------------------------------------------------------------
 
 class GettingStartedRenderer(response.WeblibLayoutRenderer):
     TEMPLATE_FILE = 'gettingStarted.html'
-    def render(self, node, bookmarkletURL):
-        node.bookmarklet.atts['href'] = bookmarkletURL
+    def render(self, node):
+        node.mindretrieveURL.atts['href'] = '%s/' % response.getMindRetrieveBaseURL()
+        node.importURL.atts['href'] = '%s/weblib/import' % response.getMindRetrieveBaseURL()
+        node.bookmarkletURL.atts['href'] = response.buildBookmarklet()
 
 
 class ProxyInstructionRenderer(response.WeblibLayoutRenderer):
     TEMPLATE_FILE = 'proxyInstruction.html'
-    def render(self, node,):
+    def render(self, node):
         pass
 
 

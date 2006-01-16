@@ -286,10 +286,7 @@ def queryTag(wfile, req, nameOrId):
         webItems = [fakeTagNode]
 
     renderer = WeblibRenderer(wfile)
-    renderer.setLayoutParam(
-        None,
-        '',
-        response.buildBookmarklet(req.env))
+    renderer.setLayoutParam(None)
     renderer.output(
         wlib.tags,
         tag,
@@ -334,10 +331,7 @@ def queryWebLib(wfile, req, tag, querytxt):
         webItems.append(WebItemNode(item))
 
     renderer = WeblibRenderer(wfile)
-    renderer.setLayoutParam(
-        None,
-        querytxt,
-        response.buildBookmarklet(req.env))
+    renderer.setLayoutParam(querytxt=querytxt)
     renderer.output(
         wlib.tags,
         None,
@@ -356,10 +350,7 @@ def queryRoot(wfile, req):
     webItems = map(WebItemNode, query_wlib.queryRoot(wlib))
 
     renderer = WeblibRenderer(wfile)
-    renderer.setLayoutParam(
-        None,
-        '',
-        response.buildBookmarklet(req.env))
+    renderer.setLayoutParam(None)
     renderer.output(
         wlib.tags,
         None,

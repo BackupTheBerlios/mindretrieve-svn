@@ -57,11 +57,10 @@ class TestResponse(unittest.TestCase):
         self.assert_('>' not in escaped_test)
 
 
-    def test_buildBookmarklet_need_test(self):
-        env = {'SERVER_NAME':'test', 'SERVER_PORT':'9876'}
+    def test_buildBookmarklet(self):
         # sanity run
-        url = response.buildBookmarklet(env)
-        self.assert_('9876' in url)
+        url = response.buildBookmarklet()
+        self.assert_('http://localhost:' in url)
 
 
     def test_CGIRenderer(self):

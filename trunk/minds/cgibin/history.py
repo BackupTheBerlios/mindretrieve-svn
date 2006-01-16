@@ -45,10 +45,9 @@ def main(rfile, wfile, env):
 
 
 def doGET(wfile, req, qform):
-    title = 'MindRetrieve - History'
     numIndexed, archive_date, numQueued = qmsg_processor.getQueueStatus()
     renderer = HistoryRenderer(wfile)
-    renderer.setLayoutParam(title, '', response.buildBookmarklet(req.env))
+    renderer.setLayoutParam('MindRetrieve - History')
     renderer.output(qform, numIndexed, archive_date, numQueued, None, qform.query, '', [])
 
 
@@ -72,10 +71,9 @@ def doSearch(wfile, req, qform):
             num_match, matchList = search.search(query, qform.start, qform.start+PAGE_SIZE)
 
     page = pagemeter.PageMeter(qform.start, num_match, PAGE_SIZE)
-    title = 'MindRetrieve - History: %s' % qform.query
 
     renderer = HistoryRenderer(wfile)
-    renderer.setLayoutParam(title, '', response.buildBookmarklet(req.env))
+    renderer.setLayoutParam('MindRetrieve - History: %s' % qform.query)
     renderer.output(qform, 0, '', 0, page, qform.query, error_msg, matchList)
 
 

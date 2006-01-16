@@ -40,7 +40,7 @@ def main(rfile, wfile, env):
 
 def doShowForm(wfile,req):
     renderer = ImportRenderer(wfile)
-    renderer.setLayoutParam(None, '', response.buildBookmarklet(req.env))
+    renderer.setLayoutParam('MindRetrieve - Import')
     renderer.output()
 
 
@@ -77,7 +77,7 @@ def doDeli(wfile,req):
         added, updated = import_delicious.import_bookmark(fp)
 
     renderer = ImportStatusRenderer(wfile)
-    renderer.setLayoutParam(None, '', response.buildBookmarklet(req.env))
+    renderer.setLayoutParam('MindRetrieve - Import')
     renderer.output(error_msg, import_delicious.POSTS_URL, added, updated, None)
 
 
@@ -97,7 +97,7 @@ def doMoz(wfile,req):
         error_msg = 'Error: incorrect bookmark file format'
 
     renderer = ImportStatusRenderer(wfile)
-    renderer.setLayoutParam(None, '', response.buildBookmarklet(req.env))
+    renderer.setLayoutParam('MindRetrieve - Import')
     renderer.output(error_msg, '', added, updated, None)
 
 
@@ -117,7 +117,7 @@ def doOpera(wfile,req):
         error_msg = 'Error: incorrect bookmark file format'
 
     renderer = ImportStatusRenderer(wfile)
-    renderer.setLayoutParam(None, '', response.buildBookmarklet(req.env))
+    renderer.setLayoutParam('MindRetrieve - Import')
     renderer.output(error_msg, '', added, updated, None)
 
 

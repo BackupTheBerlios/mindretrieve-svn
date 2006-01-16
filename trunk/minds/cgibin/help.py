@@ -1,20 +1,51 @@
-import cgi
-import os, sys
+import cgi  ###TODO?
+import logging
+import os
+import sys
 
-import helpTmpl
+from minds import qmsg_processor
+from minds.config import cfg
+from minds.cgibin.util import request
+from minds.cgibin.util import response
+from minds.util import httputil
+from minds.util import pagemeter
+
+log = logging.getLogger('cgi.help')
 
 
 def main(rfile, wfile, env):
+    req = request.Request(rfile, env)
+    path = env.get('PATH_INFO', '')
+    if path == '/GettingStarted':
+        doGettingStarted(wfile, req)
+    elif path == '/ProxyInstruction':
+        renderer = ProxyInstructionRenderer(wfile)
+        renderer.setLayoutParam('MindRetrieve - Getting Started', '', response.buildBookmarklet(req.env))
+        renderer.output()
+    else:
+        # filler
+        doGettingStarted(wfile, req)
 
-    form = cgi.FieldStorage(fp=rfile, environ=env)
 
-    wfile.write(
-"""Content-type: text/html\r
-Cache-control: no-cache\r
-\r
-""")
-    from minds import app_httpserver
-    app_httpserver.forwardTmpl(wfile, env, 'help.html', helpTmpl)
+def doGettingStarted(wfile,req):
+    renderer = GettingStartedRenderer(wfile)
+    renderer.setLayoutParam('MindRetrieve - Getting Started', '', response.buildBookmarklet(req.env))
+    renderer.output(response.buildBookmarklet(req.env))
+
+
+#------------------------------------------------------------------------
+
+class GettingStartedRenderer(response.WeblibLayoutRenderer):
+    TEMPLATE_FILE = 'gettingStarted.html'
+    def render(self, node, bookmarkletURL):
+        node.bookmarklet.atts['href'] = bookmarkletURL
+
+
+class ProxyInstructionRenderer(response.WeblibLayoutRenderer):
+    TEMPLATE_FILE = 'proxyInstruction.html'
+    def render(self, node,):
+        pass
+
 
 
 if __name__ == "__main__":

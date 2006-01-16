@@ -9,8 +9,6 @@ table   { font-size: 100% }    /* hack? without this table cells won't inherit b
 pre     { font-size: 10pt; font-family: "Courier New", Courier, Monaco, monospace ; }
 /*h1      { color: #ffff33; background-color: #0033ff; padding: 0.5ex; margin-top: 0 }*/
 
-
-
 #header               {
     color: #ffff33;
     background-color: #0033ff;
@@ -40,42 +38,7 @@ pre     { font-size: 10pt; font-family: "Courier New", Courier, Monaco, monospac
     font-size:100%;
     vertical-align: baseline;
 }
-/*
-.searchBoxButton      {
-    font-weight: bold;
-    padding-left: 0.5em;
-    padding-right: 0.5em;
-    background-color:#fed;
-    border: 2px outset #fed;
-}
-*/
-/*
-.tabHeader {
-    width: 100%;
-    border-bottom: thick solid #963;
-    margin-top: 4ex;
-    padding-bottom: 0.5ex;
-}
-.tabHeader a {
-    text-decoration: none;
-    color: #fff;
-}
-.tabHeader a:hover{
-    text-decoration: underline;
-}
-.tabHeader .activeTab {
-    padding: 1ex 1em 0.5ex 1em;
-    background-color: #963;
-    color: #fff;
-    font-weight: bold;
-}
-.tabHeader .inactiveTab {
-    padding: 1ex 1em 0.5ex 1em;
-    background-color: #630;
-    color: #fff;
-    font-weight: bold;
-}
-*/
+
 
 .btn {
     color:#fff;
@@ -89,26 +52,3 @@ pre     { font-size: 10pt; font-family: "Courier New", Courier, Monaco, monospac
 .error_message {
     color:red
 }
-/*
-#footer {
-}
-
-#footerRight {
-    float: right;
-    font-weight: normal;
-}
-
-#footer a {
-    text-decoration: none;
-    font-weight: bold;
-}
-
-#footer a:hover {
-    text-decoration: underline;
-}
-
-#footerCurrent {
-    font-weight: bold;
-}
-
-*/

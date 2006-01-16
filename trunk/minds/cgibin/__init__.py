@@ -25,7 +25,7 @@ cgi_registry = [
   ('/weblib/multiform'     , weblibMultiForm),
   ('/weblib/tag_categorize', weblibTagCategorize),
   ('/weblib'               , weblib),
-  ('/'                     , home),
+  ('/'                     , weblib),
 ]
 
 

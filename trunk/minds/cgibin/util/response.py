@@ -142,23 +142,37 @@ class CGIRenderer(object):
 
 # ----------------------------------------------------------------------
 
-def _split_style_block(text):
+def _split_style_script_block(text):
     """
-    Parse text and extract the style block.
+    Parse text and extract the style and script block.
     We do simple search for <style> and </style> only. Make sure you
     don't use anything fancy in your template.
+    Also <script> comes before <script>.
 
-    @return (style text (without the style tag) or '', rest of text)
+    @return
+        style text (without the style tag) or '',
+        script text (without the script tag) or '',
+        rest of text
     """
+    # extract <style>
+    style_text = ''
     b = text.find('<style>')
     e = text.rfind('</style>')
-    if b < 0 or e < 0:
-        return '', text
+    if b >= 0 and e >= 0:
+        e += len('</style>')
+        style_text = text[b:e]
+        text = text[:b] + text[e:]
 
-    e += len('</style>')
-    style_text = text[b:e]
-    rest_text = text[:b] + text[e:]
-    return style_text, rest_text
+    # extract <script>
+    script_text = ''
+    b = text.find('<script>')
+    e = text.rfind('</script>')
+    if b >= 0 and e >= 0:
+        e += len('</script>')
+        script_text = text[b:e]
+        text = text[:b] + text[e:]
+
+    return style_text, script_text, text
 
 
 class WeblibLayoutRenderer(CGIRenderer):
@@ -173,7 +187,8 @@ class WeblibLayoutRenderer(CGIRenderer):
         self.title          = ''
         self.querytxt       = ''
 
-        self.style_text     = ''
+        self.style_block    = ''
+        self.script_block   = ''
         self.content_text   = ''
 
 
@@ -190,13 +205,14 @@ class WeblibLayoutRenderer(CGIRenderer):
 
         # a simplistic way to insert style in the <head> block and the body in the <body> block.
         node.contentStyle.raw = self.style_block
+        node.contentScript.raw = self.script_block
         node.contentBody.raw = self.content_text
 
 
     def output(self, *args):
         # generates the content first
         self.content_text = self.template.render(*args)
-        self.style_block, self.content_text = _split_style_block(self.content_text)
+        self.style_block, self.script_block, self.content_text = _split_style_script_block(self.content_text)
 
         # render the layout frame; insert content inside
         tpath = cfg.getpath('docBase')/self.LAYOUT_TMPL

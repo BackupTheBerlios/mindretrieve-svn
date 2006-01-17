@@ -80,10 +80,18 @@ class TestResponse(unittest.TestCase):
 
 
     def test_split_style_block(self):
-        self.assertEqual(response._split_style_block('abc <style> def</style>ghi'), ('<style> def</style>', 'abc ghi'))
-        self.assertEqual(response._split_style_block('abc def ghi'), ('', 'abc def ghi'))                # ok if no <style>
-        self.assertEqual(response._split_style_block('abc <style>def ghi'), ('', 'abc <style>def ghi'))  # must come in pair
+        def _test(text,expected):
+            self.assertEqual(response._split_style_script_block(text), expected)
 
+        _test('abc <style> def</style>ghi', ('<style> def</style>', '', 'abc ghi'))
+        _test('abc def ghi', ('', '', 'abc def ghi'))                # ok if no <style>
+        _test('abc <style>def ghi', ('', '', 'abc <style>def ghi'))  # must come in pair
+
+        # with script
+        _test('abc <script>var i=1;</script>ghi', ('', '<script>var i=1;</script>', 'abc ghi'))
+
+        # with style and script
+        _test('abc <style>!</style> <script>var i=1;</script>ghi', ('<style>!</style>', '<script>var i=1;</script>', 'abc  ghi'))
 
 
 if __name__ == '__main__':

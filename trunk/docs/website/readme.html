@@ -1,161 +1,199 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3c.org/TR/html4/loose.dtd">
 <html>
 <head>
-<title>MindRetrieve - Readme</title>
-<meta name="description" content="MindRetrieve - Search The Web You Have Seen" />
+<title>MindRetrieve - Getting Started</title>
+<link rel="stylesheet" href="main.css" type="text/css">
+
 <style>
-body    { font-family: verdana, arial, helvetica, sans-serif;
-          margin-left: 2em;
-          margin-right1: 5cm;
-          width: 45em;
-        }
-h1      { font-size: 18pt; color: #ffff33; background-color: #0033ff; padding: 0.5ex; margin-top: 0 }
-h2      { font-size: 14pt; color: #0033cc; }
-h3      { font-size: 10pt; color: #0033cc; margin-bottom: 0 }
-p       { font-size: 10pt; }
-li      { font-size: 10pt; }
-#instructions { background-color: #dddddd; padding: 0.5ex 1em 1ex 1em; }
-#instructions p { margin-top:0.2ex }
-.code { background-color: #dddddd; padding: 0.5ex 1em 1.5ex 1em; }
+/* == Header ======================================================================== */
+.midHeader {
+  border-bottom: 1px solid #000;
 }
+
+.midHeader h1 {
+  color:  #930;
+  font-size: 20pt;
+  margin: 0.5ex 1em 0.5ex 0.2em;
+}
+
+.subHeader {
+  color: white;
+  background-color: #003399;
+  margin: 0 0 0 0;
+  padding: 1ex 0.5em 1ex 0.5em;
+  xborder-top: 1px solid #004BE5;
+}
+
+.subHeader .searchBox {
+  float: right;
+  xfont-size: 80%;
+}
+
+.subHeader .searchBox form {
+  margin: 0 0 0 0;
+}
+
+.subHeader .searchBox input {
+    xvertical-align: baseline;
+    font-size: 90%;
+}
+
+.subHeader .searchBox input[type='text'] {
+    padding: 0 0 0 0;
+    xbackground-color: red;
+}
+
+.searchBoxButton      {
+    font-weight: bold;
+    padding-left: 0.5em;
+    padding-right: 0.5em;
+    xbackground-color:#fed;
+    xborder: 2px outset #fed;
+}
+
+
+.subHeader a {
+  color: white;
+  background-color: transparent;
+  text-decoration: none;
+  font-weight: bold;
+  margin: 0;
+  padding: 0 0.75ex 0 0.5ex;
+}
+
+.subHeader a:hover {
+  text-decoration: underline;
+}
+
+#body {
+  width: 100%;
+}
+
+
+/* == footer ======================================================================== */
+
+#footer {
+  color: white;
+  background-color: rgb(100,135,220);
+  font-size: 91%;
+  margin: 0;
+  padding: 0.5ex 2.5mm 1ex 2.5mm;
+  clear: both;
+}
+
+#footer .left {
+  line-height: 1.45em;
+  margin-top:0;
+
+  float: left;
+  clear: left;
+}
+
+#footer .right {
+  text-align: right;
+  line-height: 1.45em;
+}
+
+#footer a {
+  color: white;
+  background-color: transparent;
+  text-decoration: underline;
+}
+
+#footer a:hover {
+  text-decoration: none;
+}
+
 </style>
+
+<style>
+  #content {
+    margin-top: 2ex;
+    margin-left: 2em;
+    margin-bottom: 7ex;
+    width: 50em;
+    line-height: 150%;
+  }
+
+  #steps {
+    xmargin-left: 0;
+  }
+  #steps li {
+    margin-top: 2ex;
+    margin-bottom: 2ex;
+  }
+</style>
+
+
 </head>
 
+
+
 <body>
-<h1>MindRetrieve - Search The Web You Have Seen</h1>
-<p>MindRetrieve is a personal search engine. Unlike general purpose search
-engines that intent to index and search every web page in the world,
-MindRetrieve focus on a small but very special area. That is the web that
-you have seen.
 
-<p>Everyday we read a large amount of information from the world wide
-web. The truth is most of them does not register. We often search for
-similar topics time after time. It is time consuming. Often after much
-work we find that we are looking at the same old documents like a déjà
-vu. MindRetrieve is here to help you to find information buried deep in your
-memory.</p>
+<!--==Header=============================================================================-->
+<div>
+<!--
+<div id="header">
+right now we don't use anything header and it has a conflict with other form
+eventually rename other form to something like smallHeader
+-->
 
-<p>MindRetrieve is a lightweight, cross-platform, open source application
-available under the BSD license. It works with all popular web browsers.
+  <div class="midHeader">
+    <h1>MindRetrieve</h1>
+  </div>
 
-<h2>Installation</h2>
-<h3>Windows Installation</h3>
-<p>Download and run the <a
-href="https://developer.berlios.de/project/showfiles.php?group_id=2905">Windows
-installer</a>. Then configure your web browser to use MindRetrieve as
-the http proxy at port 8051. Instructions for some popular web browsers
-are listed below.</p>
-
-<div id="instructions">
-<h3>Internet Explorer 6.0</h3> <p class="browser_instruction">Choose the
-Tools | Internet Options menu. Click the [Connections] tab. Then click
-the [LAN Settings...] button. Check the [Use a proxy server...]
-checkbox. Put 'localhost' for address and '8051' for port. Also check
-Bypass proxy for local address.(<a href='img/ie_proxy.gif'>screen
-shot</a>)</p>
-
-<h3>Mozilla Firefox 1.0</h3>
-<p class="browser_instruction">Choose the Tools | Options menu. Click
-the [Connections Settings] button. Select the 'Manual proxy
-configuration' radio box. Put 'localhost' in the HTTP Proxy field ands
-SSL Proxy field. Put '8051' in the port field. (<a
-href='img/firefox_proxy.gif'>screen shot</a>)</p>
-
-<h3>Opera 7.5</h3>
-<p class="browser_instruction">Open the Preferences
-dialog box. Choose network and click the [Proxy Servers] button. Check
-the HTTP and HTTPS checkboxes. Put 'localhost' and '8051' in each row.
-(<a href='img/opera_proxy.gif'>screen shot</a>)</p>
-
-</div>
-
-<p><i>Note if your company of ISP or your company already requires you
-to manually configure a proxy to their server, you should set them up as
-a chain of proxies. Setup you browser's proxy to MindRetrieve with the
-instruction above. Then configure the ISP's proxy in the http_proxy
-entry in the http section of in the <b>config.ini</b> file. For example,
-if the original proxy is proxy.abc.com at port 1234, edit the entry as
-below:</i></p>
-
-<div class="code"><pre>
-Config.ini
-
-  [http]
-  http_proxy=<u>http://proxy.abc.com:1234/</u>
-</div>
-
-<h3>Linux Installation</h3>
-<p>First download and install the dependent software components:
-<ul>
-<li><a href='http://www.python.org/download/'>Python 2.4</a>
-<li><a href='http://pylucene.osafoundation.org/'>PyLucene 0.9.6</a>
-</ul>
-
-<p>Download and install the <a
-href="https://developer.berlios.de/project/showfiles.php?group_id=2905">linux
-tarball</a>. Configure the browser's proxy setting using the procedure
-above. Then start the MindRetrieve engine using this command
-
-<pre>    python run.py --start &amp;</pre>
-
-<p>To stop it, use this command
-
-<pre>    python run.py --start</pre>
-
-<h2>Getting Started</h2>
-
-<p>MindRetrieve is now ready to listen and index web traffic for you. For
-example, start with a visit to MindRetrieve's <a
-href='http://mindretrieve.berlios.de/'>home page</a>. You
-may want to click you browser's reload button to ensure it loads a fresh
-copy after you have installed MindRetrieve.</p>
-
-<p>Next open and bookmark the MindRetrieve <a href='http://localhost:8050/'
-rev="bookmark">start page [http://localhost:8050]</a>. From
-there you will be able to search all previously loaded web pages.
-Usually an automatic indexing happens in the background periodically.
-For instant gratification, click 'config' and 'index now' to index the
-page you have just visited.</p>
-
-<p>Let's enter the word 'personal search engine' in the start page. You
-should find the MindRetrieve home page, which you have just visited
-moments ago. That's it. Happy browsing and searching! Remember to use
-the bookmark to back to MindRetrieve's start page. </p>
-
-<h2>Uninstallation</h2>
-<p>Should you want to uninstall MindRetrieve, first undo the proxy
-configuration from your web browser. For Windows version, use Add/Remove
-Program from the Control Panel to uninstall MindRetrieve. Finally if you
-want to permanently remove all data collected, simply delete all
-remaining files under the directory where you have MindRetrieve installed.
-
-</p>
+  <div class="subHeader">
+      <div class="searchBox">
+        <form action="/weblib" method="get">
+          <input type="text" name="query" value="" size="25" /><input type="submit" name="submit" value="Search" class="searchBoxButton" />
+          <!--<input type='submit' name='submit' value='&gt;'  class='searchBoxButton' />-->
+        </form>
+      </div>
+    <a href="/weblib">Library</a> |
+    <a href="/history">History</a> |
+    <a href="/help">Help</a> |
+    <!--
+    <a href="#">action3</a> |
+    <a href="#">action4</a> |
+    -->
+  </div>
+</div>  <!-- end header -->
 
 
-<h2>Privacy</h2>
-<p>MindRetrieve works by archiving and indexing all web
-messages<sup>*</sup> that go through it. We find this make some very
-powerful application. However if you have concern on your web traffic
-being archived in any way at all, you should not install and use this
-application. </p>
 
-<p>We recognize that your web history is very sensitive private data. In
-particular it has lucrative commercial value to advertisers. This
-application does not share or transfer your data in any form (unless you
-explicitly request it to do so). This is where MindRetrieve stands out from
-other similar applications. You do not have to believe in any deceptive
-privacy statements. As an open source application its operations can be
-independently audited. </p>
 
-<p><small><sup>*</sup><cite>MindRetrieve does not read or store https messages.</cite></small></p>
 
-<h2>Contact Information</h2>
-<p>For all feedback or issues, please contact me at tungwaiyip at
-users.berlios.de. Also look forward for an upcoming mailing list.</p>
+<div id="content">
 
-<p>Version: 0.4.0 (2004-01-22)</p>
+<h1>Getting Started</h1>
 
-<p style="margin-bottom: 1cm"></p>
+<p>Welcome to MindRetrieve, the desktop tool to search and organize your personal web! Here are a few steps you can do to prepare your browser for MindRetrieve.
+
+<ol id="steps">
+
+<li>Bookmark your personal <a href="http://localhost:8052/">MindRetrieve</a> URL. Better yet, set it as your home page!</li>
+
+<li><a href="http://localhost:8052/weblib/import">Import</a> your bookmarks. MindRetrieve help you search and organize bookmarked pages more effectively with the flexible tagging system.</li>
+
+<li>When your find an interesting webpage, use the MindRetrieve's bookmarklet to quickly add it to your web library. To add the bookmarklet to your browser, drag the link <a href="javascript:d=document;mt=d.getElementsByTagName('meta');ds='';for(i=0;i&lt;mt.length;i++){ma=mt[i].attributes;na=ma['name'];if(na&amp;&amp;na.value.toLowerCase()=='description'){ds=ma['content'].value;}}h=window.innerHeight*0.6;w=window.innerWidth*0.8;s='width='+w+',height='+h;win=window.open('http://localhost:8052/weblib/_?url='+encodeURIComponent(d.location)+'&amp;title='+encodeURIComponent(d.title)+'&amp;description='+encodeURIComponent(ds),'weblibForm',s);win.focus();void(0);"><img src="img/favicon16x16.gif" border="0">MindRetrieve</a> to your browser's personal bar.
+
+<li>Let MindRetrieve archive your browsing history for later search and retrieval . To enable archiving, simply configure your proxy to localhost:8053. Or follow the detail <a href="/help/ProxyInstruction">instructions</a>.</li>
+
+</ol>
+
+</div>  <!-- end content -->
+
+<!-- == footer ======================================================================== -->
+<div id="footer">
+  <div class="left">
+    <a href="javascript:d=document;mt=d.getElementsByTagName('meta');ds='';for(i=0;i&lt;mt.length;i++){ma=mt[i].attributes;na=ma['name'];if(na&amp;&amp;na.value.toLowerCase()=='description'){ds=ma['content'].value;}}h=window.innerHeight*0.6;w=window.innerWidth*0.8;s='width='+w+',height='+h;win=window.open('http://localhost:8052/weblib/_?url='+encodeURIComponent(d.location)+'&amp;title='+encodeURIComponent(d.title)+'&amp;description='+encodeURIComponent(ds),'weblibForm',s);win.focus();void(0);" title="MindRetrieve"><img src="img/favicon16x16.gif" border="0">MindRetrieve</a> bookmarklet
+  </div>
+  <div class="right">
+       <a href="http://mindretrieve.net">MindRetrieve</a>
+  </div>
+</div>  <!-- end footer -->
+
 
 </body>
 </html>

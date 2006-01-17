@@ -176,6 +176,11 @@ def nt_url2pathname(url):
         components = url.split('/')
         # make sure not to convert quoted slashes :-)
         return urllib.unquote('\\'.join(components))
+
+    # HACK around
+    # if you have '\' in your URL (only if it is first char?), it will affect the algorithm below
+    url = url.replace('\\','/')
+
     comp = url.split(':',1)
     if len(comp) != 2 or comp[0][-1] not in string.ascii_letters:
         error = 'Bad URL: ' + url
@@ -186,7 +191,7 @@ def nt_url2pathname(url):
     drive = comp[0][-1].upper()
     components = comp[1].split('/')
     path = drive + ':'
-    for  comp in components:
+    for comp in components:
         if comp:
             path = path + '\\' + urllib.unquote(comp)
     return path

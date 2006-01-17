@@ -2,7 +2,6 @@ import archive_view
 import _control
 import docreader
 import help
-import home
 import snoop
 import history
 import updateParent

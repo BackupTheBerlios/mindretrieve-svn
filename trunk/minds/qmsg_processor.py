@@ -40,7 +40,7 @@ def getQueueStatus():
         reader = lucene_logic.Reader(indexpath)
         totalIndexed = reader.reader.numDocs()
         # find out archive_date from the first 10 document
-        for i in range(1,11):
+        for i in range(1,min(11,totalIndexed)):
             doc = reader.reader.document(i)
             d = doc.get('date')
             if d:

@@ -36,6 +36,10 @@ def _makeMeta(uri, date, etag, last_modified):
     return meta
 
 
+def _purge(p):
+    if p.exists():
+        p.rmtree()
+
 
 class TestBackgroundTask(unittest.TestCase):
     """ Test qmsg's background index process and misc utilities. """
@@ -369,10 +373,16 @@ class TestQmsg(unittest.TestCase):
         self.indexpath = testcfg.getpath('archiveindex')
         self.assertEqual(
             self.indexpath,'testdata/archive/index')    # check to prevent deleting things in wrong dir due to config goof
-        self.indexpath.rmtree(True)                     # start with empty index
+        _purge(self.indexpath)                          # start with empty index
 
         self.arcdocpath = testcfg.getpath('archive')
         self.assertEqual(self.arcdocpath,'testdata/archive')
+        try:
+            self.arcdocpath.makedirs()
+        except OSError, e:
+            # ignore OSError: [Errno 17] File exists
+            if e.errno != 17:
+                raise
 
         self.logpath = testcfg.getpath('logs')
         self.assertEqual(self.logpath,'testlogs')
@@ -401,6 +411,10 @@ class TestQmsg(unittest.TestCase):
         if arcpath.exists():
             arcpath.remove()
         docarchive.idCounter = docarchive.IdCounter()   # reinstantiate to reset its id range
+
+        # remove archive and index
+        _purge(self.arcdocpath)
+
 
 
     def _fetch_qlogs(self, files):
@@ -537,11 +551,12 @@ class TestQmsg(unittest.TestCase):
         self.assertEqual(doc.get('uri'), 'http://local.tungwaiyip.info/test/plaintext.txt')
         self.assertEqual(doc.get('date'), '2000-01-01T12:34:56Z')
 
-                                                                    # test docs are store in archive
+        searcher.close()
+
+        # test docs are store in archive
         self._check_archive_doc('000999000', 'Luke - Lucene Index Toolbox', 'uri: http://www.getopt.org/luke/')
         self._check_archive_doc('000999001', 'Slashdot: News for nerds, stuff that matters')
         self._check_archive_doc('000999002', 'All rights reserved.', 'date: 2000-01-01T12:34:56Z')
-
 
 
     def test_backgroundIndexTask(self):

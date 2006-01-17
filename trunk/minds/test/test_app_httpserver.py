@@ -21,7 +21,6 @@ class TestAppHTTPRequestHandler(unittest.TestCase):
 
 
     def test_lookup_cgi(self):
-        from minds.cgibin import home
         from minds.cgibin import history
         from minds.cgibin import weblib
         from minds.cgibin import weblibMultiForm

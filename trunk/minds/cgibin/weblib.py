@@ -184,6 +184,7 @@ def _buildCategoryList(wlib, selectTag=''):
 
     @returns list of (catNode, [descendant catNode])
     """
+    defaultTag = wlib.getDefaultTag()
     lselectTag = selectTag.lower()
     categoryList = []
 
@@ -226,10 +227,11 @@ def _buildCategoryList(wlib, selectTag=''):
 
     uncategorized = wlib.category.getUncategorized()
     if uncategorized:
-        subcats = [CategoryNode(t) for t in uncategorized]
-        for subcat in subcats[:-1]:
-            subcat.comma = True
-        categoryList.append((CategoryNode('TAG'), subcats))
+        uncategorized_nodes = [CategoryNode(t) for t in uncategorized if t != defaultTag]
+        if uncategorized_nodes:
+            for node in uncategorized_nodes[:-1]:
+                node.comma = True
+            categoryList.append((CategoryNode('TAG'), uncategorized_nodes))
 
     return categoryList
 

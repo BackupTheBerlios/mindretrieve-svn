@@ -20,23 +20,29 @@ pre     { font-size: 10pt; font-family: "Courier New", Courier, Monaco, monospac
     border1: medium dotted black;
   }
 
-#homeLink {
-    font-size:200%;
-    font-weight:bold;
-    width=100%;
-    color: #ff3;
-    text-decoration: None;
-}
-#homeLink:hover {
-    text-decoration: underline;
-}
-
 #searchBox {
 }
 
 #searchBox input {
     font-size:100%;
     vertical-align: baseline;
+}
+
+/* Form headers */
+#formHeader {
+    border-bottom: thick solid #003399;
+}
+
+#homeLink  {
+    text-decoration: none;
+    color:  #930;
+    font-size:150%;
+    padding-left: 2px;
+    padding-right: 0.2em;
+}
+
+#homeLink:hover {
+    background-color: #ccc;
 }
 
 .error_message {

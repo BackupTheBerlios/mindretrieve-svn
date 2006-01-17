@@ -43,17 +43,10 @@ window.addEventListener('load', onload, false);
 
 <body>
 
-<div id='header'>
-<form action='/weblib' method='get'>
-<table width="100%" cellspacing='0' cellpadding='0'>
-<tr>
-  <td>
-  <a id='homeLink' href='javascript:void(0);' onclick='javascript:openHome();' style='font-size:150%'>MindRetrieve</a>
-  </td>
-</tr>
-</table>
-</form>
-</div>
+<h3 id='formHeader'>
+    <a id='homeLink' href='javascript:void(0);' onclick='javascript:openHome();'>MindRetrieve</a>
+    <span node='con:edit_header'>Edit Tag</span>
+</h3>
 
 <form node='con:form' id='edit_form' method='GET' action='/weblib/@$id'>
     <input type='hidden' name='method' value='POST' />

@@ -268,7 +268,12 @@ class FormRenderer(response.CGIRenderer):
         item = bean.item
         wlib = store.getWeblib()
 
-        node.form_title.content = item.id == -1 and 'Add Entry' or 'Edit Entry'
+        if item.id == -1:
+            node.form_title.content %= 'Add Entry'
+            node.edit_header.omit()
+        else:
+            node.form_title.content %= 'Edit Entry'
+            node.add_header.omit()
 
         form = node.form
         id = item.id < 0 and '_' or str(item.id)

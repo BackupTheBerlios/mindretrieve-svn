@@ -4,6 +4,9 @@
 <title node='con:form_title'>MindRetrieve - %s</title>
 <link rel="stylesheet" href="/main.css" type="text/css">
 <style>
+  #content {
+    margin-left: 1em;
+  }
   .date_field   {
     padding-left: 0.5em;
     padding-right: 0.5em;
@@ -46,18 +49,14 @@ window.addEventListener('load', onload, false);
 
 <body>
 
-<div id='header'>
-<form action='/weblib' method='get'>
-<table width="100%" cellspacing='0' cellpadding='0'>
-<tr>
-  <td>
-  <a id='homeLink' href='javascript:void(0);' onclick='javascript:openHome();' style='font-size:150%'>MindRetrieve</a>
-  </td>
-</tr>
-</table>
-</form>
-</div>
+<h3 id='formHeader'>
+    <a id='homeLink' href='javascript:void(0);' onclick='javascript:openHome();'>MindRetrieve</a>
+    <span node='con:add_header'>Add New Item</span>
+    <span node='con:edit_header'>Edit Item</span>
+</h3>
 
+
+<div id='content'>
 <form node='con:form' id='edit_form' method='GET' action='/weblib/$id'>
     <input type='hidden' name='method' value='PUT' />
     <table cellspacing='5'>
@@ -132,6 +131,8 @@ window.addEventListener('load', onload, false);
     </script>
 
 </form>
+
+</div> <!-- content -->
 
 </body>
 </html>

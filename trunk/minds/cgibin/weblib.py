@@ -227,7 +227,7 @@ def _buildCategoryList(wlib, selectTag=''):
 
     uncategorized = wlib.category.getUncategorized()
     if uncategorized:
-        uncategorized_nodes = [CategoryNode(t) for t in uncategorized if t != defaultTag]
+        uncategorized_nodes = [CategoryNode(t) for t in uncategorized if not defaultTag.match(t)]
         if uncategorized_nodes:
             for node in uncategorized_nodes[:-1]:
                 node.comma = True
@@ -436,17 +436,14 @@ class WeblibRenderer(response.WeblibLayoutRenderer):
 
         # ------------------------------------------------------------------------
         # Matching message
-        if self.querytxt:
-            count = sum(1 for item in webItems if isinstance(item, WebItemNode))
-            node.found_msg.count.content = str(count)
-            from minds import search_engine
-            if search_engine.getEngines():
-                node.found_msg.search_engine.engine.repeat(self.renderSearchEngine, search_engine.getEngines())
-                node.found_msg.search_engine.querytxt.content = self.querytxt
-            else:
-                node.found_msg.search_engine.omit()
+        count = sum(1 for item in webItems if isinstance(item, WebItemNode))
+        node.found_msg.count.content = str(count)
+        from minds import search_engine
+        if search_engine.getEngines():
+            node.found_msg.search_engine.engine.repeat(self.renderSearchEngine, search_engine.getEngines())
+            node.found_msg.search_engine.querytxt.content = self.querytxt
         else:
-            node.found_msg.omit()
+            node.found_msg.search_engine.omit()
 
         if not webItems:
             node.web_items.omit()

@@ -261,7 +261,7 @@ def _make_index(names):
 class Store(object):
 
     DEFAULT_FILENAME = 'weblib.dat'
-    VERSION = '0.7'
+    VERSION = '0.8'
     ENCODING = 'UTF-8'
 
     NAME_VALUE_COLUMNS = [

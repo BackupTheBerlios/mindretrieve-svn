@@ -1,4 +1,4 @@
-weblib-version: 0.7
+weblib-version: 0.8
 encoding: UTF-8
 date: 20060112T173220Z
 tag-columns: id|version|name|description|flags

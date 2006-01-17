@@ -41,6 +41,8 @@ class GettingStartedRenderer(response.WeblibLayoutRenderer):
         node.importURL.atts['href'] = '%s/weblib/import' % response.getMindRetrieveBaseURL()
         node.bookmarkletURL.atts['href'] = response.buildBookmarklet()
         node.proxyPort.content = str(cfg.getint('http.proxy_port'))
+        node.proxyInstructionURL.atts['href'] = '%s/help/ProxyInstruction' % response.getMindRetrieveBaseURL()
+
 
 class ProxyInstructionRenderer(response.WeblibLayoutRenderer):
     TEMPLATE_FILE = 'proxyInstruction.html'

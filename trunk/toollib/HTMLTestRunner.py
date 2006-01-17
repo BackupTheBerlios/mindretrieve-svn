@@ -116,6 +116,7 @@ HTML_TMPL = string.Template(r"""
 <html>
 <head>
     <title>$title</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     $css
 </head>
 <body>
@@ -308,18 +309,24 @@ class _TestResult(TestResult):
         output = self.complete_output()
         self.result.append((0, test, output, ''))
         sys.stderr.write('.')
+        sys.stderr.write(str(test))
+        sys.stderr.write('\n')
 
     def addError(self, test, err):
         TestResult.addError(self, test, err)
         output = self.complete_output()
         self.result.append((2, test, output, self._exc_info_to_string(err, test)))
         sys.stderr.write('E')
+        sys.stderr.write(str(test))
+        sys.stderr.write('\n')
 
     def addFailure(self, test, err):
         TestResult.addFailure(self, test, err)
         output = self.complete_output()
         self.result.append((1, test, output, self._exc_info_to_string(err, test)))
         sys.stderr.write('F')
+        sys.stderr.write(str(test))
+        sys.stderr.write('\n')
 
 
 class HTMLTestRunner:
@@ -336,7 +343,7 @@ class HTMLTestRunner:
         self.stream = stream
         self.startTime = datetime.datetime.now()
         self.description = description
-        #self.verbosity = verbosity
+        self.verbosity = verbosity
 
     def run(self, test):
         "Run the given test case or test suite."
@@ -402,18 +409,14 @@ class HTMLTestRunner:
                 )
                 rows.append(row)
                 if has_output:
-                    # UnicodeEncodeError/UnicodeDecodeError DEBUG CODE
-                    try:
-                        uo = unicode(o)
-                    except (UnicodeEncodeError,UnicodeDecodeError):
-                        print >>sys.stderr, '#####\n\n'
-                        if isinstance(o,unicode):
-                            print >>sys.stderr, o.encode('raw_unicode_escape')
-                        else:
-                            print >>sys.stderr, o.encode('string_escape')
-
-                    uo = unicode(o)
-                    ue = unicode(e)
+                    if isinstance(o,str):
+                        uo = o.decode('latin-1')
+                    else:
+                        u0 = 0
+                    if isinstance(e,str):
+                        ue = e.decode('latin-1')
+                    else:
+                        ue = e
                     row = TEST_OUTPUT_TMPL.safe_substitute(
                         id = tid,
                         output = saxutils.escape(uo+ue) \

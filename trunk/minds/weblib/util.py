@@ -179,7 +179,10 @@ def nt_url2pathname(url):
     comp = url.split(':',1)
     if len(comp) != 2 or comp[0][-1] not in string.ascii_letters:
         error = 'Bad URL: ' + url
-        raise IOError, error
+        if isinstance(error,unicode):
+            error = error.encode('UTF-8')
+        error = error.encode('string_escape')
+        raise SyntaxError(error)
     drive = comp[0][-1].upper()
     components = comp[1].split('/')
     path = drive + ':'
@@ -212,7 +215,10 @@ def nt_pathname2url(p):
     comp = p.split(':')
     if len(comp) != 2 or len(comp[0]) > 1:
         error = 'Bad path: ' + p
-        raise IOError, error
+        if isinstance(error,unicode):
+            error = error.encode('UTF-8')
+        error = error.encode('string_escape')
+        raise SyntaxError(error)
 
     drive = urllib.quote(comp[0].upper())
     components = comp[1].split('\\')

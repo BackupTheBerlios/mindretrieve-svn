@@ -3,11 +3,13 @@
     -a:     show all
     -q:     query querytxt
     -t:     query tag
+    -u:     query URL
 """
 
 import codecs
 import datetime
 import logging
+import os.path
 import random
 import sets
 import string
@@ -21,6 +23,7 @@ from minds.weblib import util
 from minds.weblib import mhtml
 from minds.weblib import graph
 from minds.weblib import store
+from minds.weblib import util
 
 log = logging.getLogger('wlib.qry')
 
@@ -29,7 +32,26 @@ def find_url(wlib, url):
     @url - url to search for. String matching, no normalization.
     @return list of matched WebPages
     """
-    return [item for item in wlib.webpages if item.url == url]
+    if util.isFileURL(url):
+        # use a for flexible match rule to account for file name variations.
+        ### TODO: NT specific?
+        ### TODO: need optimize?
+        scheme, netloc, url_path, _, _, _ = urlparse.urlparse(url)
+        pathname = util.nt_url2pathname(url_path)
+        pathname = os.path.normcase(pathname)
+        result = []
+        for item in wlib.webpages:
+            scheme, netloc, url_path, _, _, _ = urlparse.urlparse(item.url)
+            if scheme != 'file':
+                continue
+            p1 = util.nt_url2pathname(url_path)
+            p1 = os.path.normcase(p1)
+            if pathname == p1:
+                result.append(item)
+        return result
+
+    else:
+        return [item for item in wlib.webpages if item.url == url]
 
 
 def _parse_terms(s):
@@ -248,6 +270,11 @@ def testShowAll():
         print '%s (%s)' % (item.name, ','.join(tags))
 
 
+def test_find_url(url):
+    wlib = store.getWeblib()
+    pprint(find_url(wlib, url))
+
+
 def testQuery(wlib, querytxt, tags):
     tags,unknown = weblib.parseTags(wlib, tags)
     if unknown:
@@ -262,6 +289,7 @@ def testQuery(wlib, querytxt, tags):
 
 def main(argv):
     tags = None
+    url = None
     querytxt = ''
     if len(argv) <= 1:
         pass
@@ -277,6 +305,9 @@ def main(argv):
     elif argv[1] == '-t':
         tags = argv[2]
         del argv[:2]
+    elif argv[1] == '-u':
+        url = argv[2]
+        del argv[:2]
 
     from minds.weblib import store
     wlib = store.getWeblib()
@@ -289,6 +320,9 @@ def main(argv):
             print pos
             for i in pos.items:
                 print '  ' + str(i)
+
+    elif url:
+        test_find_url(url)
 
     elif querytxt:
         testQuery(wlib, querytxt, '')

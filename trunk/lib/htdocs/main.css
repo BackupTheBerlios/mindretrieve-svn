@@ -39,16 +39,6 @@ pre     { font-size: 10pt; font-family: "Courier New", Courier, Monaco, monospac
     vertical-align: baseline;
 }
 
-
-.btn {
-    color:#fff;
-    border: 2px outset #963;
-    background-color:#963;
-    font-weight:bold;
-    padding-left: 1em;
-    padding-right: 1em;
-}
-
 .error_message {
     color:red
 }

@@ -121,7 +121,7 @@
 /* == main ======================================================================== */
 
 #main {
-  margin: 0 0 0 16em;
+  margin: 0;
   padding: 0.5mm 1em 5mm 1em;
 }
 
@@ -279,9 +279,12 @@ function deleteTag() {
     form.submit();
 }
 
-
 function toggleSubCatEvent(e) {
-    result = toggleSubCat(this);
+    if (window.event)
+        var srcElem = window.event.srcElement; // IE
+    else
+        var srcElem = this; // W3C
+    result = toggleSubCat(srcElem);
     // notify server of the new setting via the asyncForm
     var form = document.getElementById('asyncForm');
     form.action = '/weblib/' + result[0];
@@ -309,7 +312,11 @@ function toggleSubCat(switchElem) {
 }
 
 function toggleWebitemEvent(e) {
-    setWebitemRow(this)
+    if (window.event)
+        var srcElem = window.event.srcElement; // IE
+    else
+        var srcElem = this; // W3C
+    setWebitemRow(srcElem)
 }
 
 function setWebitemRow(checkbox) {
@@ -419,10 +426,10 @@ function onupdate(url) {
     }
 }
 
-function onload(e) {
+function onWindowLoaded(e) {
     // attach tag selected event handler
     var elem = document.getElementById('tagListSelect');
-    elem.addEventListener('change', onTagListSelectChanged, false);
+    addEvent(elem, 'change', onTagListSelectChanged, false);
 
     // attach toggleSubCat event handler
     var catPane = document.getElementById('categoryPanel');
@@ -430,7 +437,7 @@ function onload(e) {
     for (var i=0; i < aElems.length; i++) {
         var elem = aElems[i];
         if (elem.className == 'toggleSwitch') {
-            elem.addEventListener('click', toggleSubCatEvent, false);
+            addEvent(elem, 'click', toggleSubCatEvent, false);
         }
     }
     // attach event handlers to webitem checkbox
@@ -440,14 +447,29 @@ function onload(e) {
         var elem = checkboxes[i];
         // assume element with numeric name is the item checkbox
         if (!isNaN(parseInt(elem.name))) {
-            elem.addEventListener('click', toggleWebitemEvent, false);
-//            elem.addEventListener('keypress', webitemKeypressEvent, false);
+            addEvent(elem, 'click', toggleWebitemEvent, false);
+//            addEvent(elem, 'keypress', webitemKeypressEvent, false);
         }
     }
     window.name='mindretrieve';
 }
 
-window.addEventListener('load', onload, false);
+  addEvent(window, 'load', onWindowLoaded, false);
+
+  function addEvent(elm, evType, fn, useCapture)
+  // cross-browser event handling for IE5+, NS6+ and Mozilla/Gecko
+  // By Scott Andrew
+  {
+    if (elm.addEventListener) {
+      elm.addEventListener(evType, fn, useCapture);
+      return true;
+    } else if (elm.attachEvent) {
+      var r = elm.attachEvent('on' + evType, fn);
+      return r;
+    } else {
+      elm['on' + evType] = fn;
+    }
+  }
 
 </script>
 
@@ -534,8 +556,7 @@ window.addEventListener('load', onload, false);
 
 
 <!--==main content========================================================================-->
-
-<td id='main'>
+<td><div id='main'>
 
 <div node='con:found_msg' id='found_msg'>
     <div node='con:search_engine' style='float:right'>Search "<span node='-con:querytxt'>x</span>" in
@@ -665,9 +686,11 @@ window.addEventListener('load', onload, false);
   </table>
   </form>
 
-</div>  <!-- end main content -->
+</div> <!-- end web_items -->
 
-</td></tr>
+</div></td> <!-- end main content -->
+
+</tr>
 </table>    <!-- end body area -->
 
 

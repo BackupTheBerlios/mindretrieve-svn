@@ -92,7 +92,8 @@ import sys
 import urllib2
 import urlparse
 
-from cssutils.cssparser import *
+# 2006-01-18 disable this at the moment
+#from cssutils.cssparser import *
 from minds.config import cfg
 from minds.util import html_pull_parser as hpp
 from minds.util import httputil

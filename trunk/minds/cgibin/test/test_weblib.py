@@ -135,8 +135,6 @@ class TestWeblibCGI(TestCGIBase):
         u'.Français',
         u'.日本語',
         u'.English',
-        u'TAG',
-        u'inbox',
     ])
 
     # highlight a top level cat
@@ -148,8 +146,6 @@ class TestWeblibCGI(TestCGIBase):
         u'.Français',
         u'.日本語',
         u'.English',
-        u'TAG',
-        u'inbox',
     ])
 
     # highlight a subcat
@@ -162,8 +158,6 @@ class TestWeblibCGI(TestCGIBase):
         u'[',
         u'.English',
         u']',
-        u'TAG',
-        u'inbox',
     ])
 
 

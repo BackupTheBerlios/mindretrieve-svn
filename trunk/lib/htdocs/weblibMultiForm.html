@@ -60,32 +60,51 @@ function openHome() {
 }
 
 function onclick(e) {
+    if (window.event)
+        var srcElem = window.event.srcElement; // IE
+    else
+        var srcElem = this; // W3C
     // get the hidden input
-    name = this.name + 'changed';
-    var input = document.getElementById(name);
-    input.value = '1';
+    var name = srcElem.name + 'changed';
+    var inputElem = document.getElementById(name);
+    inputElem.value = '1';
     // this tag is changed
-    this.parentNode.className = 'tagChange';
+    srcElem.parentNode.className = 'tagChange';
 }
 
-function onload(e) {
+function onWindowLoaded(e) {
     // attach toggleSubCat event handler
     var tagControl = document.getElementById('tagControl');
     var elems = tagControl.getElementsByTagName('input');
     for (var i=0; i < elems.length; i++) {
         var elem = elems[i];
-        elem.addEventListener('click', onclick, false);
+        addEvent(elem, 'click', onclick, false);
     }
     window.focus();
 }
 
-window.addEventListener('load', onload, false);
+  addEvent(window, 'load', onWindowLoaded, false);
+
+  function addEvent(elm, evType, fn, useCapture)
+  // cross-browser event handling for IE5+, NS6+ and Mozilla/Gecko
+  // By Scott Andrew
+  {
+    if (elm.addEventListener) {
+      elm.addEventListener(evType, fn, useCapture);
+      return true;
+    } else if (elm.attachEvent) {
+      var r = elm.attachEvent('on' + evType, fn);
+      return r;
+    } else {
+      elm['on' + evType] = fn;
+    }
+  }
 
 </script>
 </head>
 
 
-<body onload='javascript:onload()'>
+<body>
 
 <h3 id='formHeader'>
     <a id='homeLink' href='javascript:void(0);' onclick='javascript:openHome();'>MindRetrieve</a>

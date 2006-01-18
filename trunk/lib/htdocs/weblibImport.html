@@ -90,11 +90,26 @@ function initUA() {
 }
 
 
-function onload(e) {
+function onWindowLoaded(e) {
     initUA();
 }
 
-window.addEventListener('load', onload, false);
+  addEvent(window, 'load', onWindowLoaded, false);
+
+  function addEvent(elm, evType, fn, useCapture)
+  // cross-browser event handling for IE5+, NS6+ and Mozilla/Gecko
+  // By Scott Andrew
+  {
+    if (elm.addEventListener) {
+      elm.addEventListener(evType, fn, useCapture);
+      return true;
+    } else if (elm.attachEvent) {
+      var r = elm.attachEvent('on' + evType, fn);
+      return r;
+    } else {
+      elm['on' + evType] = fn;
+    }
+  }
 
 </script>
 
@@ -178,7 +193,7 @@ Then import as a <a href='javascript:showTab("moz");'>Mozilla</a> bookmark.
 </div>
 
 
-<p class='bottomLink'>Return to <a href="/weblib">Main</a>
+<p class='bottomLink'>Return to <a href="/weblib">Library</a>
 </div>  <!-- formContent -->
 
 </div>  <!-- formBox -->

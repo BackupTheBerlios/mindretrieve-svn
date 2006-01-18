@@ -52,10 +52,13 @@ function refreshParent() {
 function setHeight() {
     // set category proportion to the window size.
     var height = Math.max((window.innerHeight-50)*0.6, 100);
-    var cdElem = document.getElementById('category_description');
-//    cdElem.style.height = height;
-    var unElem = document.getElementById('uncategorized');
-//    unElem.style.height = height;
+    try {
+        var cdElem = document.getElementById('category_description');
+        cdElem.style.height = height;
+        var unElem = document.getElementById('uncategorized');
+        unElem.style.height = height;
+    }
+    catch (e) {/* need to fix for IE? */}
 }
 
 function getUncategorizedSelection() {
@@ -197,7 +200,7 @@ function setChildText(id, text) {
 }
 
 function tags_changed(tag_name) {
-    tag_name = tag_name.replace('^ *','');
+    tag_name = tag_name.replace('^ *','').toLowerCase();
     var info = tag_base[tag_name];
     setChildText('hint_tag', tag_name);
     if (info == null) {

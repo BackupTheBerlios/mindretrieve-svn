@@ -77,7 +77,7 @@ _TRIM_TITLE = 50
 
 def _format_tag_base(tag_info):
 
-    encoded_tag_name = response.jsEscapeString(tag_info[1])
+    encoded_tag_name = response.jsEscapeString(tag_info[1].lower())
     count = tag_info[2]
     if not tag_info[3]:
         encoded_hint = ''

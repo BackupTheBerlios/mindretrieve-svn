@@ -30,7 +30,7 @@ Source: "g:\bin\py_repos\mindretrieve\trunk\dist\*"; DestDir: "{app}"; Flags: ig
 Name: {app}\MindRetrieve.exe; Type: files; Check: StopAndRemoveService
 
 [Run]
-Filename: "{app}\MindRetrieve.exe"; Description: "Register I-identd service"; Parameters: "-install -auto";
+Filename: "{app}\MindRetrieve.exe"; Description: "Register I-identd service"; Parameters: "-install -auto -interactive";
 Filename: "{sys}\net.exe"; Parameters: "start MindRetrieve"
 Filename: "{sys}\regsvr32.exe"; Parameters: "/s ""{app}\context_menu.dll""";
 Filename: {app}\docs\readme.html; Flags: shellexec

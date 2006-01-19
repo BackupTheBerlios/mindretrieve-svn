@@ -288,7 +288,15 @@ class FormRenderer(response.CGIRenderer):
         if item:
             form.name       .atts['value'] = item.name
             form.url        .atts['value'] = item.url
-            form.url_link   .atts['href']  = item.url
+            if weblib_util.isFileURL(item.url):
+                scheme, netloc, url_path, _, _, _ = urlparse.urlparse(item.url)
+                pathname = weblib_util.nt_url2pathname(url_path)
+                form.url_link.atts['href']  = '/weblib/%s/url#%s' % (item.id, item.url)
+                form.filename.content = pathname
+            else:
+                form.url_link.atts['href']  = item.url
+                form.filename.omit()
+
             form.description.content       = item.description
             form.tags       .atts['value'] = bean.item.tags_description
             form.created    .atts['value'] = item.created

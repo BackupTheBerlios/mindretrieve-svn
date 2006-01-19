@@ -7,6 +7,15 @@
   #content {
     margin-left: 1em;
   }
+  #edit_form td {
+    padding-top: 1.5ex;
+    padding-right: 1em;
+    vertical-align: top;
+  }
+  .filename {
+    margin-top: 0.5ex;
+    color: #777;
+  }
   .date_field   {
     padding-left: 0.5em;
     padding-right: 0.5em;
@@ -74,7 +83,7 @@ function onWindowLoaded(e) {
 <div id='content'>
 <form node='con:form' id='edit_form' method='GET' action='/weblib/$id'>
     <input type='hidden' name='method' value='PUT' />
-    <table cellspacing='5'>
+    <table>
     <tr node='con:error'>
         <td colspan='2'><span node='con:message' class='error_message'>Please correct the error.</span></td>
     </tr>
@@ -85,7 +94,8 @@ function onWindowLoaded(e) {
     <tr>
         <td>*Address</td>
         <td><input type='text' node='con:url' name='url' size='95' />
-        <a node='con:url_link' href="#" target='_blank'>open</a>
+        <a node='con:url_link' href="#" target='_blank'>open</a><br />
+        <div node='con:filename' class='filename'>$filename</div>
         </td>
     </tr>
     <tr>

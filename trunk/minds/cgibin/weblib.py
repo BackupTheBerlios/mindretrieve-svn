@@ -116,9 +116,18 @@ def doLaunchURL(wfile, req):
         # TODO: It is dangerous to launch anything could be executable or script
         from minds.weblib.win32 import ntfs_util
         ntfs_util.launch(item.url)
+        wfile.write('content-type: text/html\r\n')
         wfile.write('Cache-control: no-cache\r\n')
         wfile.write('\r\n')
-        wfile.write('ok')
+        wfile.write('''<html>
+<head>
+  <script>window.close();</script>
+</head>
+<body>
+  File launched in separate window. Please close this window.
+</body>
+</html>
+        ''')
     else:
         response.redirect(wfile, item.url)
 

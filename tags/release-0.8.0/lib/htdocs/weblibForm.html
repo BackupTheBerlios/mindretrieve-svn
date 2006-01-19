@@ -1,0 +1,163 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3c.org/TR/html4/loose.dtd">
+<html>
+<head>
+<title node='con:form_title'>MindRetrieve - %s</title>
+<link rel="stylesheet" href="/main.css" type="text/css">
+<style>
+  #content {
+    margin-left: 1em;
+  }
+  #edit_form td {
+    padding-top: 1.5ex;
+    padding-right: 1em;
+    vertical-align: top;
+  }
+  .filename {
+    margin-top: 0.5ex;
+    color: #777;
+  }
+  .date_field   {
+    padding-left: 0.5em;
+    padding-right: 0.5em;
+    background-color: #eee;
+  }
+  .date_padding {
+    padding-left: 8em;
+    background-color: #eee;
+  }
+  .detail_info {
+    font-size: 90%;
+    color: #777;
+  }
+</style>
+
+<script>
+
+function openHome() {
+    w=window.open("/weblib","mindretrieve");
+    w.focus();
+    window.close();
+}
+
+function ondelete() {
+    var form = document.getElementById('edit_form');
+    form.elements['method'].value = 'DELETE';
+    form.submit();
+}
+
+function onWindowLoaded(e) {
+    window.focus();
+    document.getElementById('name').focus()
+}
+
+  addEvent(window, 'load', onWindowLoaded, false);
+
+  function addEvent(elm, evType, fn, useCapture)
+  // cross-browser event handling for IE5+, NS6+ and Mozilla/Gecko
+  // By Scott Andrew
+  {
+    if (elm.addEventListener) {
+      elm.addEventListener(evType, fn, useCapture);
+      return true;
+    } else if (elm.attachEvent) {
+      var r = elm.attachEvent('on' + evType, fn);
+      return r;
+    } else {
+      elm['on' + evType] = fn;
+    }
+  }
+
+</script>
+</head>
+
+
+<body>
+
+<h3 id='formHeader'>
+    <a id='homeLink' href='javascript:void(0);' onclick='javascript:openHome();'>MindRetrieve</a>
+    <span node='con:add_header'>Add New Item</span>
+    <span node='con:edit_header'>Edit Item</span>
+</h3>
+
+
+<div id='content'>
+<form node='con:form' id='edit_form' method='GET' action='/weblib/$id'>
+    <input type='hidden' name='method' value='PUT' />
+    <table>
+    <tr node='con:error'>
+        <td colspan='2'><span node='con:message' class='error_message'>Please correct the error.</span></td>
+    </tr>
+    <tr>
+        <td>*Title</td>
+        <td><input id='name' type='text' node='con:name' name='title' size='70' />&nbsp;</td>
+    </tr>
+    <tr>
+        <td>*Address</td>
+        <td><input type='text' node='con:url' name='url' size='95' />
+        <a node='con:url_link' href="#" target='_blank'>open</a><br />
+        <div node='con:filename' class='filename'>$filename</div>
+        </td>
+    </tr>
+    <tr>
+        <td>Date</td>
+        <td>
+            <input type='text' node='con:created' name='created' size='10' />
+        </td>
+    </tr>
+    <tr>
+        <td>Description</td>
+        <td><textarea node='con:description' name='description' cols='70' rows='6'></textarea></td>
+    </tr>
+    <tr>
+        <td>Tags</td>
+        <td><input type='text' node='con:tags' name='tags' size='50' /> (separate tags by comma)</td>
+    </tr>
+    <tr>
+        <td>&nbsp;</td>
+        <td>
+            <div class='detail_info'>
+            <span>Modified&nbsp;</span>
+            <span class='date_field' node='con:modified_txt'><span class='date_padding'></span></span>
+            <span style="margin-left:1em">Snapshot&nbsp;</span>
+            <span class='date_field' node='con:snapshot_txt'><span class='date_padding'></span></span>
+            </div>
+        </td>
+    </tr>
+    <tr>
+        <td></td>
+        <td>
+            <input class='btn' type='submit' name='action' value='OK' />
+            &nbsp;
+            <input class='btn' type='button' name='action' value='Delete' onclick='javascript:ondelete();' />
+            &nbsp;
+            <input class='btn' type='button' name='action' value='Cancel' onclick='javascript:window.close();' />
+        </td>
+    </tr>
+    </table>
+
+    <!-- Script to handle posting with new tags -->
+    <input type='hidden' name='create_tags' value=''/>
+    <script node='con:new_tags_js_var'>
+      new_tags = '%s';
+    </script>
+
+    <script>
+    function ask_save_new_tags() {
+      msg = 'The tags (' + new_tags + ') have not been used before. Add the new tags?';
+      if (confirm(msg)) {
+          form = document.getElementById('edit_form');
+          form.elements['create_tags'].value = '1';
+          form.submit();
+      }
+    }
+    if (new_tags) {
+      ask_save_new_tags();
+    }
+    </script>
+
+</form>
+
+</div> <!-- content -->
+
+</body>
+</html>

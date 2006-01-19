@@ -1,0 +1,199 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3c.org/TR/html4/loose.dtd">
+<html>
+<head>
+<title>MindRetrieve - Getting Started</title>
+<link rel="stylesheet" href="main.css" type="text/css">
+
+<style>
+/* == Header ======================================================================== */
+.midHeader {
+  border-bottom: 1px solid #000;
+}
+
+.midHeader h1 {
+  color:  #930;
+  font-size: 20pt;
+  margin: 0.5ex 1em 0.5ex 0.2em;
+}
+
+.subHeader {
+  color: white;
+  background-color: #003399;
+  margin: 0 0 0 0;
+  padding: 1ex 0.5em 1ex 0.5em;
+  xborder-top: 1px solid #004BE5;
+}
+
+.subHeader .searchBox {
+  float: right;
+  xfont-size: 80%;
+}
+
+.subHeader .searchBox form {
+  margin: 0 0 0 0;
+}
+
+.subHeader .searchBox input {
+    xvertical-align: baseline;
+    font-size: 90%;
+}
+
+.subHeader .searchBox input[type='text'] {
+    padding: 0 0 0 0;
+    xbackground-color: red;
+}
+
+.searchBoxButton      {
+    font-weight: bold;
+    padding-left: 0.5em;
+    padding-right: 0.5em;
+    xbackground-color:#fed;
+    xborder: 2px outset #fed;
+}
+
+
+.subHeader a {
+  color: white;
+  background-color: transparent;
+  text-decoration: none;
+  font-weight: bold;
+  margin: 0;
+  padding: 0 0.75ex 0 0.5ex;
+}
+
+.subHeader a:hover {
+  text-decoration: underline;
+}
+
+#body {
+  width: 100%;
+}
+
+
+/* == footer ======================================================================== */
+
+#footer {
+  color: white;
+  background-color: rgb(100,135,220);
+  font-size: 91%;
+  margin: 0;
+  padding: 0.5ex 2.5mm 1ex 2.5mm;
+  clear: both;
+}
+
+#footer .left {
+  line-height: 1.45em;
+  margin-top:0;
+
+  float: left;
+  clear: left;
+}
+
+#footer .right {
+  text-align: right;
+  line-height: 1.45em;
+}
+
+#footer a {
+  color: white;
+  background-color: transparent;
+  text-decoration: underline;
+}
+
+#footer a:hover {
+  text-decoration: none;
+}
+
+</style>
+
+<style>
+  #content {
+    margin-top: 2ex;
+    margin-left: 2em;
+    margin-bottom: 7ex;
+    width: 50em;
+    line-height: 150%;
+  }
+
+  #steps {
+    xmargin-left: 0;
+  }
+  #steps li {
+    margin-top: 2ex;
+    margin-bottom: 2ex;
+  }
+</style>
+
+
+</head>
+
+
+
+<body>
+
+<!--==Header=============================================================================-->
+<div>
+<!--
+<div id="header">
+right now we don't use anything header and it has a conflict with other form
+eventually rename other form to something like smallHeader
+-->
+
+  <div class="midHeader">
+    <h1>MindRetrieve</h1>
+  </div>
+
+  <div class="subHeader">
+      <div class="searchBox">
+        <form action="/weblib" method="get">
+          <input type="text" name="query" value="" size="25" /><input type="submit" name="submit" value="Search" class="searchBoxButton" />
+          <!--<input type='submit' name='submit' value='&gt;'  class='searchBoxButton' />-->
+        </form>
+      </div>
+    <a href="http://localhost:8050/weblib">Library</a> |
+    <a href="http://localhost:8050/history">History</a> |
+    <a href="http://localhost:8050/help">Help</a> |
+    <!--
+    <a href="#">action3</a> |
+    <a href="#">action4</a> |
+    -->
+  </div>
+</div>  <!-- end header -->
+
+
+
+
+
+<div id="content">
+
+<h1>Getting Started</h1>
+
+<p>Welcome to MindRetrieve, the desktop tool to search and organize your personal web! Here are a few steps you can do to prepare your browser for MindRetrieve.
+
+<ol id="steps">
+
+<li>Bookmark your personal <a href="http://localhost:8050/">MindRetrieve</a> URL. Better yet, set it as your home page!</li>
+
+<li><a href="http://localhost:8050/weblib/import">Import</a> your bookmarks. MindRetrieve help you search and organize bookmarked pages more effectively with the flexible tagging system.</li>
+
+<li>When your find an interesting webpage, use the MindRetrieve's bookmarklet to quickly add it to your web library. To add the bookmarklet to your browser, drag the link <a href="javascript:d=document;mt=d.getElementsByTagName('meta');ds='';for(i=0;i&lt;mt.length;i++){ma=mt[i].attributes;na=ma['name'];if(na&amp;&amp;na.value.toLowerCase()=='description'){ds=ma['content'].value;}}h=window.innerHeight*0.6;w=window.innerWidth*0.8;s='width='+w+',height='+h;win=window.open('http://localhost:8050/weblib/_?url='+encodeURIComponent(d.location)+'&amp;title='+encodeURIComponent(d.title)+'&amp;description='+encodeURIComponent(ds),'weblibForm',s);win.focus();void(0);"><img src="img/favicon16x16.gif" border="0">MindRetrieve</a> to your browser's personal bar.
+
+<li>Let MindRetrieve archive your browsing history for later search and retrieval . To enable archiving, simply configure your proxy to localhost:8051. Or follow the detail <a href="http://localhost:8050/help/ProxyInstruction">instructions</a>.</li>
+
+</ol>
+
+</div>  <!-- end content -->
+
+<!-- == footer ======================================================================== -->
+<div id="footer">
+  <div class="left">
+    <a href="javascript:d=document;mt=d.getElementsByTagName('meta');ds='';for(i=0;i&lt;mt.length;i++){ma=mt[i].attributes;na=ma['name'];if(na&amp;&amp;na.value.toLowerCase()=='description'){ds=ma['content'].value;}}h=window.innerHeight*0.6;w=window.innerWidth*0.8;s='width='+w+',height='+h;win=window.open('http://localhost:8050/weblib/_?url='+encodeURIComponent(d.location)+'&amp;title='+encodeURIComponent(d.title)+'&amp;description='+encodeURIComponent(ds),'weblibForm',s);win.focus();void(0);" title="MindRetrieve"><img src="img/favicon16x16.gif" border="0">MindRetrieve</a> bookmarklet
+  </div>
+  <div class="right">
+       <a href="http://mindretrieve.net">MindRetrieve</a>
+  </div>
+</div>  <!-- end footer -->
+
+
+</body>
+</html>

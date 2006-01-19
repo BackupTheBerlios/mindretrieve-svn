@@ -1,0 +1,22 @@
+zCn="";
+zRef="";
+zSr=new Array("Reach 80% of active Internet users with Overture.","","","List your site with Overture","http://www.overture.com/",""
+,"Use the IT Analyst Report Library to stay up-to-date on products and technologies: track your visibility, get analyst quotes, watch your competitors, discover markets and trends."
+,""
+,"http://www10.overture.com/d/sr/?xargs=05u3hs9yoaUG1SwSDD%2FRAvFRjlpCEOBAOMcSVwesHsBnujCSaZAiSbaZe%2F6qaOjHt7d2%2B%2B3%2FO3MW907YS%2F6ng57JOsjq1%2B%2BtYO6D%2FaaTVg8flssqJy7E2XRm8Iut%2BtENxPLtHR54m3bHzdqhPzXEom8O1hxVaxsRNJjhhcCKItMIIjki2621dtgkSFoqWVRAlKBrkIwt2C4HtTEORYlIz%2FCRZESlBIVFdZSXUkazq%2B3S85YBa8kIImCpyK0FAFp6qiSYJ8BZjgRhHcQZhPjr8C7XaM%2B6NX4IOLxvW53hlk%2FYQjgdGYZYxjCOJwBzjtB7Ojf55vZ0MuzN8xoRLxX2%2B3R%2F%2B3mtW%2F%2FmgxtH%2FDkWdPf2z3&yargs=www.analystviews.com"
+,"Access Current Ecommerce Analyst Reports"
+,"www.analystviews.com"
+,""
+,"IT resellers, VARs and distributors, find market share info, breaking technology news, case studies, strategic analysis and expert advice important to IT resellers at The Channel Insider."
+,""
+,"http://www10.overture.com/d/sr/?xargs=05u3hs9yoakG1OwTDDhgyFXzkLdla1kiHJTUJKtwcTmHbiEJVSosza1SRsjBmnt0h0NAhtX9%2F%2F%2F6c39HUsuuR71noa%2Bx%2BFHfz5727FbnqyeH4QRO%2FIT7fC3Dk05ggiDDzMKFSStataodm8UisoF5GuQllQ7ZwBcOqsAaIAlDkSxRZ%2Fr9YJtKJetoXVsarZ%2FPtszJEON0AQupU8lGxXHpi%2BcgJYFnIRop86abgUfeXm%2B7CuZAf1Zv%2FSaCkfujj08VkRb1xCDDKmoZ3sEAjdNs5IbYKe9AnH2qFEjzlzQ42K50updF%2BQ%2FDp1n8682xinsOBk1wtqg%2F0%3D&yargs=www.thechannelinsider.com"
+,"The Channel Insider IT Resellers"
+,"www.thechannelinsider.com"
+,""
+,"Starter doc, Assessment, Guidebook Checklist & Presentations. Toolkit."
+,""
+,"http://www10.overture.com/d/sr/?xargs=05u3hs9yoakG1OsTDERBCFfx3K2tFLm4XWGwt0sBXdUfQrMC6IDk4H29%2FH5JMQkG2IZndo3r%2FOQsO3ip5l48c2UAihAkZxbEtYGkkEdkIb5VncAePOsr3skl8Gd7XZr9YAttgICE%2FNCz3Jzjna4P%2FyW37SHn%2FIh9YG3Fu1ZFWtYkOJXLVoJHY2Uhuook1P7J5o5%2BYRT2n63p4vDCMdwKcTN2R%2F95Glh0VCrpWiJDd4xKhPoeJlEmQMv3C5LurscbnO5QuuUuELonVZv%2F%2BnsRlHTwYuAL6Gg91h&yargs=www.crm-toolkit.com"
+,"The CRM Toolkit"
+,"www.crm-toolkit.com"
+,""
+);

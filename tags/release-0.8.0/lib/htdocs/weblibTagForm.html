@@ -1,0 +1,96 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3c.org/TR/html4/loose.dtd">
+<html>
+<head>
+<title>MindRetrieve - Edit Tag</title>
+<link rel="stylesheet" href="/main.css" type="text/css">
+<style>
+  #edit_form {
+    margin-top: 2ex;
+  }
+  .instructions {
+    color: #777;
+    font-size: 95%;
+    margin-top: 1ex;
+    margin-bottom: 1ex;
+  }
+</style>
+
+<script>
+
+function openHome() {
+    w=window.open("/weblib","mindretrieve");
+    w.focus();
+    window.close();
+}
+
+function ondelete() {
+    if (confirm('Remove the tag and its references?')) {
+        var form = document.getElementById('edit_form');
+        form.elements['method'].value = 'DELETE';
+        form.submit();
+    }
+}
+
+function onWindowLoaded(e) {
+    window.focus();
+}
+
+  addEvent(window, 'load', onWindowLoaded, false);
+
+  function addEvent(elm, evType, fn, useCapture)
+  // cross-browser event handling for IE5+, NS6+ and Mozilla/Gecko
+  // By Scott Andrew
+  {
+    if (elm.addEventListener) {
+      elm.addEventListener(evType, fn, useCapture);
+      return true;
+    } else if (elm.attachEvent) {
+      var r = elm.attachEvent('on' + evType, fn);
+      return r;
+    } else {
+      elm['on' + evType] = fn;
+    }
+  }
+
+</script>
+</head>
+
+
+<body>
+
+<h3 id='formHeader'>
+    <a id='homeLink' href='javascript:void(0);' onclick='javascript:openHome();'>MindRetrieve</a>
+    <span node='con:edit_header'>Edit Tag</span>
+</h3>
+
+<form node='con:form' id='edit_form' method='GET' action='/weblib/@$id'>
+    <input type='hidden' name='method' value='POST' />
+    <table cellspacing='10'>
+    <tr node='con:error'>
+        <td colspan='2'><span node='con:message' class='error_message'>Please correct the error.</span></td>
+    </tr>
+    <tr>
+        <td valign='top'>*Name</td>
+        <td valign='top'><input type='text' node='con:name' name='name' size='50' />
+        <div class='instructions'>
+        Enter a new name for this tag. If you enter a name same as another tag, the two tags will be combined.
+        </div>
+        </td>
+    </tr>
+    <tr>
+        <td></td>
+        <td>
+            <input class='btn' type='submit' name='action' value='OK' />
+            &nbsp;
+<!--
+            <input class='btn' type='button' name='action' value='Delete' onclick='javascript:ondelete();' />
+            &nbsp;
+-->
+            <input class='btn' type='button' name='action' value='Cancel' onclick='javascript:window.close();' />
+        </td>
+    </tr>
+    </table>
+</form>
+
+</body>
+</html>

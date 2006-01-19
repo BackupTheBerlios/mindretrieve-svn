@@ -1,0 +1,62 @@
+<style>
+  #content {
+    margin-top: 2ex;
+    margin-left: 2em;
+    margin-bottom: 7ex;
+    width: 50em;
+    line-height: 150%;
+  }
+
+  .sidebar {
+    background-color: #dddddd;
+    margin-top:6ex;
+    padding: 0.5ex 1em 1ex 1em;
+  }
+</style>
+
+
+<div id='content'>
+
+<h1>Configuring Proxy for MindRetrieve</h1>
+
+<p>Configure your proxy to MindRetrieve at localhost:8051. Procedure for some common browsers are shown below.
+
+<h3>Internet Explorer 6.0</h3> <p class="browser_instruction">Choose the
+Tools | Internet Options menu. Click the [Connections] tab. Then click
+the [LAN Settings...] button. Check the [Use a proxy server...]
+checkbox. Put 'localhost' for address and '8051' for port. Also check
+Bypass proxy for local address.(<a href='/img/ie_proxy.gif'>screen
+shot</a>)</p>
+
+<h3>Mozilla Firefox 1.0</h3>
+<p class="browser_instruction">Choose the Tools | Options menu. Click
+the [Connections Settings] button. Select the 'Manual proxy
+configuration' radio box. Put 'localhost' in the HTTP Proxy field ands
+SSL Proxy field. Put '8051' in the port field. (<a
+href='/img/firefox_proxy.gif'>screen shot</a>)</p>
+
+<h3>Opera 7.5</h3>
+<p class="browser_instruction">Open the Preferences
+dialog box. Choose network and click the [Proxy Servers] button. Check
+the HTTP and HTTPS checkboxes. Put 'localhost' and '8051' in each row.
+(<a href='/img/opera_proxy.gif'>screen shot</a>)</p>
+
+<div class='sidebar'>
+<h3>Proxy chaining</h3>
+Some ISP already requires you to configure your browser with their
+web proxy. In this case you should set them up as a chain.
+Configure you browser's proxy to MindRetrieve using the instruction above.
+Then edit the <b>config.ini</b> file in the MidnRetrieve's program directory
+and set the ISP's proxy in the http_proxy entry in the http section.
+For example, if the original proxy is proxy.abc.com at port 1234,
+edit the entry as below:</p>
+
+<div class="code"><pre>
+Config.ini
+
+  [http]
+  http_proxy=http://proxy.abc.com:1234/
+</div>
+</div>
+
+</div>  <!-- end content -->

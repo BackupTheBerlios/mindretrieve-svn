@@ -1,0 +1,37 @@
+body {
+    font-family: verdana, arial, helvetica, sans-serif;
+    font-size: 10pt;
+    margin-left: 1em;
+    margin-right: 20%;
+}
+h1      { font-size: 14pt }
+h2      { font-size: 12pt }
+h3      { font-size: 12pt }
+
+pre     { font-size: 10pt; font-family: "Courier New", Courier, Monaco, monospace ; }
+
+//table   { font-size: 100% }    /* hack? without this table cells won't inherit body's font-size */
+//th      { text-align: left; font-weight: 800 }
+//
+//
+//#navigationBar {
+//}
+//
+//#navigationBar a {
+//    text-decoration: none;
+//    font-weight: bold;
+//}
+//
+//#navigationBar a:hover {
+//    text-decoration: underline;
+//}
+//
+//#navigationCurrent {
+//    font-weight: bold;
+//}
+//
+//#homepagelink {
+//    float: right;
+//    font-weight: normal;
+//}
+//

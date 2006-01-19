@@ -1,0 +1,94 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3c.org/TR/html4/loose.dtd">
+<html>
+<head>
+<title>MindRetrieve - Development Notes</title>
+<link rel='stylesheet' type='text/css' href='main.css' />
+<style>
+h2      { margin-top: 3ex; }
+ul      { margin-top: 1ex; }
+
+</style>
+</head>
+
+<body>
+<h2>Status</h2>
+
+<p>The MindRetrieve engine has been running stably for a while. It hardly
+ever crashes (thanks Python). It has been exposed to fairly wide variety
+of web sites and good number of HTTP features. Right now my main job is
+to tweak the HTML processing and the searching criteria and to build new
+features.
+
+
+<h2>Architecture</h2>
+<img src='img/architecture.jpg' />
+<p>MindRetrieve is an application implemented in Python with Lucene as the
+underlying index and search engine.
+
+<h2>Roadmap</h2>
+
+0.3 initial release (2004-12)
+<ul>
+<li>A robust personal web search engine
+<li>Windows installer
+</ul>
+
+0.4 release (2005-01)
+<ul>
+<li>MindSearch is now renamed MindRetrieve. Is is now hosted by <a href='http://mindretrieve.berlios.de/'>berlios</a>!
+<li> Unicode repository, CJK support
+<li> Linux release
+<li> Text highlighting
+<li> Proxy chaining
+</ul>
+
+0.5 release (2005 Spring)
+<ul>
+<li>Library feature
+<li>Review and improve search algorithm and ranking
+<li>Improved CJK searching.
+</ul>
+
+0.6 and future releases
+<ul>
+<li>Remote bookmark synchronization
+<li>Search the search
+<li>exclude and purging
+<li>Search javadoc, HTML help
+<li>etc
+</ul>
+
+
+
+<h2>Credit</h2>
+The MindRetrieve project is made possible by the contribution of a number
+of open source projects. Thank you for your effort and for inspiring
+innovations.
+
+<ul>
+<li>Lucene by the Lucene team
+<li>PyLucene by Andi Vajda, OSAF
+<li>HTMLTemplate by HAS
+<li>'Tiny HTTP Proxy' by SUZUKI Hisao
+<li>py2exe by Thomas Heller and Mark Hammond
+<li>Innosetup by Jordan Russell
+<li>Python by the Python team
+</ul>
+
+
+<h2>Bug list</h2>
+Some notable bugs are listed below:
+<ul>
+<li>Only ASCII character set is properly supported. Should use unicode in next release.
+<li>Javascript filtering need to be improved.
+<li>Due to the implementation of PyLucene and the Python GIL, the entire
+Python process blocks when it is executing Lucene API. This period is
+usually very brief however.
+</ul>
+
+
+
+<hr style="margin-top: 1.5cm" size='1'>
+<p>Last updated: 2004-12-28
+
+<p style="margin-top: 4cm">

@@ -1,0 +1,88 @@
+<style>
+  #content {
+    margin-top: 2ex;
+    margin-left: 1em;
+    margin-bottom: 7ex;
+  }
+
+  #match_list {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+    width: 600px
+  }
+
+  #match_list li {
+    margin-bottom: 2ex;
+  }
+
+  #match_list li div {
+    line-height: 140%
+  }
+
+  #match_list li div.title {
+    font-weight: bold;
+  }
+
+  /* page control styles */
+  #page_id      { margin-top: 4ex; margin-bottom: 3ex }
+  #page_nav     { text-align: center; margin-top: 6ex }
+
+  .archive_link { font-size: 90% }
+  .highlight    { background: #cf9; font-weight: bold }
+
+</style>
+
+
+<div id='content'>
+
+<h3>Web History</h3>
+
+<!-- search form -->
+<form action='/history' method='get'>
+<input type='text' name='query' value="%query" size="50" node="con:query" />
+<input type='submit' name='submit' value='Search' />
+</form>
+
+<div id='indexStatus' node='con:indexStatus'>
+    <p>
+    <span node='-con:numIndexed'>0</span> documents since <span node='-con:dateIndexed'>undetermined date</span>.
+    </p>
+    <p node='con:newDocuments'>
+    <span node='-con:numQueued'>0</span> new documents to be <a href='/history/indexnow'>indexed</a>.
+    </p>
+</div>
+
+
+<div node='con:search_result'>
+
+<div id="page_id">
+    <span node="-con:error_msg">%error_msg%</span>
+    <span node="-con:num_match">
+    Document
+    <span node='-con:item_from'>%1</span> to
+    <span node='-con:item_to'>%100</span> of
+    <span node='-con:item_total'>%100</span> matched.
+    </span>
+</div>
+
+
+<ul id="match_list">
+    <li node="rep:match_item">
+    <div class="title"><a node="con:address" href='#'>%title</a></div>
+    <div node="con:description">%description</div>
+    <a class='archive_link' node="con:archive_link" href='#'>2000-01-01</a> [<span node="-con:host">%host</span>]
+    </li>
+</ul>
+
+
+<!-- show pages -->
+<div id="page_nav" node="con:page_nav">
+    Page - <a node="con:goto_prev" href='%prev_page'><b>&lt;Previous</b></a>
+    <a node="rep:goto_page" href='%page1'>1</a>
+    <a node="con:goto_next" href='%next_page'><b>Next&gt;</b></a>
+</div>
+
+</div>  <!-- end search_result -->
+
+</div>  <!-- end content -->

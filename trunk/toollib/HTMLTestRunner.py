@@ -12,14 +12,21 @@ The simplest way to use this is to invoke its main method. E.g.
     if __name__ == '__main__':
         HTMLTestRunner.main()
 
-You can also instantiates a HTMLTestRunner object for finer
-control.
+It defines the class HTMLTestRunner, which is a counterpart of unittest's
+TextTestRunner. You can also instantiates a HTMLTestRunner object for
+finer control.
 """
-__author__ = "Wai Yip Tung"
-__version__ = "0.5"
 
+# URL: http://tungwaiyip.info/software
+
+__author__ = "Wai Yip Tung"
+__version__ = "0.7"
+
+
+# TOOD: need to make sure all HTML and JavaScript blocks are properly escaped!
 # TODO: allow link to custom CSS
 # TODO: color stderr
+# TODO: simplify javascript using ,ore than 1 class in the class attribute?
 
 import datetime
 import string
@@ -29,7 +36,17 @@ import time
 import unittest
 from xml.sax import saxutils
 
-TestResult = unittest.TestResult
+
+# ------------------------------------------------------------------------
+# The redirectors below is used to capture output during testing. Output
+# sent to sys.stdout and sys.stderr are automatically captured. However
+# in some cases sys.stdout is already cached before HTMLTestRunner is
+# invoked (e.g. calling logging.basicConfig). In order to capture those
+# output, use the redirectors for the cached stream.
+#
+# e.g.
+#   >>> logging.basicConfig(stream=HTMLTestRunner.stdout_redirector)
+#   >>>
 
 class OutputRedirector(object):
     """ Wrapper to redirect stdout or stderr """
@@ -45,17 +62,9 @@ class OutputRedirector(object):
     def flush(self):
         self.fp.flush()
 
-# The redirectors below is used to capture output during testing. Output
-# sent to sys.stdout and sys.stderr are automatically captured. However
-# in some cases sys.stdout is already cached before HTMLTestRunner is
-# invoked (e.g. calling logging.basicConfig). In order to capture those
-# output, use the redirectors for the cached stream.
-#
-# e.g.
-#   >>> logging.basicConfig(stream=HTMLTestRunner.stdout_redirector)
-#   >>>
 stdout_redirector = OutputRedirector(sys.stdout)
 stderr_redirector = OutputRedirector(sys.stderr)
+
 
 
 # ----------------------------------------------------------------------
@@ -108,6 +117,8 @@ h1          { }
 #btm_filler { margin-top: 50%; }
 </style>
 """
+
+# currently not used
 CSS_LINK = '<link rel="stylesheet" href="$url" type="text/css">\n'
 
 
@@ -262,19 +273,31 @@ TEST_OUTPUT_TMPL = string.Template(r"""
 
 # ----------------------------------------------------------------------
 
+TestResult = unittest.TestResult
+
 class _TestResult(TestResult):
     # note: _TestResult is a pure representation of results.
     # It lacks the output and reporting ability compares to unittest._TextTestResult.
 
-    def __init__(self):
+    def __init__(self, verbosity=1):
         TestResult.__init__(self)
-        self.result = []
         self.stdout0 = None
         self.stderr0 = None
+        self.verbosity = verbosity
+
+        # result is a list of result in 4 tuple
+        # (
+        #   result code (0: success; 1: fail; 2: error),
+        #   TestCase object,
+        #   Test output (byte string),
+        #   stack trace,
+        # )
+        self.result = []
 
 
     def startTest(self, test):
         TestResult.startTest(self, test)
+        # just one buffer for both stdout and stderr
         self.outputBuffer = StringIO.StringIO()
         stdout_redirector.fp = self.outputBuffer
         stderr_redirector.fp = self.outputBuffer
@@ -308,31 +331,40 @@ class _TestResult(TestResult):
         TestResult.addSuccess(self, test)
         output = self.complete_output()
         self.result.append((0, test, output, ''))
-        sys.stderr.write('.')
-        sys.stderr.write(str(test))
-        sys.stderr.write('\n')
+        if self.verbosity > 1:
+            sys.stderr.write('ok ')
+            sys.stderr.write(str(test))
+            sys.stderr.write('\n')
+        else:
+            sys.stderr.write('.')
 
     def addError(self, test, err):
         TestResult.addError(self, test, err)
         output = self.complete_output()
         self.result.append((2, test, output, self._exc_info_to_string(err, test)))
-        sys.stderr.write('E')
-        sys.stderr.write(str(test))
-        sys.stderr.write('\n')
+        if self.verbosity > 1:
+            sys.stderr.write('E  ')
+            sys.stderr.write(str(test))
+            sys.stderr.write('\n')
+        else:
+            sys.stderr.write('E')
 
     def addFailure(self, test, err):
         TestResult.addFailure(self, test, err)
         output = self.complete_output()
         self.result.append((1, test, output, self._exc_info_to_string(err, test)))
-        sys.stderr.write('F')
-        sys.stderr.write(str(test))
-        sys.stderr.write('\n')
+        if self.verbosity > 1:
+            sys.stderr.write('F  ')
+            sys.stderr.write(str(test))
+            sys.stderr.write('\n')
+        else:
+            sys.stderr.write('F')
 
 
 class HTMLTestRunner:
     """
     """
-    def __init__(self, stream=sys.stdout, descriptions=1, verbosity=1, description='A Test'):
+    def __init__(self, stream=sys.stdout, descriptions=1, verbosity=1, description='Test'):
         # unittest itself has no good mechanism for user to define a
         # description neither in TestCase nor TestSuite. Allow user to
         # pass in the description as a parameter.
@@ -347,7 +379,7 @@ class HTMLTestRunner:
 
     def run(self, test):
         "Run the given test case or test suite."
-        result = _TestResult()
+        result = _TestResult(self.verbosity)
         test(result)
         self.stopTime = datetime.datetime.now()
         self.generateReport(test, result)
@@ -447,23 +479,23 @@ class HTMLTestRunner:
 # Facilities for running tests from the command line
 ##############################################################################
 
+# Note: Reuse unittest.TestProgram to launch test. In the future we may
+# build our own launcher to support more specific command line
+# parameters like test title, CSS, etc.
 class TestProgram(unittest.TestProgram):
     """
     A variation of the unittest.TestProgram. Please refer to the base
     class for command line parameters.
     """
-    # TODO: unittest.TestProgram.createTests() is useful. On the other
-    #   hand unittest.TestProgram's commandline parameters may not be
-    #   sufficient for HTMLTestRunner. (want title, CSS, etc.)
-
     def runTests(self):
-        """ Pick HTMLTestRunner as the default test runner. """
+        # Pick HTMLTestRunner as the default test runner.
+        # base class's testRunner parameter is not useful because it means
+        # we have to instantiate HTMLTestRunner before we know self.verbosity.
         if self.testRunner is None:
             self.testRunner = HTMLTestRunner(verbosity=self.verbosity)
         unittest.TestProgram.runTests(self)
 
 main = TestProgram
-
 
 ##############################################################################
 # Executing this module from the command line

@@ -447,7 +447,7 @@ class HTMLTestRunner:
 #                        uo = unicode(o.encode('string_escape'))
                         uo = o.decode('latin-1')
                     else:
-                        u0 = 0
+                        uo = o
                     if isinstance(e,str):
 # TODO: some problem with 'string_escape': it escape \n and mess up formating
 #                        ue = unicode(e.encode('string_escape'))

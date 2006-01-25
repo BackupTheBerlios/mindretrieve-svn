@@ -165,7 +165,7 @@ def test_module(modname, prefix):
     logging.basicConfig(stream=HTMLTestRunner.stdout_redirector, level=logging.DEBUG)
     print >>sys.stderr, 'Date:', datetime.datetime.now()
 
-    suite = loadTestCases(_import(modname), prefix)
+    suite = unittest.defaultTestLoader.loadTestsFromName(modname)
 
     HTMLTestRunner.HTMLTestRunner(verbosity=2).run(suite)
 

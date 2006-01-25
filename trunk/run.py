@@ -6,7 +6,8 @@ options:
     --start     launch MindRetrieve
     --stop      stop MindRetrieve
     --san_test  launch sanity test
-    --test      run unittest for module
+    --test      test a module, a test case class or a
+                test method within a test case class
     --run       invoke module
     --help      show this help
 """

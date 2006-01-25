@@ -6,9 +6,27 @@ import StringIO
 import sys
 import time
 import unittest
-import HTMLTestRunner
+from toollib import HTMLTestRunner
 from xml.sax import saxutils
 
+# ----------------------------------------------------------------------
+
+def safe_unicode(obj, *args):
+    """ return the unicode representation of obj """
+    try:
+        return unicode(obj, *args)
+    except UnicodeDecodeError:
+        # obj is byte string
+        ascii_text = str(obj).encode('string_escape')
+        return unicode(ascii_text)
+
+def safe_str(obj):
+    """ return the byte string representation of obj """
+    try:
+        return str(obj)
+    except UnicodeEncodeError:
+        # obj is unicode
+        return unicode(obj).encode('unicode_escape')
 
 # ----------------------------------------------------------------------
 # Sample tests to drive the HTMLTestRunner
@@ -39,8 +57,8 @@ class SampleCase4(unittest.TestCase):
     MESSAGE = u'the message is \u8563'
 
     def test_40(self):
-        print self.MESSAGE
-        print >>sys.stderr, self.MESSAGE
+        print self.MESSAGE.encode('utf-8')
+        print >>sys.stderr, self.MESSAGE.encode('utf-8')
 
     def test_41_fail(self):
         self.fail(self.MESSAGE)
@@ -97,6 +115,8 @@ some problem happened in 12
 
 >test_40<
 >pass<
+the message is
+\nthe message is
 
 >test_41_fail<
 >fail<
@@ -144,9 +164,13 @@ Total
         #runner = unittest.TextTestRunner(buf)
         runner = HTMLTestRunner.HTMLTestRunner(buf)
         runner.run(self.suite)
+
+        # check out the output
         byte_output = buf.getvalue()
         print byte_output
-        self._checkoutput(byte_output.decode('utf-8'))
+        # HTMLTestRunner pump UTF-8 output
+        output = byte_output.decode('utf-8')
+        self._checkoutput(output)
 
 
     def _checkoutput(self,output):
@@ -156,7 +180,7 @@ Total
                 continue
             j = output.find(p,i)
             if j < 0:
-                self.fail('Pattern not found %s' % p)
+                self.fail(safe_str('Pattern not found "%s"' % p))
             i = j + len(p)
 
 
@@ -168,7 +192,10 @@ Total
 
 import unittest
 if __name__ == "__main__":
-    argv=['test_HTMLTestRunner.py', 'Test_HTMLTestRunner']
+    if len(sys.argv) > 1:
+        argv = sys.argv
+    else:
+        argv=['test_HTMLTestRunner.py', 'Test_HTMLTestRunner']
     unittest.main(argv=argv)
     # Testing HTMLTestRunner with HTMLTestRunner would work. But instead
     # we will use standard library's TextTestRunner to reduce the nesting

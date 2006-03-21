@@ -228,9 +228,9 @@ function webitemKeypressEvent(e) {
 */
 
 function openWeblibForm(url) {
-    h = window.innerHeight * 0.6;
+    h = window.innerHeight * 0.8;
     w = window.innerWidth * 0.8;
-    s = 'width=' + w + ',height=' + h;
+    s = 'width=' + w + ',height=' + h + ',scrollbars';
     win = window.open(url, 'weblibForm', s);
     win.focus();
 }

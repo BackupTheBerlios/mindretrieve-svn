@@ -66,9 +66,9 @@ javascript:
             ds=ma['content'].value;
         }
     }
-    h = window.innerHeight * 0.6;
+    h = window.innerHeight * 0.8;
     w = window.innerWidth * 0.8;
-    s = 'width=' + w + ',height=' + h;
+    s = 'width=' + w + ',height=' + h + ',scrollbars';
     win = window.open(
         '%s/weblib/_?url='+encodeURIComponent(d.location)+'&title='+encodeURIComponent(d.title)+'&description='+encodeURIComponent(ds),
         'weblibForm', s);

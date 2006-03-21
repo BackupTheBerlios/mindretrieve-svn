@@ -40,9 +40,6 @@ class TestCGI(unittest.TestCase):
   def test_updateParent_input_escape(self):
     self.checkPathForPattern("/updateParent?url='\"</bad_tag>", ['<html>'], '</bad_tag>')
 
-  def test_control(self):
-    self.checkPathForPattern("/___", ['Date'])
-
 
 if __name__ == '__main__':
     unittest.main()

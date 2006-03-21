@@ -138,12 +138,12 @@ def import_bookmarks(bookmarks):
     return (add_count, update_count)
 
 
-def main(argv):
-    pathname = argv[1]
-    import_bookmark(pathname)
-
-
-if __name__ =='__main__':
-    sys.stdout = codecs.getwriter('utf8')(sys.stdout,'replace')
-    sys.stderr = codecs.getwriter('utf8')(sys.stderr,'replace')
-    main(sys.argv)
+#def main(argv):
+#    pathname = argv[1]
+#    import_bookmarks(pathname)
+#
+#
+#if __name__ =='__main__':
+#    sys.stdout = codecs.getwriter('utf8')(sys.stdout,'replace')
+#    sys.stderr = codecs.getwriter('utf8')(sys.stderr,'replace')
+#    main(sys.argv)

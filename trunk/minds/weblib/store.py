@@ -963,7 +963,8 @@ def getWeblib():
 # Commandline Upgrade
 
 def upgrade(argv):
-    # this will be the current version of store
+    # To upgrade, rename store.py to store_ver.py.
+    # this will be the current version of store (not itself)
     import store
 
     pathname = argv[1]

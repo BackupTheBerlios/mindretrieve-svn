@@ -35,6 +35,7 @@ def parse(fp):
 
 class DeliciousHandler(xml.sax.handler.ContentHandler):
     def __init__(self):
+        xml.sax.handler.ContentHandler.__init__(self)
         self.bookmarks = []
 
     def startElementNS(self, name, qname, attrs):

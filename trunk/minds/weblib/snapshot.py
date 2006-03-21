@@ -498,7 +498,7 @@ class Fetcher(object):
             try:
                 conn.conn.close()
             except:
-                log.exception('Problem closing for %s' % netloc)
+                log.exception('Problem closing for %s' % conn.netloc)
         self.endtime = datetime.datetime.now()
 
     def report(self):

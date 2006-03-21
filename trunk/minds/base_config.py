@@ -218,7 +218,7 @@ class Config(object):
         self.cparser.set(section, option, value)
 
 
-    def update_pref(items):
+    def update_pref(self, items):
         """
         @params items - list of key, value tuples
         """

@@ -39,7 +39,7 @@ class OpenedFile(object):
         self.lastUse = datetime.datetime.now()
 
 
-    def setCloseTimer():
+    def setCloseTimer(self):
         if not self.timer:
             self.timer = threading.Timer(self.TIMEOUT, self.close)
             self.timer.start()

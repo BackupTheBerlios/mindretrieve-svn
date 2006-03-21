@@ -23,7 +23,6 @@ from minds.weblib import util
 from minds.weblib import mhtml
 from minds.weblib import graph
 from minds.weblib import store
-from minds.weblib import util
 
 log = logging.getLogger('wlib.qry')
 
@@ -84,7 +83,7 @@ def query(wlib, querytxt, select_tags):
     terms = _parse_terms(querytxt)
     select_tags_set = sets.Set(select_tags)
     if not terms:
-        return queryMain(wlib)
+        return queryRoot(wlib)
 
     result = [] # list of (score, active_score, Webpage)
 

@@ -1,7 +1,6 @@
-import cgi
 import logging
+import os
 import sys
-from xml.sax import saxutils
 
 from minds.config import cfg
 from minds.cgibin.util import request

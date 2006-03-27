@@ -6,10 +6,12 @@ Sample file URL:
   file:///C|/tmp/1.dat   <-->   c:\\tmp\\1.dat
 """
 
-import os
+import datetime
 import logging
+import os
+import os.path
 import sys
-#import urllib
+import time
 import urlparse
 
 import pythoncom
@@ -56,20 +58,28 @@ def makeWebPage(file_url):
             # file locked?
             log.exception('Unable to read NTFS property: %s' % p)
 
+    try:
+        # TODO BUG: right now use mtime in the created field to match URL's mistake
+        # TODO BUG: should get both ctime and mtime
+        ctime = os.path.getmtime(p)
+    except OSError:
+        ctime = time.time()
+    created = datetime.date.fromtimestamp(ctime).isoformat()
+
     from minds import weblib
     if not props:
         # extract name from last part of path
         head, tail = os.path.split(p)
         if head and not tail:   # i.e. end in trailing \
             head, tail = os.path.split(head)
-        page = weblib.WebPage(name=tail, url=file_url)
+        page = weblib.WebPage(name=tail, url=file_url, created=created)
         return page, ''
     else:
         title, comments, category = props
         name = title or p.name
         description = comments or ''
         tags = category or ''
-        page = weblib.WebPage(name=name, description=description, url=file_url)
+        page = weblib.WebPage(name=name, description=description, url=file_url, created=created)
         return page, tags
 
 
@@ -213,6 +223,7 @@ def main(argv):
         print 'description:', page.description
         print 'url        :', page.url
         print 'tags       :', tags
+        print 'created    :', page.created
         print
         if title or comments or category:
             page.name = title
@@ -225,6 +236,7 @@ def main(argv):
             print 'description:', page.description
             print 'url        :', page.url
             print 'tags       :', tags
+            print 'created    :', page.created
             print
 
 

@@ -573,23 +573,52 @@ class Store(object):
             if oldTag:
                 # update object in-memory
                 if oldTag.name != row.name:
-                    wlib.tags.rename(oldTag, row.name)
+                    tag_name = self._get_unique_tag_name(wlib, row.name)
+                    wlib.tags.rename(oldTag, tag_name)
                 oldTag.timestamp    = timestamp
                 oldTag.version      = version
                 oldTag.description  = row.description
                 oldTag.flags        = row.flags
                 return oldTag
             else:
+                tag_name = self._get_unique_tag_name(wlib, row.name)
                 tag = weblib.Tag(
                     id          = id,
                     timestamp   = timestamp,
                     version     = version,
-                    name        = row.name,
+                    name        = tag_name,
                     description = row.description,
                     flags       = row.flags,
                 )
                 wlib.tags.append(tag)
                 return tag
+
+
+    def _get_unique_tag_name(self, wlib, tag_name):
+        """
+        Before putting tag_name into wlib, ensure it is not already in
+        use. Otherwise wlib.tags would reject duplicated name. This is
+        not expect to happen but it is done to ensure robustness while
+        loading or importing slightly incorrect data (e.g. duplication,
+        character cases issue).
+
+        If tag_name is already in use, append a smallest number to it
+        that makes it unique. E.g.
+
+            tag_name[1]
+
+        Notice an alternative approach is to make both tag name
+        reference to the same tag. This approach is rejected because
+        there may to webpages that references both instances of tags.
+        """
+        if not wlib.tags.getByName(tag_name):
+            return tag_name
+        for i in xrange(1,100000):
+            name_i = '%s[%s]' % (tag_name , i)
+            if not wlib.tags.getByName(name_i):
+                return name_i
+        # must be really pathetic
+        raise RuntimeError('Duplicated tag name: %s' % tag_name)
 
 
     def _interpretWebPageRecord(self, timestamp, op, fields):

@@ -332,7 +332,7 @@ encoding: utf-8\r
         timestamp0 = t.timestamp
         version0 = t.version
 
-        # write
+        # write (i.e. update)
         t1 = t.__copy__()
         t1.name = 'new tag1'
         self.store.writeTag(t1)
@@ -345,6 +345,35 @@ encoding: utf-8\r
         self.assert_(t)
         self.assert_(t.timestamp >= timestamp0)
         self.assert_(t.version > version0)
+
+
+    def test_write_tag_duplicated(self):
+        wlib = self.store.wlib
+        self._make_test_data()
+
+        # before
+        nt, nw = len(wlib.tags), len(wlib.webpages)
+        self.assert_(not wlib.tags.getByName('TESTTAG'))
+        self.assert_(not wlib.tags.getByName('TESTTAG[1]'))
+        self.assert_(not wlib.tags.getByName('TESTTAG[2]'))
+
+        # write 1st TESTTAG
+        tag = weblib.Tag(name='TESTTAG')
+        newTag = self.store.writeTag(tag)
+        self._assert_weblib_size(nt+1, nw)
+        self.assert_(wlib.tags.getByName('TESTTAG'))
+
+        # write 2nd TESTTAG
+        tag = weblib.Tag(name='TESTTAG')
+        newTag = self.store.writeTag(tag)
+        self._assert_weblib_size(nt+2, nw)
+        self.assert_(wlib.tags.getByName('TESTTAG[1]'))
+
+        # write 3rd TESTTAG
+        tag = weblib.Tag(name='TESTTAG')
+        newTag = self.store.writeTag(tag)
+        self._assert_weblib_size(nt+3, nw)
+        self.assert_(wlib.tags.getByName('TESTTAG[2]'))
 
 
     def test_write_webpage_new(self):

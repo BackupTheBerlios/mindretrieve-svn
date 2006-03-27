@@ -1,0 +1,155 @@
+Opera Hotlist version 2.0
+Options: encoding = utf8, version=3
+
+#FOLDER
+	ID=517
+	NAME=1-Bookmarks Toolbar Folder
+
+#URL
+	ID=518
+	NAME=Getting Started
+	URL=http://www.mozilla.com/products/firefox/central.html
+
+#URL
+	ID=519
+	NAME=Latest Headlines
+	URL=http://fxfeeds.mozilla.com/
+
+-
+
+#FOLDER
+	ID=531
+	NAME=2-Quick Searches
+	EXPANDED=YES
+
+#URL
+	ID=532
+	NAME=Google Quicksearch
+	URL=http://www.google.com/search?q=%s
+
+#URL
+	ID=533
+	NAME=Answers.com Dictionary Quicksearch
+	URL=http://www.answers.com/main/ntquery?gwp=13&s=%s
+
+#URL
+	ID=534
+	NAME=Wikipedia Quicksearch
+	URL=http://en.wikipedia.org/wiki/Special:Search?search=%s
+
+#FOLDER
+	ID=535
+	NAME=2.1-misc
+	CREATED=1143403068
+
+#URL
+	ID=536
+	NAME=Google
+	URL=http://www.google.com/search?q=%s&sourceid=opera&num=%i&ie=utf-8&oe=utf-8
+	CREATED=1143401178
+
+#URL
+	ID=537
+	NAME=Answers.com
+	URL=http://opera.answers.com/%s
+	CREATED=1143401178
+
+#URL
+	ID=538
+	NAME=Amazon.com
+	URL=http://www.amazon.com/exec/obidos/external-search?tag=opera-20&index=blended&keyword=%s
+	CREATED=1143401178
+
+#URL
+	ID=539
+	NAME=Price Comparison
+	URL=http://www.dealtime.com/GS2/GS2StatReDirect/?bParent=on&nFormID=0&nParentFormID=0&linkin_id=3005961&uid=1738108048&keyword=%s&submit=Search
+	CREATED=1143401178
+
+#URL
+	ID=540
+	NAME=Ebay.com
+	URL=http://www.qksrv.net/click-1458483-5463217?loc=http%3A//search.ebay.com/search/search.dll%3Fcgiurl%3Dhttp%253A%252F%252Fcgi.ebay.com%252Fws%252F%26krd%3D1%26from%3DR8%26MfcISAPICommand%3DGetResult%26ht%3D1%26SortProperty%3DMetaEndSort%26query%3D%s
+	CREATED=1143401178
+
+#URL
+	ID=541
+	NAME=Google groups
+	URL=http://groups.google.com/groups?q=%s&sourceid=opera&num=%i&ie=utf-8&oe=utf-8
+	CREATED=1143401178
+
+-
+
+-
+
+#FOLDER
+	ID=546
+	NAME=3-Firefox and Mozilla Links
+
+#URL
+	ID=547
+	NAME=Firefox Start Page
+	URL=http://en-us.start.mozilla.com/firefox
+
+#URL
+	ID=548
+	NAME=MozillaZine
+	URL=http://www.mozillazine.org/
+
+#URL
+	ID=549
+	NAME=Get Involved - Help spread Firefox!
+	URL=http://www.spreadfirefox.com/
+
+-
+
+#FOLDER
+	ID=552
+	NAME=4-日本語
+	CREATED=1143433576
+
+#URL
+	ID=553
+	NAME=メインページ - Wikipedia
+	URL=http://ja.wikipedia.org/wiki/%E3%83%A1%E3%82%A4%E3%83%B3%E3%83%9A%E3%83%BC%E3%82%B8
+	CREATED=1143401390
+	VISITED=1143433561
+	DESCRIPTION=ウィキペディアへようこそ。ウィキペディアは自由にご利用頂ける百科事典です。現在、ウィキペディア日本語版には約195,383本の記事があります。基本方針に賛同して頂けるなら、どなたでも記事を投稿したり編集したりすることが出来ます。記事の書き方を読んでから、実際にサンドボックスで練習してみましょう。
+	ICONFILE=Bookmark Visited
+
+-
+
+#URL
+	ID=555
+	NAME=Opera Web
+	URL=http://search.opera.com/?search=%s&global=no
+	CREATED=1143401178
+
+#URL
+	ID=557
+	NAME=Download.com
+	URL=http://download.com.com/3120-20-0.html?qt=%s&tg=dl-2001&part=opera&subj=windows&tag=search
+	CREATED=1143401178
+
+#URL
+	ID=559
+	NAME=Google News
+	URL=http://news.google.com/news?q=%s&sourceid=opera&num=%i&ie=utf-8&oe=utf-8
+	CREATED=1143401178
+
+#URL
+	ID=561
+	NAME=Opera support
+	URL=http://www.opera.com/support/supsearch/supsearch.cgi?options=complete&maxhits=0&platform=&name=%s
+	CREATED=1143401178
+	DESCRIPTION=Type "o <search query>" in the Location Bar to perform a search on www.opera.com.
+	ICONFILE=Bookmark Unvisited
+	ACTIVE=YES
+
+#FOLDER
+	ID=11
+	NAME=Trash
+	TRASH FOLDER=YES
+
+-
+

@@ -573,7 +573,12 @@ class Store(object):
             if oldTag:
                 # update object in-memory
                 if oldTag.name != row.name:
-                    tag_name = self._get_unique_tag_name(wlib, row.name)
+                    if oldTag.name.lower() == row.name.lower():
+                        # this is a change of capitalization
+                        tag_name = row.name
+                    else:
+                        # change to a different name, make sure its unique
+                        tag_name = self._get_unique_tag_name(wlib, row.name)
                     wlib.tags.rename(oldTag, tag_name)
                 oldTag.timestamp    = timestamp
                 oldTag.version      = version

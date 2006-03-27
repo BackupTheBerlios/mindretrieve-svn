@@ -18,7 +18,9 @@ log = logging.getLogger('wlib.imprt')
 
 
 def _ctime_str_2_iso8601(s):
-    if not s: return ''
+    if not s: return ''     # maybe None
+    s = s.split('.',1)[0]   # drop fractional part
+    if not s: return ''     # check again
     try:
         dt = datetime.date.fromtimestamp(int(s))
     except ValueError:

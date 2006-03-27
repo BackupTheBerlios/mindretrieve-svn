@@ -103,32 +103,37 @@ def parseItem(tokens):
 
     Terminate by <dt>, </dt>, <dl>, </dl> or EOF.
     Push back if terminated by tags.
+
+    @return
+        Bookmark if it has <a>;
+        Folder otherwise
     """
-    title = None
-    url = None
-    description = []
-    dd_description = None
+    title = ''
+    url = ''
+    text = []
+    dd_description = ''
+    has_a = False
     for kind, data, attrs in tokens:
         if kind == DATA:
-            description.append(data)
+            text.append(data)
         elif kind == TAG and data == 'a':
             title, url, created, modified = parseLink(tokens, attrs)
+            has_a = True
         elif kind == TAG and data == 'dd':
             dd_description = parseDescription(tokens)
         elif data in ('dl', 'dt'):
             # malformed!
             tokens.push_back((kind,data,attrs))
             break
-
-    description = _join_text(description)
-    description = dd_description or description
-
+        else:
+            pass    # ignore others
+    dt_text = _join_text(text)
 
     # it is either a Folder or Bookmark
-    if title != None:
-        return import_util.Bookmark(title, url, description, created, modified)
+    if has_a:
+        return import_util.Bookmark(title, url, dd_description, created, modified)
     else:
-        return import_util.Folder(description)
+        return import_util.Folder(dt_text)
 
 
 def parseLink(tokens, attrs):

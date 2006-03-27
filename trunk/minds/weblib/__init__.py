@@ -595,17 +595,24 @@ def parseTags(wlib, tags_description):
     @return: list of tags and list of unknown tag names.
     """
     tags = []
+    tags_set = set()
     unknown = []
+    unknown_set = set()
     for name in tags_description.split(','):
         name = name.strip()
         if not name:
             continue
         tag = parseTag(wlib, name)
         if tag:
-            tags.append(tag)
+            if tag not in tags_set:
+                tags.append(tag)
+                tags_set.add(tag)
         else:
-            unknown.append(name)
-    tags.sort()
+            lname = name.lower()
+            if lname not in unknown_set:
+                unknown.append(name)
+                unknown_set.add(lname)
+
     return tags, unknown
 
 

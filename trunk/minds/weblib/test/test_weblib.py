@@ -273,5 +273,34 @@ class TestWeblib(unittest.TestCase):
             )
 
 
+    def test_makeTags_duplicated(self):
+        # before
+        wlib = self.store.wlib
+        self.assertEqual(len(wlib.tags), 6)
+
+        # makeTags() duplicated (both old and new)
+        tags = weblib.makeTags(self.store, 'A,a,A,English,English,b,B,b')
+
+        self.assertEqual(len(tags), 3)          # 5 duplicates dropped
+
+        self.assertEqual(len(wlib.tags), 8)     # only 2 new tags (a,b)
+        self.assert_(wlib.tags.getByName('a'))
+        self.assert_(wlib.tags.getByName('b'))
+
+
+    def test_makeTags_order(self):
+        wlib = self.store.wlib
+
+        # makeTags() duplicated (both old and new)
+        tags = weblib.makeTags(self.store, 'A,a,A,English,English,b,B,b')
+
+        # should come out in same order as user entered
+        self.assertEqual(tags,[
+            wlib.tags.getByName('a'),
+            wlib.tags.getByName('English'),
+            wlib.tags.getByName('b'),
+            ])
+
+
 if __name__ == '__main__':
     unittest.main()

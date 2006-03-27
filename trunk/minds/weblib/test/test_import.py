@@ -58,6 +58,42 @@ class TestImport(unittest.TestCase):
         self.assert_(verified_1 and verified_2)
 
 
+    def _verify_weblib_ie(self):
+        # IE's import/export is total mess up. Nevetheless got to test its version of export.
+        wlib = store.getWeblib()
+
+        # check out tags
+        self.assertEqual(len(wlib.tags),5)
+        self.assertTrue(wlib.tags.getByName(u'2.1-misc'))
+        self.assertTrue(wlib.tags.getByName(u'4-???'))          # screwed
+
+        # check out webpages
+        self.assertEqual(len(wlib.webpages),14)     # not 19
+
+        verified_1 = False
+        verified_2 = False
+        for item in wlib.webpages:
+            if item.name == 'Opera Web':
+              if not item.tags: # <-- HACK: there is 2 version of 'Opera Web', select the version with no tag
+                # IE have no description
+                #self.assertEqual(item.description, u'Type "s <search query>" in the Location Bar to perform a search on search.opera.com.')
+                import sys;print >>sys.stderr, item.tags
+                self.assert_(not item.tags)
+                self.assertEqual(item.created, '2006-03-27')    # HACK: IE use date of import
+                self.assertEqual(item.modified, '2006-03-27')   # HACK: IE fill in modified date
+                verified_1 = True
+            elif item.name == u'?????? - Wikipedia':            # screwed
+                self.assertEqual( 'http://ja.wikipedia.org/wiki/%E3%83%A1%E3%82%A4%E3%83%B3%E3%83%9A%E3%83%BC%E3%82%B8', item.url)
+                # IE have no description
+                #if not isDelicious: # excuse delicious which cannot export Japanese description? [2006-03-26]
+                #    self.assert_( '195,383' in item.description)
+                self.assertEqual( item.tags, [wlib.tags.getByName(u'4-???')])   # screwed
+                self.assertEqual(item.created, '2006-03-27')    # HACK: IE use date of import
+                self.assertEqual(item.modified, '2006-03-27')   # HACK: IE use date of import
+                verified_2 = True
+        self.assert_(verified_1 and verified_2)
+
+
     def test_netscape(self):
         fp = file(testpath/'test_import/moz_bookmarks.html','rb')
         import_netscape.import_bookmark(fp)
@@ -67,8 +103,12 @@ class TestImport(unittest.TestCase):
     def test_netscape_via_safari_needed(self):
         self.fail()
 
-    def test_netscape_via_IE_needed(self):
-        self.fail()
+
+    def test_netscape_via_IE(self):
+        fp = file(testpath/'test_import/ie_bookmark.htm','rb')
+        import_netscape.import_bookmark(fp)
+        self._verify_weblib_ie()
+
 
     def test_opera(self):
         fp = file(testpath/'test_import/opera6.adr','rb')

@@ -9,3 +9,5 @@ All bookmark file have the same content
 
 3. Import mozilla version into deli.cio.us. (2006-03-26 via informal script id.py)
    Then fetch http://del.icio.us/api/posts/all into delicious.xml.
+
+4. Import mozilla version into IE. Import seems a mess. Japanese characters a wrong.

@@ -36,14 +36,14 @@ class TestTag(unittest.TestCase):
 
     def test_cleanIllegalChar(self):
         illegal = ',@#+:<>'
-        self.assertEqual(weblib.Tag.cleanIllegalChar(illegal)  , '???????')
-        self.assertEqual(weblib.Tag.cleanIllegalChar('filler,'), 'filler?')
-        self.assertEqual(weblib.Tag.cleanIllegalChar('filler@'), 'filler?')
-        self.assertEqual(weblib.Tag.cleanIllegalChar('filler#'), 'filler?')
-        self.assertEqual(weblib.Tag.cleanIllegalChar('filler+'), 'filler?')
-        self.assertEqual(weblib.Tag.cleanIllegalChar('filler:'), 'filler?')
-        self.assertEqual(weblib.Tag.cleanIllegalChar('filler<'), 'filler?')
-        self.assertEqual(weblib.Tag.cleanIllegalChar('filler>'), 'filler?')
+        self.assertEqual(weblib.Tag.cleanIllegalChar(illegal)  , '.......')
+        self.assertEqual(weblib.Tag.cleanIllegalChar('filler,'), 'filler.')
+        self.assertEqual(weblib.Tag.cleanIllegalChar('filler@'), 'filler.')
+        self.assertEqual(weblib.Tag.cleanIllegalChar('filler#'), 'filler.')
+        self.assertEqual(weblib.Tag.cleanIllegalChar('filler+'), 'filler.')
+        self.assertEqual(weblib.Tag.cleanIllegalChar('filler:'), 'filler.')
+        self.assertEqual(weblib.Tag.cleanIllegalChar('filler<'), 'filler.')
+        self.assertEqual(weblib.Tag.cleanIllegalChar('filler>'), 'filler.')
 
         xascii = r""" !"$%&'()*-./0123456789;=?ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~""" + '\x7f'
         self.assertEqual(weblib.Tag.cleanIllegalChar(xascii), xascii)

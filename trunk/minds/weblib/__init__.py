@@ -127,7 +127,7 @@ class Tag(object):
             if c in dont_clean:
                 continue
             if c in s:
-                s = s.replace(c,'?')
+                s = s.replace(c,'.')
         return s
 
     def __init__(self,

@@ -42,9 +42,9 @@ class TestWeblibTagCategorize(test_weblib.TestCGIBase):
 
     # no error. But illegal characters got converted to '?'
     wlib = self.wlib
-    self.assertEqual(wlib.category.getDescription(), '?bad1\r\n?bad2\r\ngood')
-    self.assert_(wlib.tags.getByName('?bad1'))
-    self.assert_(wlib.tags.getByName('?bad2'))
+    self.assertEqual(wlib.category.getDescription(), '.bad1\r\n.bad2\r\ngood')
+    self.assert_(wlib.tags.getByName('.bad1'))
+    self.assert_(wlib.tags.getByName('.bad2'))
     self.assert_(wlib.tags.getByName('good'))
 
 

@@ -157,6 +157,7 @@ else:
             ('lib/htdocs/img',          glob.glob('lib/htdocs/img/*.*')),
             ('lib/testdocs',            glob.glob('lib/testdocs/*.*')),
             ('lib/testdocs/js',         glob.glob('lib/testdocs/js/*.*')),
+            ('lib/testdocs/test_import',glob.glob('lib/testdocs/test_import/*.*')),
             ('lib/testdocs/test_magic', glob.glob('lib/testdocs/test_magic/*.*')),
             ('lib/testdocs/test_weblib',glob.glob('lib/testdocs/test_weblib/*.*')),
         ],

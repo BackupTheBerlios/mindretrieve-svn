@@ -65,8 +65,8 @@ PREFERENCE_FILE = 'preference.ini'
 # Note: the default path section points to testdata and testlogs for unit testing.
 SYSTEM_DEFAULT_CONFIG="""
 [version]
-number=0.8.1
-created=2006-03-20
+number=0.8.2
+created=2006-03-27
 copyright=2005-2006 BSD license
 
 [path]

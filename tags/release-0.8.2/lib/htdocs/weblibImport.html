@@ -1,0 +1,199 @@
+<style>
+
+#formBox {
+    margin-left: 4em;
+    margin-right: 4em;
+    margin-top: 4ex;
+    margin-bottom: 6ex;
+}
+
+#formContent {
+    border: thick solid #963;
+    height: 40ex;
+    padding-left: 2em;
+    padding-right: 2em;
+    padding-top: 0.5ex;
+    padding-bottom: 3ex;
+}
+
+.tabHeader {
+    margin-bottom: 0;
+    padding-bottom: 0.5ex;
+}
+
+.tabHeader a {
+    text-decoration: none;
+    color: #fff;
+}
+
+.tabHeader a:hover{
+    text-decoration: underline;
+}
+
+.tabHeader .activeTab {
+    padding: 1ex 1em 0.5ex 1em;
+    background-color: #963;
+    color: #fff;
+    font-weight: bold;
+}
+
+.tabHeader .inactiveTab {
+    padding: 1ex 1em 0.5ex 1em;
+    background-color: #630;
+    color: #fff;
+    font-weight: bold;
+}
+
+.formAddition {
+    margin-top: 4ex;
+    font-size: 90%;
+}
+
+.info {
+    color: #777;
+}
+
+.bottomLink {
+    margin-top:6ex;
+}
+</style>
+
+
+<script>
+function showTab(ua) {
+    document.getElementById('deliPane')  .style.display = ua == 'deli'   ? 'block' : 'None';
+    document.getElementById('iePane')    .style.display = ua == 'ie'     ? 'block' : 'None';
+    document.getElementById('mozPane')   .style.display = ua == 'moz'    ? 'block' : 'None';
+    document.getElementById('operaPane') .style.display = ua == 'opera'  ? 'block' : 'None';
+    document.getElementById('safariPane').style.display = ua == 'safari' ? 'block' : 'None';
+    document.getElementById('deliTab')   .className = ua == 'deli'   ? 'activeTab' : 'inactiveTab';
+    document.getElementById('ieTab')     .className = ua == 'ie'     ? 'activeTab' : 'inactiveTab';
+    document.getElementById('mozTab')    .className = ua == 'moz'    ? 'activeTab' : 'inactiveTab';
+    document.getElementById('operaTab')  .className = ua == 'opera'  ? 'activeTab' : 'inactiveTab';
+    document.getElementById('safariTab') .className = ua == 'safari' ? 'activeTab' : 'inactiveTab';
+}
+
+var ua = '';
+
+function initUA() {
+    var user_agent = navigator.userAgent.toLowerCase();
+    if (window.opera) {
+      ua = 'opera';
+    } else if (user_agent.indexOf('safari') != -1) {
+      ua = 'safari';
+    } else if (user_agent.indexOf('msie') != -1) {
+      ua = 'ie';
+    } else {
+      ua = 'moz';
+    }
+    showTab(ua);
+}
+
+
+function onWindowLoaded(e) {
+    initUA();
+}
+
+  addEvent(window, 'load', onWindowLoaded, false);
+
+  function addEvent(elm, evType, fn, useCapture)
+  // cross-browser event handling for IE5+, NS6+ and Mozilla/Gecko
+  // By Scott Andrew
+  {
+    if (elm.addEventListener) {
+      elm.addEventListener(evType, fn, useCapture);
+      return true;
+    } else if (elm.attachEvent) {
+      var r = elm.attachEvent('on' + evType, fn);
+      return r;
+    } else {
+      elm['on' + evType] = fn;
+    }
+  }
+
+</script>
+
+
+<div id='formBox'>
+
+<!-- TAB HEADER -->
+<div class='tabHeader'>
+&nbsp;
+<span id='deliTab'   class='inactiveTab'><a href='javascript:showTab("deli"  );'>Del.icio.us</a></span>
+<span id='ieTab'     class='activeTab'  ><a href='javascript:showTab("ie"    );'>IE</a></span>
+<span id='mozTab'    class='inactiveTab'><a href='javascript:showTab("moz"   );'>Mozilla</a></span>
+<span id='operaTab'  class='inactiveTab'><a href='javascript:showTab("opera" );'>Opera</a></span>
+<span id='safariTab' class='inactiveTab'><a href='javascript:showTab("safari");'>Safari</a></span>
+</div>
+
+<div id='formContent'>
+
+
+
+<div id='deliPane'>
+<h3>Import from Del.icio.us</h3>
+<form method='POST' action='/weblib/import/deli'>
+<table cellpadding='4' cellspacing='0'>
+    <tr><td>URL     </td><td><input node='con:view_url' type='text' name='view_url' size='50' disabled='1' value='%url'/></td></tr>
+    <tr><td>Username</td><td><input type='text' name='username' size='50' /></td></tr>
+    <tr><td>password</td><td><input type='password' name='password' size='50' /></td></tr>
+    <tr><td>&nbsp;  </td><td><input type='submit' name='submit' /></td></tr>
+</table>
+
+<!--
+<div class='formAddition'>
+<span class='info'>
+Duplicated items
+<input type='radio' name='dup' value='keep' checked='1' />Keep existing
+<input type='radio' name='dup' value='import' />Use imported
+</span>
+</div>
+-->
+</form>
+</div>
+
+
+
+<div id='iePane'>
+<h3>Internet Explorer</h3>
+Please export favorites into a file.<br />
+Then import as a <a href='javascript:showTab("moz");'>Mozilla</a> bookmark.
+</div>
+
+<div id='mozPane'>
+<h3>Import Netscape/Mozilla/Firefox Bookmarks</h3>
+<form method='POST' action='/weblib/import/moz' enctype='multipart/form-data'>
+<table cellpadding='4' cellspacing='0'>
+    <tr><td>Bookmark file</td><td><input type='file' name='file' size='50'/>
+    <tr><td>&nbsp;</td><td><span class='info'>e.g. c:\Documents and Settings\username\Application Data\Mozilla\Firefox\Profiles\__\bookmarks.html</span></td></tr>
+    <tr><td>&nbsp;  </td><td><input type='submit' name='submit' /></td></tr>
+</table>
+</form>
+</div>
+
+
+
+<div id='operaPane'>
+<h3>Import Opera Bookmarks</h3>
+<form method='POST' action='/weblib/import/opera' enctype='multipart/form-data'>
+<table cellpadding='4' cellspacing='0'>
+    <tr><td>Bookmark file</td><td><input type='file' name='file' size='50'/>
+    <tr><td>&nbsp;</td><td><span class='info'>e.g. c:\Documents and Settings\username\Application Data\Opera\Opera\profile\opera6.adr</span></td></tr>
+    <tr><td>&nbsp;  </td><td><input type='submit' name='submit' /></td></tr>
+</table>
+</form>
+</div>
+
+
+
+<div id='safariPane'>
+<h3>Safari</h3>
+Please export bookmark into an HTML file.<br />
+Then import as a <a href='javascript:showTab("moz");'>Mozilla</a> bookmark.
+</div>
+
+
+<p class='bottomLink'>Return to <a href="/weblib">Library</a>
+</div>  <!-- formContent -->
+
+</div>  <!-- formBox -->

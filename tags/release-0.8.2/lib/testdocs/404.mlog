@@ -1,0 +1,38 @@
+358
+                 
+GET http://lists.netsys.com/favicon.ico HTTP/1.1
+Host: lists.netsys.com
+User-Agent: Mozilla/5.0 (Windows; U; Windows NT 5.0; rv:1.7.3) Gecko/20040913 Firefox/0.10.1
+Accept: image/png,*/*;q=0.5
+Accept-Language: en-us,en;q=0.5
+Accept-Encoding: gzip,deflate
+Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.7
+Keep-Alive: 300
+Proxy-Connection: keep-alive
+
+
+
+282
+                 
+HTTP/1.1 404 Not Found
+Date: Tue, 30 Nov 2004 03:09:16 GMT
+Server: Apache/1.3.28 (Unix) mod_ssl/2.8.15 OpenSSL/0.9.7b
+Last-Modified: Tue, 09 Jul 2002 16:45:33 GMT
+ETag: "c326-79-3d2b132d"
+Accept-Ranges: bytes
+Content-Length: 121
+Connection: close
+Content-Type: text/html
+
+
+
+121
+                 
+<HEAD>
+<META HTTP-EQUIV="refresh" CONTENT="0; url=/mailman/listinfo">
+</HEAD> 
+<body  BGCOLOR="#FFFFFF">
+</body>
+</html>
+
+

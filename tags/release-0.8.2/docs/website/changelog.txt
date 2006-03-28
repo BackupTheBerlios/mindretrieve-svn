@@ -1,0 +1,28 @@
+0.4.2 release (2005-02)
+
+This is a maintenance release with minor enhancements
+
+* Date order is used as a main factor in ranking results.
+* Faster performance for search.
+* Fixed missing DLL during installation on some platform.
+* Fixed some parsing bugs.
+
+
+
+0.4 release (2005-01)
+
+MindSearch is now renamed MindRetrieve. Is is now hosted by Berlios at
+http://mindretrieve.berlios.de/.
+
+* Unicode repository, CJK support
+* Linux release
+* Text highlighting
+* Proxy chaining
+
+
+
+0.3 initial release (2004-12)
+
+* A robust personal web search engine
+* Windows installer
+

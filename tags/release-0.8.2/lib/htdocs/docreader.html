@@ -1,0 +1,58 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3c.org/TR/html4/loose.dtd">
+<html>
+<head>
+<title node='con:title'>%title</title>
+<link rel="stylesheet" href="main.css" type="text/css">
+
+<style>
+/*  #list         { width: 500px } */
+  #list tr      { line-height: 2.5ex; }
+  #list th      { background-color: #777; padding: 0.5ex }
+  #list td      { margin: 0; padding: 0.5ex 1ex 0.5ex 1ex }
+  #list a       { text-decoration: None }
+  #list a:hover { text-decoration: underline; background-color: #ff9 }
+  .doc          { font-weight: bold }
+  .bookmark     { font-sizex:90%; padding-left: 0.5em; padding-right: 0.5em; }
+  .altrow       { background-color: #ddd }
+</style>
+</head>
+
+<body>
+
+<h1>MindRetrieve</h1>
+
+
+<!-- form -->
+<form action='search' method='get'>
+<input type='text' name='query' value="%query" size="50" node="con:query" />
+<input type='submit' name='submit' value='Search' />
+</form>
+
+
+<table id="list" cellspacing='0'>
+
+<tr>
+<th>Documentation</th>
+<th>Bookmark</th>
+</tr>
+
+<tr class='' node='rep:items'>
+<td><a class='doc' node='con:doc_field' href=''>%documentation1</a></td>
+<td>
+  <a class='bookmark' node='rep:bookmark_field' href=''>%bookmark1</a>
+  <a class='bookmark' node='rep:bookmark_field' href=''>%bookmark2</a>
+</td>
+</tr>
+
+<tr class='altrow' node='rep:items'>
+<td><a class='doc' node='con:doc_field' href=''>%documentation2</a></td>
+<td>
+  <a class='bookmark' node='rep:bookmark_field' href=''>%bookmark1</a>
+  <a class='bookmark' node='rep:bookmark_field' href=''>%bookmark2</a>
+</td>
+</tr>
+
+</table>
+
+</body>
+</html>

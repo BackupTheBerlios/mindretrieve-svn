@@ -61,12 +61,19 @@ class BaseTest(unittest.TestCase):
         for t in tokens:
             if self.DEBUG: print t
             if k < len(expect) and t == expect[k]:
+                if self.DEBUG:
+                    print '  match %s %s' % (k, expect[k])
                 k += 1
         self.assertEqual(expect[k:k+1], [])
 
 
 
 class TestParser(BaseTest):
+
+    def test_0(self):
+        tlist = list(hpp.generate_tokens(StringIO.StringIO("&#XE5;")))
+        self.assertEqual(tlist, [(DATA, u'\u00e5')])
+
 
     def test_parse(self):
 

@@ -80,7 +80,7 @@ class TestLuceneLogic(unittest.TestCase):
     def test_version(self):
         # check for the version document added to new index
         reader = lucene_logic.Reader()
-        version = testcfg.get('version.number', '?')
+        version = testcfg.get('_system.version', '?')
         self.assertEqual(1, reader.numDocs())
         self.assertEqual(version, reader.getVersion())
 

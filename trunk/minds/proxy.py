@@ -153,7 +153,7 @@ def main():
     if 'win32' in sys.platform: platform += str(sys.getwindowsversion())
 
     log.info('-'*70)
-    log.info('%s %s', cfg.application_name, cfg.get('version.number'))
+    log.info('%s %s', cfg.application_name)
     log.info('Python %s', sys.version)
     log.info('  Platform %s', platform)
     log.info('  pwd: %s, defaultencoding: %s', os.getcwd(), sys.getdefaultencoding())

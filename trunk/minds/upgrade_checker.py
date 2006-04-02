@@ -30,17 +30,17 @@ class State(object):
     def __init__(self):
         self.fetch_date = today_func()                  # date of previous fetch
         self.next_fetch = today_func()                  # date of next scheduled fetch
-        self.fetch_frequency = DEFAULT_FETCH_FREQUENCY  # no. of days
+        self.fetch_frequency = DEFAULT_FETCH_FREQUENCY  # no. of days; 0 means no notification
         self.last_entry_date = ''                       # date str from the entry in the feed (UTC)
         self.current_version = ''
         self.upgrade_info = None                        # UpgradeInfo or None
 
     def load(self):
         # note: this is designed to work even if all upgrade.* fields are not specified
-        self.current_version = cfg.get('_system.version')
-        self.fetch_date      = cfg.get('upgrade.fetch_date','')
-        self.fetch_frequency = cfg.getint('upgrade.fetch_frequency',10)
-        self.last_entry_date = cfg.get('upgrade.last_entry_date','')
+        self.current_version = cfg.get   ('_system.version')
+        self.fetch_date      = cfg.get   ('upgrade_notification.fetch_date','')
+        self.fetch_frequency = cfg.getint('upgrade_notification.fetch_frequency',10)
+        self.last_entry_date = cfg.get   ('upgrade_notification.last_entry_date','')
         try:
             self.fetch_date = dateutil.parse_iso8601_date(self.fetch_date).date()
         except ValueError:
@@ -50,8 +50,10 @@ class State(object):
             self.next_fetch = self.fetch_date + datetime.timedelta(self.fetch_frequency)
 
     def save(self):
-        # TODO
-        pass
+        cfg.set('upgrade_notification.fetch_date',       str(self.fetch_date))
+        cfg.set('upgrade_notification.fetch_frequency',  str(self.fetch_frequency))
+        cfg.set('upgrade_notification.last_entry_date',  self.last_entry_date or '')
+        cfg.save()
 
     def __repr__(self):
         return '(%s) fetch %s(%s) last fetch %s' % (
@@ -147,9 +149,14 @@ def _checkUpgrade(state, today, feed_url):
 
 def pollUpgradeInfo(state=None, today_func=today_func, feed_url=NOTIFICATION_URL):
     """
-    TODO
+    Poll if there are any upgrade info to alert user.
+
+    Call with default parameter for normal use. The parameters are for unittesting.
     """
     state = state or _getSystemState()
+
+    if not state.fetch_frequency:
+        return None
 
     today = today_func()
     if today >= state.next_fetch:

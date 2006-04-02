@@ -170,6 +170,12 @@ class TestUpgrade(unittest.TestCase):
         self.assert_(st.fetch_date > old_date)
         self.assertEqual(r.version, '0.8.0')
 
+        st.fetch_frequency = 0
+        old_date = st.fetch_date
+        r = uc.pollUpgradeInfo(st, _date_func(2005,1,31), TEST_FEED1)   # upgrade is off
+        self.assertEqual(st.fetch_date, old_date)
+        self.assert_(not r)
+
 
     def test_set_config(self):
         st = self.state

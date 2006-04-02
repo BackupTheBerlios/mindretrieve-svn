@@ -102,7 +102,7 @@ class Config(object):
 
     def __init__(self):
         """ initialize with default config file """
-        self.cparser = ConfigParser.ConfigParser()
+        self.cparser = ConfigParser.RawConfigParser()
         self.cparser.readfp( StringIO.StringIO(SYSTEM_DEFAULT_CONFIG), 'System Default')
         self.application_name = '%s %s' % (APPLICATION_NAME, VERSION)
         self.config_path = ''

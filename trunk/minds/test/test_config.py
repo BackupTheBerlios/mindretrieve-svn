@@ -98,6 +98,10 @@ class TestConfig(unittest.TestCase):
 #    outfile.remove()
 
 
+ def test_transactional_update(self):
+     self.fail()
+
+
  def test_str(self):
     s = str(self.cfg)
 

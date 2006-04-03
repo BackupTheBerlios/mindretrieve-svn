@@ -10,11 +10,11 @@ from minds import domain_filter
 class TestDomainFilter(unittest.TestCase):
 
     def setUp(self):
-        self.domain0 = testcfg.set('filter.domain.0', '')
-        self.domain1 = testcfg.set('filter.domain.1', '')
-        self.domain2 = testcfg.set('filter.domain.2', '')
-        self.domain3 = testcfg.set('filter.domain.3', '')
-        self.domain4 = testcfg.set('filter.domain.4', '')
+        self.domain0 = testcfg.get('filter.domain.0', '')
+        self.domain1 = testcfg.get('filter.domain.1', '')
+        self.domain2 = testcfg.get('filter.domain.2', '')
+        self.domain3 = testcfg.get('filter.domain.3', '')
+        self.domain4 = testcfg.get('filter.domain.4', '')
         testcfg.set('filter.domain.0', '.xyz.com')           # domain start by '.'
         testcfg.set('filter.domain.1', ' abc.com , , def ')  # whitespaces, nothing between ,,
         testcfg.set('filter.domain.2', ',')                  # lone ,

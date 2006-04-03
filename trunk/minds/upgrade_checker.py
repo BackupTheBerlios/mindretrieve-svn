@@ -35,19 +35,27 @@ class State(object):
         self.current_version = ''
         self.upgrade_info = None                        # UpgradeInfo or None
 
+    def _set_fetch_date(self, date):
+        """ set fetch_date and update next_fetch """
+        self.fetch_date = date
+        if self.fetch_frequency:
+            self.next_fetch = date + datetime.timedelta(self.fetch_frequency)
+        else:
+            self.next_fetch = datetime.date(9999,12,31)
+
     def load(self):
         # note: this is designed to work even if all upgrade.* fields are not specified
         self.current_version = cfg.get   ('_system.version')
-        self.fetch_date      = cfg.get   ('upgrade_notification.fetch_date','')
+        _fetch_date_str      = cfg.get   ('upgrade_notification.fetch_date','')
         self.fetch_frequency = cfg.getint('upgrade_notification.fetch_frequency',10)
         self.last_entry_date = cfg.get   ('upgrade_notification.last_entry_date','')
         try:
-            self.fetch_date = dateutil.parse_iso8601_date(self.fetch_date).date()
+            fdate = dateutil.parse_iso8601_date(_fetch_date_str).date()
         except ValueError:
             self.fetch_date = today_func()
             self.next_fetch = today_func()
         else:
-            self.next_fetch = self.fetch_date + datetime.timedelta(self.fetch_frequency)
+            self._set_fetch_date(fdate)
 
     def save(self):
         cfg.set('upgrade_notification.fetch_date',       str(self.fetch_date))
@@ -114,29 +122,28 @@ def _fetch(feed_url):
     return status, updated, UpgradeInfo(version, title, summary, url)
 
 
-def _checkUpgrade(state, today, feed_url):
+def _checkUpgrade(state, today, feed_url, force_check=False):
     """
     1. Fetch from feed.
     2. Update fetch_date, next_fetch.
     3. Set upgrade_info and if a new version is available.
     """
     status, new_date, new_update_info = _fetch(feed_url)
-    state.fetch_date = today
-    if new_update_info:
-        state.next_fetch = state.fetch_date + datetime.timedelta(state.fetch_frequency)
-    else:
-        # the fetch is failed, try again next day
+    state._set_fetch_date(today)
+    # if fetch is failed, try again next day
+    if not new_update_info:
         state.next_fetch = state.fetch_date + datetime.timedelta(1)
 
-    log.info('Upgrade feed status: %s next %s [%s]' % (status, state.next_fetch, NOTIFICATION_URL))
+    log.info('Upgrade feed status: %s [%s] next %s' % (status, str(new_update_info), state.next_fetch))
     state.save()
 
     if not new_update_info:
         return  # fetch failed
 
-    if state.last_entry_date and state.last_entry_date >= new_date:
-        log.debug('Feed ignored. Old date: %s' % new_date)
-        return  # entry already seen
+    if not force_check:
+        if state.last_entry_date and state.last_entry_date >= new_date:
+            log.debug('Feed ignored. Old date: %s' % new_date)
+            return  # entry already seen
 
     state.last_entry_date = new_date
 
@@ -147,20 +154,26 @@ def _checkUpgrade(state, today, feed_url):
     state.upgrade_info = new_update_info
 
 
-def pollUpgradeInfo(state=None, today_func=today_func, feed_url=NOTIFICATION_URL):
+def pollUpgradeInfo(state=None, today_func=today_func, feed_url=NOTIFICATION_URL, force_check=False):
     """
     Poll if there are any upgrade info to alert user.
+    Note this will be called everytime a weblib page is loaded.
 
     Call with default parameter for normal use. The parameters are for unittesting.
     """
     state = state or _getSystemState()
-
-    if not state.fetch_frequency:
-        return None
-
     today = today_func()
-    if today >= state.next_fetch:
-        _checkUpgrade(state, today, feed_url)
+
+    if force_check:
+        _checkUpgrade(state, today, feed_url, True)
+
+    else:
+        # check schedule whether _checkUpgrade() is due
+        if not state.fetch_frequency:
+            return None
+
+        if today >= state.next_fetch:
+            _checkUpgrade(state, today, feed_url)
 
     return state.upgrade_info
 
@@ -169,6 +182,7 @@ def set_config(state=None, frequency=None, dismiss=False):
     state = state or _getSystemState()
     if frequency is not None:
         state.fetch_frequency = frequency
+        state._set_fetch_date(state.fetch_date)
         state.save()
     if dismiss:
         state.upgrade_info = None
@@ -205,35 +219,45 @@ def _getElemText(entryElem ,tag):
 def parsefeed(url_or_data):
     """ A minial replacement of feedparser.parse() """
 
-    if not url_or_data:
-        return  { 'entries': [] }
-
     # assume url_or_data is text data
+    url = '<local data>'
     data = url_or_data
     status = None
-
-    # use this 2 tests to seet it is indeed an URL
-    if '\n' not in url_or_data:
-        scheme, netloc = urlparse.urlsplit(url_or_data)[:1]
-        if scheme and netloc:
-            resp = urllib2.urlopen(url_or_data)
-            status = resp.info()['status']
-            data = resp.read(1000000)
-
     entries = []
-    dom = parseString(data)
-    for entryElem in dom.getElementsByTagName('entry'):
-        entry = {}
-        entry['title'] = _getElemText(entryElem ,'title')
-        entry['updated'] = _getElemText(entryElem ,'updated')
-        entry['summary'] = _getElemText(entryElem ,'summary')
-        entry['link'] = _getAttribute(entryElem ,'link', 'href')
-        entries.append(entry)
+    result =  {'entries': entries}
 
-    if status:
-        return { 'status': status, 'entries': entries }
-    else:
-        return { 'entries': entries }
+    if not url_or_data:
+        return result
+
+    # heuristic to determine if it is indeed an URL
+    if ('\n' not in url_or_data) and ('<?xml' not in url_or_data):
+        url = url_or_data
+        try:
+            resp = urllib2.urlopen(url)
+            status = resp.info().get('status','?')
+            if status:
+                result['status'] = status
+            data = resp.read(1000000)
+        except Exception, e:
+            log.exception('Error fetching feed: %s' % url)
+            return result
+
+    if not data:
+        return result
+
+    try:
+        dom = parseString(data)
+        for entryElem in dom.getElementsByTagName('entry'):
+            entry = {}
+            entry['title'] = _getElemText(entryElem ,'title')
+            entry['updated'] = _getElemText(entryElem ,'updated')
+            entry['summary'] = _getElemText(entryElem ,'summary')
+            entry['link'] = _getAttribute(entryElem ,'link', 'href')
+            entries.append(entry)
+    except Exception, e:
+        log.exception('Error parsing feed: %s' % url)
+
+    return result
 
 
 # ------------------------------------------------------------------------

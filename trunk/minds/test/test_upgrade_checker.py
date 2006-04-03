@@ -81,7 +81,21 @@ class TestUpgrade(unittest.TestCase):
         st = self.state
         today = datetime.date(2005,1,1)
 
-        uc._checkUpgrade(st, today, None)   # None simulate a failed feed
+        uc._checkUpgrade(st, today, 'zz://xx/yy')   # bad URL
+
+        self.assertEqual(st.fetch_date, today)
+        self.assertEqual(st.next_fetch, datetime.date(2005,1,2))
+        self.assert_(not st.last_entry_date)
+        self.assert_(not st.upgrade_info)
+
+        uc._checkUpgrade(st, today, '')
+
+        self.assertEqual(st.fetch_date, today)
+        self.assertEqual(st.next_fetch, datetime.date(2005,1,2))
+        self.assert_(not st.last_entry_date)
+        self.assert_(not st.upgrade_info)
+
+        uc._checkUpgrade(st, today, '<?xml version="1.0" encoding="utf-8"?><feed>x</wrong_feed>')     #  non-wellform XML
 
         self.assertEqual(st.fetch_date, today)
         self.assertEqual(st.next_fetch, datetime.date(2005,1,2))
@@ -151,6 +165,7 @@ class TestUpgrade(unittest.TestCase):
         self.assertEqual(st.fetch_date, old_date)
         self.assert_(not r)
 
+        print '2005-01-01 fetch -->'
         r = uc.pollUpgradeInfo(st, _date_func(2005,1,1), TEST_FEED0)    # fetch 0.4.2
         self.assert_(st.fetch_date > old_date)
         self.assertEqual(r.version, '0.4.2')
@@ -162,18 +177,35 @@ class TestUpgrade(unittest.TestCase):
 
         uc.set_config(st, dismiss=True)         # reset upgrade_info
 
+        print '2005-01-11 fetch -->'
         r = uc.pollUpgradeInfo(st, _date_func(2005,1,11), TEST_FEED0)   # fetch again, but nothing new
         self.assert_(st.fetch_date > old_date)
         self.assert_(not r)
 
+        print '2005-01-21 0.8.0 available -->'
         r = uc.pollUpgradeInfo(st, _date_func(2005,1,21), TEST_FEED1)   # fetch again, got 0.8.0
         self.assert_(st.fetch_date > old_date)
         self.assertEqual(r.version, '0.8.0')
 
-        st.fetch_frequency = 0
         old_date = st.fetch_date
+        st.fetch_frequency = 0
+        print '2005-01-31 upgrade off -->'
         r = uc.pollUpgradeInfo(st, _date_func(2005,1,31), TEST_FEED1)   # upgrade is off
         self.assertEqual(st.fetch_date, old_date)
+        self.assert_(not r)
+
+        print '2005-01-22 Force check -->'
+        r = uc.pollUpgradeInfo(st, _date_func(2005,1,22), TEST_FEED1, force_check=True)  # force_check
+        self.assert_(st.fetch_date > old_date)
+        self.assert_(r.version, '0.8.0')
+
+        uc.set_config(st, dismiss=True)         # reset upgrade_info
+
+        old_date = st.fetch_date
+        st.current_version = '9.9'
+        print '2005-01-23 Force check v9.9 -->'
+        r = uc.pollUpgradeInfo(st, _date_func(2005,1,23), TEST_FEED1, force_check=True)  # force_check but no new version
+        self.assert_(st.fetch_date > old_date)
         self.assert_(not r)
 
 
@@ -181,18 +213,16 @@ class TestUpgrade(unittest.TestCase):
         st = self.state
         st.upgrade_info = 'dummy'
 
+        # set frequency
         uc.set_config(st, frequency=7)
         self.assertEqual(st.fetch_frequency, 7)
+        self.assertEqual(st.next_fetch, datetime.date(2004,1,8))
         self.assert_(st.upgrade_info)
 
+        # dismiss
         uc.set_config(st, dismiss=True)
         self.assertEqual(st.fetch_frequency, 7)
         self.assert_(not st.upgrade_info)
-
-
-    def test_persistence(self):
-        self.fail()
-
 
 
 if __name__ =='__main__':

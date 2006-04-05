@@ -28,6 +28,7 @@ today_func = datetime.date.today
 class State(object):
     """ Represent the upgrade state persisted. """
     def __init__(self):
+        self.feed_url = ''                              # default do nothing, safe in test mode
         self.fetch_date = today_func()                  # date of previous fetch
         self.next_fetch = today_func()                  # date of next scheduled fetch
         self.fetch_frequency = DEFAULT_FETCH_FREQUENCY  # no. of days; 0 means no notification
@@ -46,6 +47,7 @@ class State(object):
     def load(self):
         # note: this is designed to work even if all upgrade.* fields are not specified
         self.current_version = cfg.get   ('_system.version')
+        self.feed_url        = cfg.get   ('upgrade_notification.feed_url','')
         _fetch_date_str      = cfg.get   ('upgrade_notification.fetch_date','')
         self.fetch_frequency = cfg.getint('upgrade_notification.fetch_frequency',10)
         self.last_entry_date = cfg.get   ('upgrade_notification.last_entry_date','')
@@ -100,6 +102,9 @@ def _fetch(feed_url):
     Fetch from feed
     @return status, updated_date_str, UpgradeInfo
     """
+    if not feed_url:
+        return '','',None
+
     d = parsefeed(feed_url)
 #    d = feedparser.parse(feed_url)
 
@@ -119,16 +124,20 @@ def _fetch(feed_url):
     else:
         version = ''
 
+    date_tag = updated[:10]
+    if date_tag:
+        summary = '%s (%s)' % (summary, date_tag)
+
     return status, updated, UpgradeInfo(version, title, summary, url)
 
 
-def _checkUpgrade(state, today, feed_url, force_check=False):
+def _checkUpgrade(state, today, force_check=False):
     """
     1. Fetch from feed.
     2. Update fetch_date, next_fetch.
     3. Set upgrade_info and if a new version is available.
     """
-    status, new_date, new_update_info = _fetch(feed_url)
+    status, new_date, new_update_info = _fetch(state.feed_url)
     state._set_fetch_date(today)
     # if fetch is failed, try again next day
     if not new_update_info:
@@ -151,10 +160,15 @@ def _checkUpgrade(state, today, feed_url, force_check=False):
         log.debug('Feed ignored. Old Version: %s' % new_update_info.version)
         return  # no newer version (e.g. after a fresh install of latest)
 
+    log.debug('Upgrade available. current version %s last_entry_date %s force_check %s' % (
+        state.current_version,
+        state.last_entry_date,
+        str(force_check),
+        ))
     state.upgrade_info = new_update_info
 
 
-def pollUpgradeInfo(state=None, today_func=today_func, feed_url=NOTIFICATION_URL, force_check=False):
+def pollUpgradeInfo(state=None, today_func=today_func, force_check=False):
     """
     Poll if there are any upgrade info to alert user.
     Note this will be called everytime a weblib page is loaded.
@@ -165,7 +179,7 @@ def pollUpgradeInfo(state=None, today_func=today_func, feed_url=NOTIFICATION_URL
     today = today_func()
 
     if force_check:
-        _checkUpgrade(state, today, feed_url, True)
+        _checkUpgrade(state, today, True)
 
     else:
         # check schedule whether _checkUpgrade() is due
@@ -173,7 +187,7 @@ def pollUpgradeInfo(state=None, today_func=today_func, feed_url=NOTIFICATION_URL
             return None
 
         if today >= state.next_fetch:
-            _checkUpgrade(state, today, feed_url)
+            _checkUpgrade(state, today)
 
     return state.upgrade_info
 
@@ -198,7 +212,7 @@ import urlparse
 import urllib2
 import xml.dom
 from xml.dom.minidom import parse, parseString
-
+from xml.parsers.expat import ExpatError
 
 def _getAttribute(entryElem ,tag, attr):
     elems = entryElem.getElementsByTagName(tag)
@@ -247,6 +261,9 @@ def parsefeed(url_or_data):
 
     try:
         dom = parseString(data)
+    except ExpatError, e:
+        log.exception('Error parsing feed: %s' % url)
+    else:
         for entryElem in dom.getElementsByTagName('entry'):
             entry = {}
             entry['title'] = _getElemText(entryElem ,'title')
@@ -254,8 +271,6 @@ def parsefeed(url_or_data):
             entry['summary'] = _getElemText(entryElem ,'summary')
             entry['link'] = _getAttribute(entryElem ,'link', 'href')
             entries.append(entry)
-    except Exception, e:
-        log.exception('Error parsing feed: %s' % url)
 
     return result
 

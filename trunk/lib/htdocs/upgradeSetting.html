@@ -1,0 +1,65 @@
+<style>
+
+#content {
+    margin-top: 2ex;
+    margin-left: 1em;
+    margin-bottom: 7ex;
+}
+
+#setting_table {
+    border: thin solid #777;
+    padding: 1ex;
+    margin-bottom: 2ex;
+}
+
+#setting_table tr {
+    line-height: 250%;
+}
+</style>
+
+<script>
+function checkUpgrade() {
+    document.location = '/upgrade/check';
+}
+
+// event fire by child window
+function onupdate(url) {
+    if (!url) {
+        window.location.reload();
+    } else {
+        window.location = url;
+    }
+}
+
+</script>
+
+<div id='content'>
+
+<h3>Upgrade Notification</h3>
+
+<!-- upgrade notification -->
+<div node='con:upgrade_notification' id='upgrade_notification' style='margin-top:2em; margin-right:1em;margin-bottom: 2em;'>
+    <div style='float:right'>
+    <a href="/upgrade/dismiss?url=/upgrade/setting">dismiss</a>
+    </div>
+    Upgrade available - <a node='con:link' href="https://developer.berlios.de/project/showfiles.php?group_id=2905&release_id=8737"><span node='con:title'>version $0.x.x</span> <span node='con:summary'>$many bug fixes</span></a>
+</div>
+
+
+<form action='/upgrade/setting' method='POST'>
+<table id='setting_table'>
+    <tr><td>Feed URL &nbsp;</td><td><a node='con:feed_url' href='#'>$http://www.mindretrieve.net/feed_url</a></td></tr>
+    <tr><td>Check every &nbsp;</td><td><input node='con:fetch_frequency' type='text' name='fetch_frequency' size='5' /> days (0 to disable notification)</td></tr>
+    <tr node='con:error'><td>&nbsp;</td><td><div node='con:message' class='error_message' style='margin-bottom:3ex;'>$error</div></td></tr>
+    <tr><td>&nbsp;</td><td>
+        <input type='submit' name='submit' value='Update'/>
+        <span style='width:2em;'>&nbsp;</span>
+        <input type='button' value='Check Now' onclick='javascript:checkUpgrade();' />
+    </td></tr>
+</table>
+</form>
+
+<p>Return to <a href="/weblib">Library</a>
+
+</div>  <!-- end content -->
+

@@ -6,6 +6,7 @@ import string
 import urllib
 
 from minds.config import cfg
+from minds import upgrade_checker
 from minds.cgibin import weblibSnapshot
 from minds.cgibin import weblibForm
 from minds.cgibin import weblibTagForm
@@ -286,6 +287,9 @@ def queryTag(wfile, req, nameOrId):
     # category pane
     categoryList = _buildCategoryList(wlib, tagName)
 
+    # upgrade_info
+    upgrade_info = upgrade_checker.pollUpgradeInfo()
+
     # webitem pane
     if tag:
         webItems = _query_by_tag(wlib, tag)
@@ -303,6 +307,7 @@ def queryTag(wfile, req, nameOrId):
         tag,
         wlib.getDefaultTag(),
         categoryList,
+        upgrade_info,
         webItems)
 
 
@@ -329,6 +334,9 @@ def queryWebLib(wfile, req, tag, querytxt):
     categoryList = _buildCategoryList(wlib)
     tag = tags and wlib.getTagByName(tags[-1]) or None
 
+    # upgrade_info
+    upgrade_info = upgrade_checker.pollUpgradeInfo()
+
     # webitem pane
     webItems = []
     if querytxt:
@@ -348,6 +356,7 @@ def queryWebLib(wfile, req, tag, querytxt):
         None,
         wlib.getDefaultTag(),
         categoryList,
+        upgrade_info,
         webItems)
 
 
@@ -356,6 +365,9 @@ def queryRoot(wfile, req):
 
     # category pane
     categoryList = _buildCategoryList(wlib)
+
+    # upgrade_info
+    upgrade_info = upgrade_checker.pollUpgradeInfo()
 
     # webitem pane
     webItems = map(WebItemNode, query_wlib.queryRoot(wlib))
@@ -367,6 +379,7 @@ def queryRoot(wfile, req):
         None,
         wlib.getDefaultTag(),
         categoryList,
+        upgrade_info,
         webItems)
 
 
@@ -410,6 +423,7 @@ class WeblibRenderer(response.WeblibLayoutRenderer):
         selectedTag,
         defaultTag,
         categoryList,
+        upgrade_info,
         webItems,
         ):
         """
@@ -442,6 +456,15 @@ class WeblibRenderer(response.WeblibLayoutRenderer):
 
         # category
         node.catList.repeat(self.renderCatItem, categoryList, lSelectedTagName)
+
+        # ------------------------------------------------------------------------
+        # upgrade info
+        if not upgrade_info:
+            node.upgrade_notification.omit()
+        else:
+            node.upgrade_notification.link.atts['href']     = upgrade_info.url
+            node.upgrade_notification.link.title.content    = upgrade_info.title
+            node.upgrade_notification.link.summary.content  = upgrade_info.summary
 
         # ------------------------------------------------------------------------
         # Matching message

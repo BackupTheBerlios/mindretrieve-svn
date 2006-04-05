@@ -558,6 +558,16 @@ function onWindowLoaded(e) {
 <!--==main content========================================================================-->
 <td><div id='main'>
 
+<!-- upgrade notification -->
+<div node='con:upgrade_notification' id='upgrade_notification' style=' margin-top:1em; margin-bottom:2em;'>
+<div style='float:right'>
+<a href="/upgrade/dismiss" target='asyncFrame'>dismiss</a>
+<a href="/upgrade/setting">setting</a>
+</div>
+Upgrade available - <a node='con:link' href="https://developer.berlios.de/project/showfiles.php?group_id=2905&release_id=8737"><span node='con:title'>version $0.x.x</span> <span node='con:summary'>$many bug fixes</span></a>
+</div>
+
+<!-- items found message -->
 <div node='con:found_msg' id='found_msg'>
     <div node='con:search_engine' style='float:right'>Search "<span node='-con:querytxt'>x</span>" in
     <a node='rep:engine' href="#">engine1</a>
@@ -566,6 +576,7 @@ function onWindowLoaded(e) {
     Found <span node='-con:count'>no</span> items.
 </div>
 
+<!-- web_items -->
 <div node='con:web_items'>
   <form id='webpages' action='/weblib' method='GET'>
   <input type='hidden' name='method' value='' />

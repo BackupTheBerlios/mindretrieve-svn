@@ -5,6 +5,7 @@ import help
 import snoop
 import history
 import updateParent
+import upgrade
 import weblib
 import weblibImport
 import weblibMultiForm
@@ -20,6 +21,7 @@ cgi_registry = [
   ('/search'               , history),  # for compatibility to version 0.4?
   ('/snoop'                , snoop),
   ('/updateParent'         , updateParent),
+  ('/upgrade'              , upgrade),
   ('/weblib/import'        , weblibImport),
   ('/weblib/multiform'     , weblibMultiForm),
   ('/weblib/tag_categorize', weblibTagCategorize),

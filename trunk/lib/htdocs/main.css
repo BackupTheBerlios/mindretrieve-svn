@@ -48,3 +48,18 @@ pre     { font-size: 10pt; font-family: "Courier New", Courier, Monaco, monospac
 .error_message {
     color:red
 }
+
+
+/* Upgrade Notification */
+
+#upgrade_notification {
+  background:#ff9;
+  padding:.2cm;
+  font-size:90%;
+  border: thin solid #ccc;';
+}
+
+#upgrade_notification a:hover {
+  color: #000;
+  background-color: #fff;
+}

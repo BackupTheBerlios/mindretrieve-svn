@@ -29,7 +29,11 @@ def parse(fp):
     handler = DeliciousHandler()
     parser.setFeature(xml.sax.handler.feature_namespaces, 1)
     parser.setContentHandler(handler)
-    parser.parse(fp)
+    try:
+        parser.parse(fp)
+    except xml.sax.SAXParseException, e:
+        log.warn('Error parsing delicious import: %s' % e)
+        return None
     return handler.bookmarks
 
 
@@ -76,6 +80,8 @@ def fetch_delicious(url, user, password):
 
 def import_bookmark(fp):
     bookmarks = parse(fp)
+    if not bookmarks:
+        return 0, 0
     return import_util.import_bookmarks(bookmarks)
 
 

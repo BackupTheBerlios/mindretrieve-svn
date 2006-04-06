@@ -112,6 +112,8 @@ def import_tree(root_folder):
 
     root_folder is a Folder instance.
     It is the root to a collection of Folder and Bookmark objects.
+
+    @return (added, updated)
     """
     state = WalkState()
     _build_category(root_folder, state)
@@ -129,6 +131,8 @@ def import_bookmarks(bookmarks):
     """
     Import flat collection of bookmarks.
     bookmarks is a list of Bookmark.
+
+    @return (added, updated)
     """
     wlib = store.getWeblib()
     update_count = 0

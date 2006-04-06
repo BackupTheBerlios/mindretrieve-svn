@@ -40,8 +40,6 @@ class TestImport(unittest.TestCase):
 
         # check out tags
         self.assertEqual(len(wlib.tags),5)
-        self.assertTrue(wlib.tags.getByName(u'2.1-misc'))
-        self.assertTrue(wlib.tags.getByName(u'4-日本語'))
         if isDelicious:
             self.assertEqual(_list_names(wlib.tags), u'1-Bookmarks_Toolbar_Folder,2-Quick_Searches,2.1-misc,3-Firefox_and_Mozilla_Links,4-日本語')
         else:
@@ -130,6 +128,16 @@ class TestImport(unittest.TestCase):
         self.assert_(verified_1 and verified_2)
 
 
+    def test_netscape_bad(self):
+        fp = file(testpath/'test_magic/penguin100.jpg','rb')    # jpg bomb
+        import_netscape.import_bookmark(fp)
+
+        # not harm done. nothing imported
+        wlib = store.getWeblib()
+        self.assertEqual(len(wlib.tags),0)
+        self.assertEqual(len(wlib.webpages),0)
+
+
     def test_netscape(self):
         fp = file(testpath/'test_import/moz_bookmarks.html','rb')
         import_netscape.import_bookmark(fp)
@@ -154,24 +162,31 @@ class TestImport(unittest.TestCase):
         self._verify_weblib()
 
 
+    def test_opera_bad(self):
+        fp = file(testpath/'test_magic/penguin100.jpg','rb')    # jpg bomb
+        import_opera.import_bookmark(fp)
+
+        # not harm done. nothing imported
+        wlib = store.getWeblib()
+        self.assertEqual(len(wlib.tags),0)
+        self.assertEqual(len(wlib.webpages),0)
+
+
     def test_delicious(self):
         fp = file(testpath/'test_import/delicious.xml','rb')
         import_delicious.import_bookmark(fp)
         self._verify_weblib(isDelicious=True)
 
 
-class TestImportUtil(unittest.TestCase):
+    def test_delicious_bad(self):
+        fp = file(testpath/'test_magic/penguin100.jpg','rb')    # jpg bomb
+        import_delicious.import_bookmark(fp)
 
-    TESTFILE_PATH = testpath/'test_weblib/weblib.dat'
+        # not harm done. nothing imported
+        wlib = store.getWeblib()
+        self.assertEqual(len(wlib.tags),0)
+        self.assertEqual(len(wlib.webpages),0)
 
-    def setUp(self):
-        store.store_instance = store.Store()
-        self.buf = StringIO.StringIO()
-        store.getStore().load('*test*buffer*', self.buf)
-        self.assertEqual(len(store.getWeblib().webpages),0)
-
-    def tearDown(self):
-        store.store_instance = None
 
     def test_import_tree(self):
         # import 4 test bookmarks
@@ -214,7 +229,6 @@ class TestImportUtil(unittest.TestCase):
         w = [w for w in wlib.webpages if w.name=='b04'][0]
         self.assertEqual(w.description, 'd04')
         self.assertEqual(_list_names(w.tags), '')
-
 
 
     def test_import_bookmarks(self):
@@ -271,6 +285,7 @@ class TestImportUtil(unittest.TestCase):
         it.push_back(3)
         self.assertEqual(it.next(), 3)
         self.assertRaises(StopIteration, it.next)
+
 
 
 if __name__ =='__main__':

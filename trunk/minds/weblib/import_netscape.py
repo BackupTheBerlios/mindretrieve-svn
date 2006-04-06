@@ -79,14 +79,6 @@ def parseFile(rstream):
     # otherwise this isn't something we understand
     return top_folder
 
-#    top_folder = import_util.Folder('')
-#    for kind,data,_ in tokens:
-#        if kind == TAG and data == 'dl':
-#            parseList(tokens, top_folder)
-#            break
-#
-#    return top_folder
-
 
 def parseList(tokens, folder):
     """

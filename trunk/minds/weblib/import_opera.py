@@ -46,6 +46,8 @@ def iterRecords(rstream):
     reader = codecs.getreader('utf8')(rstream,'replace')
     lineReader = enumerate(reader)
 
+    showErrorCount = 10
+
     for lineno, line in lineReader:
         line = line.lower().strip()
         if not line:
@@ -67,7 +69,17 @@ def iterRecords(rstream):
             yield lineno, DASH, None, None
 
         else:
-            log.warn('Unknown line %s - %s', lineno+1, line)
+            # note: We will skip the 2 lines at the beginning of a Opera file
+            #   Opera Hotlist version 2.0
+            #   Options: encoding = utf8, version=3
+            #
+            # Beware of importing binary file by mistake
+            if showErrorCount:
+                log.warn('Unknown line %s - %s', lineno+1, line[:50].encode('unicode_escape'))
+                showErrorCount -= 1
+                if not showErrorCount:
+                    log.warn('Too many unknown lines. The rest will be skipped.')
+
 
 
 def parseFile(fp):

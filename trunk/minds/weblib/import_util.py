@@ -1,17 +1,16 @@
 """
 Import bookmarks
+def import_tree(root_folder):
+
 """
 
-import codecs
 import datetime
 import logging
 import StringIO
 import sys
-import urllib
 
 from minds.config import cfg
 from minds import weblib
-from minds.weblib import query_wlib
 from minds.weblib import store
 
 log = logging.getLogger('wlib.imprt')
@@ -29,9 +28,12 @@ def _ctime_str_2_iso8601(s):
 
 
 class Folder(object):
-    def __init__(self, name):
+    def __init__(self, name, children=None):
         self.name = name
-        self.children = []
+        if children:
+            self.children = children
+        else:
+            self.children = []  # a new list, not the default parameter
 
     def __repr__(self):
         return u'%s(%s)' % (self.name, len(self.children))
@@ -71,7 +73,7 @@ class WalkState(object):
         self.cat_buf.write('\n')
 
 
-def build_category(folder, state, path=None):
+def _build_category(folder, state, path=None):
     """ walk the folder tree recursively and build the category description """
     if path == None:
         path = []
@@ -86,7 +88,7 @@ def build_category(folder, state, path=None):
     tags = ','.join([f.name for f in path])
     for item in folder.children:
         if isinstance(item, Folder):
-            build_category(item, state, path)
+            _build_category(item, state, path)
         else:
             page = weblib.WebPage(
                 name        = item.name,
@@ -105,9 +107,14 @@ def build_category(folder, state, path=None):
 
 
 def import_tree(root_folder):
+    """
+    Import hierarchical bookmark.
 
+    root_folder is a Folder instance.
+    It is the root to a collection of Folder and Bookmark objects.
+    """
     state = WalkState()
-    build_category(root_folder, state)
+    _build_category(root_folder, state)
 
     # append cat_buf to category description
     wlib = store.getWeblib()
@@ -119,6 +126,10 @@ def import_tree(root_folder):
 
 
 def import_bookmarks(bookmarks):
+    """
+    Import flat collection of bookmarks.
+    bookmarks is a list of Bookmark.
+    """
     wlib = store.getWeblib()
     update_count = 0
     add_count = 0
@@ -138,14 +149,3 @@ def import_bookmarks(bookmarks):
             add_count += 1
     log.info('Import completed items added=%s updated=%s' % (add_count, update_count))
     return (add_count, update_count)
-
-
-#def main(argv):
-#    pathname = argv[1]
-#    import_bookmarks(pathname)
-#
-#
-#if __name__ =='__main__':
-#    sys.stdout = codecs.getwriter('utf8')(sys.stdout,'replace')
-#    sys.stderr = codecs.getwriter('utf8')(sys.stderr,'replace')
-#    main(sys.argv)

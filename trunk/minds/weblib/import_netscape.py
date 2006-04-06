@@ -60,12 +60,32 @@ def parseFile(rstream):
     tokens = PushBackIterator(tokens)
 
     top_folder = import_util.Folder('')
-    for kind,data,_ in tokens:
-        if kind == TAG and data == 'dl':
-            parseList(tokens, top_folder)
-            break
+    parseList(tokens, top_folder)
 
+    if len(top_folder.children) == 1 and isinstance(top_folder.children[0], Folder):
+        # this is the normal case (Moz, IE)
+        # top_folder[ top-level-<dl>[ first level folders and items ] ]
+
+        # we will peel off the single element top level
+        return top_folder.children[0]
+
+    elif len(top_folder.children) > 1:
+        # Hack for Safari?
+        # Safari export two top level <dl>
+        # 1. Bookmarks Bar
+        # 2. Bookmarks Menu
+        return top_folder
+
+    # otherwise this isn't something we understand
     return top_folder
+
+#    top_folder = import_util.Folder('')
+#    for kind,data,_ in tokens:
+#        if kind == TAG and data == 'dl':
+#            parseList(tokens, top_folder)
+#            break
+#
+#    return top_folder
 
 
 def parseList(tokens, folder):

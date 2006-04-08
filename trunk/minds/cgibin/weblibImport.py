@@ -4,6 +4,7 @@ import StringIO
 import sys
 import urllib2
 from xml import sax
+from xml.sax import saxutils
 
 from minds.config import cfg
 from minds.cgibin.util import request
@@ -46,43 +47,46 @@ def doShowForm(wfile,req):
 
 def doDeli(wfile,req):
     fp = None
-    error_msg = ''
+    error_title = ''
+    errors = []
     added = None
     updated = None
 
     if not DEBUG:
+        url = req.param('url')
+        assert url
         username = req.param('username')
         password = req.param('password')
+        errors = [
+            'URL: %s' % url,
+            'username: %s' % username,
+            'password: ***',
+        ]
         try:
-            fp = import_delicious.fetch_delicious(
-                import_delicious.POSTS_URL,
-                username,
-                password,
-                )
+            fp = import_delicious.fetch_delicious(url, username, password)
         except urllib2.HTTPError, e:
-            # 401: Authorization Required?
-            if e.code == 401:
-                error_msg = '401'
+            if e.code == 401:       # 401: Authorization Required?
+                error_title = 'Authorization Error'
             else:
-                error_msg = str(e)
+                error_title = str(e)
         except IOError, e:
             log.exception('import_delicious.fetch_delicious error: %s:%s' % (username,'***'))
-            error_msg = str(e)
-        except sax.SAXParseException, e:
-            error_msg = str(e)
+            error_title = str(e)
+
     else:
         fp = _openDeliTestDocument()
 
     if fp:
         added, updated = import_delicious.import_bookmark(fp)
+        # note: import_bookmark() would capture sax.SAXParseException
 
     renderer = ImportStatusRenderer(wfile)
     renderer.setLayoutParam('MindRetrieve - Import')
-    renderer.output(error_msg, import_delicious.POSTS_URL, added, updated, None)
+    renderer.output(error_title, errors, added, updated, None)
 
 
 def doMoz(wfile,req):
-    error_msg = ''
+    error_title = ''
     added = None
     updated = None
 
@@ -94,15 +98,15 @@ def doMoz(wfile,req):
         added, updated = import_netscape.import_bookmark(fp)
     else:
         log.warn('Incorrect netscape bookmark format: %s' % file_field.value[:50].encode('string_escape'))
-        error_msg = 'Error: incorrect bookmark file format'
+        error_title = 'Error: incorrect bookmark file format'
 
     renderer = ImportStatusRenderer(wfile)
     renderer.setLayoutParam('MindRetrieve - Import')
-    renderer.output(error_msg, '', added, updated, None)
+    renderer.output(error_title, [], added, updated, None)
 
 
 def doOpera(wfile,req):
-    error_msg = ''
+    error_title = ''
     added = None
     updated = None
 
@@ -114,11 +118,11 @@ def doOpera(wfile,req):
         added, updated = import_opera.import_bookmark(fp)
     else:
         log.warn('Incorrect opera bookmark format: %s' % file_field.value[:50].encode('string_escape'))
-        error_msg = 'Error: incorrect bookmark file format'
+        error_title = 'Error: incorrect bookmark file format'
 
     renderer = ImportStatusRenderer(wfile)
     renderer.setLayoutParam('MindRetrieve - Import')
-    renderer.output(error_msg, '', added, updated, None)
+    renderer.output(error_title, [], added, updated, None)
 
 
 # ----------------------------------------------------------------------
@@ -128,6 +132,7 @@ class ImportRenderer(response.WeblibLayoutRenderer):
     TEMPLATE_FILE = 'weblibImport.html'
 
     def render(self, node):
+        node.url.atts['value'] = import_delicious.POSTS_URL
         node.view_url.atts['value'] = import_delicious.POSTS_URL
 
 
@@ -135,14 +140,12 @@ class ImportStatusRenderer(response.WeblibLayoutRenderer):
 
     TEMPLATE_FILE = 'weblibImportStatus.html'
 
-    def render(self, node, error_msg, error_detail, added, updated, skipped):
-        if error_msg:
+    def render(self, node, error_title, errors, added, updated, skipped):
+        if error_title:
             node.status.omit()
-            if error_msg == '401':
-                pass # canned error
-            else:
-                node.error_msg.header.content = error_msg
-            node.error_msg.detail.content = error_detail
+            node.error_msg.header.content = error_title
+            escaped_errors = map(saxutils.escape, errors)
+            node.error_msg.detail.raw = '<br />'.join(escaped_errors)
 
         else:
             node.error_msg.omit()

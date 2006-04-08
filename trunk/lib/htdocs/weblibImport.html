@@ -132,8 +132,11 @@ function onWindowLoaded(e) {
 
 <div id='deliPane'>
 <h3>Import from Del.icio.us</h3>
-<form method='POST' action='/weblib/import/deli'>
+<form method='get' action='/weblib/import/deli'>
+<!-- url to fetch, normally in factory setting only -->
+<input node='con:url' type='hidden' name='url' value='%url'/>
 <table cellpadding='4' cellspacing='0'>
+    <!-- view_url is for show to user only -->
     <tr><td>URL     </td><td><input node='con:view_url' type='text' name='view_url' size='50' disabled='1' value='%url'/></td></tr>
     <tr><td>Username</td><td><input type='text' name='username' size='50' /></td></tr>
     <tr><td>password</td><td><input type='password' name='password' size='50' /></td></tr>

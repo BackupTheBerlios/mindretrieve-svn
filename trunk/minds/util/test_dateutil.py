@@ -7,9 +7,12 @@ from minds.util import dateutil
 class TestDateUtil(unittest.TestCase):
 
     def test_parse(self):
-        self.assertEqual(dateutil.parse_iso8601_date('1234-06-18'),           datetime(1234,6,18))
-        self.assertEqual(dateutil.parse_iso8601_date('1234-06-18T12:34:56'),  datetime(1234,6,18,12,34,56))
-        self.assertEqual(dateutil.parse_iso8601_date('1234-06-18T12:34:56Z'), datetime(1234,6,18,12,34,56))
+        self.assertEqual(dateutil.parse_iso8601_date('2003-09-15T10:34:54Z'), datetime(2003,9,15,10,34,54))
+        self.assertEqual(dateutil.parse_iso8601_date('2003-09-15 10:34:54Z'), datetime(2003,9,15,10,34,54))
+        self.assertEqual(dateutil.parse_iso8601_date('2003-09-15T10:34:54' ), datetime(2003,9,15,10,34,54))
+        self.assertEqual(dateutil.parse_iso8601_date('20030915T103454'     ), datetime(2003,9,15,10,34,54))
+        self.assertEqual(dateutil.parse_iso8601_date('2003-09-15'          ), datetime(2003,9,15, 0, 0, 0))
+        self.assertEqual(dateutil.parse_iso8601_date('20030915'            ), datetime(2003,9,15, 0, 0, 0))
 
         self.assertRaises( ValueError, dateutil.parse_iso8601_date, '')
         self.assertRaises( ValueError, dateutil.parse_iso8601_date, '1234-06-18 12:34:56..')

@@ -206,14 +206,15 @@ class Bean(object):
 
 
 def doGetResource(wfile, req, bean):
-    FormRenderer(wfile).output(bean)
+    wlib = store.getWeblib()
+    FormRenderer(wfile).output(bean, wlib.tags)
 
 
 def doPutResource(wfile, req, bean):
     wlib = store.getWeblib()
 
     if not bean.validate():
-        FormRenderer(wfile).output(bean)
+        FormRenderer(wfile).output(bean, wlib.tags)
         return
 
     item = bean.item
@@ -263,7 +264,7 @@ class FormRenderer(response.CGIRenderer):
             con:lastused
             con:new_tags_js_var
     """
-    def render(self, node, bean):
+    def render(self, node, bean, tags):
 
         item = bean.item
         wlib = store.getWeblib()
@@ -306,8 +307,11 @@ class FormRenderer(response.CGIRenderer):
             if item.fetched:
                 form.snapshot_txt.content = item.fetched
 
-        tags = bean.newTags and u', '.join(bean.newTags) or ''
-        encoded_tags = response.jsEscapeString(tags)
+        tags_strings = [u'        "%s"' % response.jsEscapeString(unicode(tag)) for tag in tags]
+        node.form.tags_array.raw = node.form.tags_array.raw % ',\n'.join(tags_strings)
+
+        new_tags = bean.newTags and u', '.join(bean.newTags) or ''
+        encoded_tags = response.jsEscapeString(new_tags)
         node.form.new_tags_js_var.raw = node.form.new_tags_js_var.raw % encoded_tags
 
 # weblibForm get invoked from CGI weblib.py

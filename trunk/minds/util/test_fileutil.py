@@ -1,13 +1,16 @@
 import StringIO
 import unittest
 
+from minds.safe_config import cfg as testcfg
+from minds.util import fileutil
 from minds.util.fileutil import BoundedFile, RecordFile
 
+testpath = testcfg.getpath('data')
+assert 'test' in testpath
 
 class TestBoundedFile(unittest.TestCase):
 
   def test_boundedFile(self):
-    print '\n@test_boundedFile'
     buf = StringIO.StringIO()
     bfp = BoundedFile(buf, 10)
 
@@ -31,7 +34,6 @@ class TestBoundedFile(unittest.TestCase):
 
 
   def test_boundedFile1(self):
-    print '\n@test_boundedFile1'
     buf = StringIO.StringIO()
     bfp = BoundedFile(buf, 10)
 
@@ -46,7 +48,6 @@ class TestBoundedFile(unittest.TestCase):
 
 
   def test_boundedFileDelegation(self):
-    print '\n@test_boundedFileDelegation'
     buf = StringIO.StringIO()
     bfp = BoundedFile(buf, 10)
 
@@ -58,13 +59,77 @@ class TestBoundedFile(unittest.TestCase):
 class TestFileUtil(unittest.TestCase):
 
   def test_RecordFile(self):
-    print '\n@test_RecordFile'
     f1 = StringIO.StringIO("""line1\r\nline2\r\nline3\n""")
     rec = StringIO.StringIO()
     for i, line in enumerate(RecordFile(f1,rec)):
         print 'line %d: [%s]' % (i, line)
     self.assertEqual(f1.getvalue(), rec.getvalue())
 
+
+  def test_shift_files(self):
+    A = testpath / 'a'
+    B = testpath / 'b'
+    C = testpath / 'c'
+    if A.exists(): A.remove()
+    if B.exists(): B.remove()
+    if C.exists(): C.remove()
+
+    # -- test 0 ------------------------------------------------------------------------
+    # ok if non of them exist
+    fileutil.shift_files([A,B,C])
+
+    self.assert_(not A.exists())
+    self.assert_(not B.exists())
+    self.assert_(not C.exists())
+
+    # -- test 1 ------------------------------------------------------------------------
+    file(A,'w').write('1')
+
+    # A->B (new file)
+    fileutil.shift_files([A,B])
+
+    self.assert_(not A.exists())
+    self.assertEqual(file(B).read(), '1')
+
+    # -- test 2 ------------------------------------------------------------------------
+    file(A,'w').write('2')
+
+    # A->B (existing file)
+    fileutil.shift_files([A,B])
+
+    self.assert_(not A.exists())
+    self.assertEqual(file(B).read(), '2')
+
+    # -- test 3 ------------------------------------------------------------------------
+    file(A,'w').write('3')
+
+    # A->B->C (new file)
+    fileutil.shift_files([A,B,C])
+
+    self.assert_(not A.exists())
+    self.assertEqual(file(B).read(), '3')
+    self.assertEqual(file(C).read(), '2')
+
+    # -- test 4 ------------------------------------------------------------------------
+    file(A,'w').write('4')
+
+    # A->B->C (existing file)
+    fileutil.shift_files([A,B,C])
+
+    self.assert_(not A.exists())
+    self.assertEqual(file(B).read(), '4')
+    self.assertEqual(file(C).read(), '3')
+
+    # -- test 5 ------------------------------------------------------------------------
+    file(A,'w').write('5')
+
+    # A->xBx->C (existing file)
+    B.remove()
+    fileutil.shift_files([A,B,C])
+
+    self.assert_(not A.exists())
+    self.assertEqual(file(B).read(), '5')
+    self.assert_(not C.exists())
 
 
 if __name__ == '__main__':

@@ -6,7 +6,7 @@ import StringIO
 
 def listdir(path, name_filter=None):
     """ A custom version of os.listdir that takes regex filter. """
-    
+
     # note 2005-09-18: path.listdir() is not compatible with
     # os.listdir() because it concat basedir with files. Arguably useful
     # in many situation but requires more code change for us.
@@ -159,3 +159,29 @@ class FileSocket:
         ''' a reasonable action '''
         self.fin.close()
         self.fout.close()
+
+
+def shift_files(files):
+    """
+    Rename files f[0] -> f[1] -> ... -> f[-1]
+
+    if f[i] does not exist, it will be ignored.
+    f[-1] would be rolled out to make way for f[0:-1]
+    """
+    n = len(files)
+    if not n: returns   # noop
+    assert n != 1       # we would alert you for this
+
+    try:
+        # TODO: for unix, we can do rename atomically without removing the dest file first
+        os.remove(files[-1])    # remove if exist
+    except OSError:
+        pass
+
+    for i in xrange(n-1,0,-1):
+        dest = files[i]
+        src = files[i-1]
+        if os.path.exists(src):
+            # dest should already be vacated
+            os.rename(src,dest)
+

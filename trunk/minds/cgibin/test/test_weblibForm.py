@@ -7,6 +7,7 @@ from minds.safe_config import cfg as testcfg
 from minds.cgibin.test import test_weblib
 from minds import weblib
 from minds.weblib import query_wlib
+from minds.weblib import store
 
 class TestWeblibForm(test_weblib.TestCGIBase):
 
@@ -52,7 +53,7 @@ class TestWeblibForm(test_weblib.TestCGIBase):
 
 
   def test_PUT_new(self):
-    wlib = self.wlib
+    wlib = store.getWeblib()
     self.assertEqual(len(wlib.webpages),5)
     self.assertEqual(len(wlib.tags),6)
     self.failIf(query_wlib.find_url(wlib,'http://abc.com/'))
@@ -76,7 +77,7 @@ class TestWeblibForm(test_weblib.TestCGIBase):
 
 
   def test_PUT_existing(self):
-    wlib = self.wlib
+    wlib = store.getWeblib()
     self.assertEqual(len(wlib.webpages),5)
     item = wlib.webpages.getById(1)
     self.assertEqual(item.name, 'MindRetrieve - Search Your Personal Web')
@@ -189,11 +190,12 @@ class TestWeblibForm(test_weblib.TestCGIBase):
     ])
 
     # one item has added
-    tag = self.wlib.tags.getByName(u'€!"$% &\'()*-./; =?[\\]^ _`{|}~')
+    wlib = store.getWeblib()
+    tag = wlib.tags.getByName(u'€!"$% &\'()*-./; =?[\\]^ _`{|}~')
     self.assert_(tag)
 
-    lastId = self.wlib.webpages._lastId      # undocumented
-    page = self.wlib.webpages.getById(lastId)
+    lastId = wlib.webpages._lastId      # undocumented
+    page = wlib.webpages.getById(lastId)
     self.assert_(page)
     self.assertEqual(page.name,        u'€!"#$%&\'()*+,-. /0123456789: ;<=>?@[\\]^_`{|}~')
     self.assertEqual(page.description, u'description:€!"#$%&\'()*+,-. /0123456789: ;<=>?@[\\]^_`{|}~\r\n[For testing]')

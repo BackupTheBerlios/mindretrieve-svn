@@ -6,6 +6,7 @@ import urllib
 from minds.safe_config import cfg as testcfg
 from minds.cgibin.test import test_weblib
 from minds import weblib
+from minds.weblib import store
 
 
 class TestWeblibTagCategorize(test_weblib.TestCGIBase):
@@ -21,7 +22,7 @@ class TestWeblibTagCategorize(test_weblib.TestCGIBase):
         'HTTP/1.0 302 Found',
         'location: /weblib',
     ])
-    self.assertEqual(self.wlib.category.getDescription(), '')
+    self.assertEqual(store.getWeblib().category.getDescription(), '')
 
 
   def test_POST(self):
@@ -30,7 +31,7 @@ class TestWeblibTagCategorize(test_weblib.TestCGIBase):
         'HTTP/1.0 302 Found',
         'location: /weblib',
     ])
-    self.assertEqual(self.wlib.category.getDescription(), test_data)
+    self.assertEqual(store.getWeblib().category.getDescription(), test_data)
 
 
   def test_POST_illegal(self):
@@ -41,7 +42,7 @@ class TestWeblibTagCategorize(test_weblib.TestCGIBase):
     ])
 
     # no error. But illegal characters got converted to '?'
-    wlib = self.wlib
+    wlib = store.getWeblib()
     self.assertEqual(wlib.category.getDescription(), '.bad1\r\n.bad2\r\ngood')
     self.assert_(wlib.tags.getByName('.bad1'))
     self.assert_(wlib.tags.getByName('.bad2'))
@@ -50,15 +51,16 @@ class TestWeblibTagCategorize(test_weblib.TestCGIBase):
 
   def test_POST_input_escape(self):
     # First insert some risky data into weblib
+    stor = store.getStore()
     badtag = weblib.Tag(name='</bad_tag>')
-    badtag = self.store.writeTag(badtag)
+    badtag = stor.writeTag(badtag)
     badpage = weblib.WebPage(
         name        = '</bad_tag>',
         url         = '</bad_tag>',
         description = '</bad_tag>',
         tags        = [badtag]
     )
-    badpage = self.store.writeWebPage(badpage)
+    badpage = stor.writeWebPage(badpage)
 
     # GET and make sure it is escaped
     txt = self._run_url('/weblib/tag_categorize')

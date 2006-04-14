@@ -16,38 +16,23 @@ from minds.weblib import store
 
 
 test_path = testcfg.getpath('testDoc')/'test_weblib/weblib.dat'
-test_weblib = testcfg.getpath('weblib')/'weblib.dat'
-assert 'test' in test_weblib
+
 
 class TestCGIBase(unittest.TestCase):
 
   def setUp(self):
-    test_path.copyfile(test_weblib)
-    self.store = store.Store()
-    self.store.load()
-    self.wlib = self.store.wlib
-
-    # so that cgi can access it
-    store.store_instance = self.store
-
-    # 2006-04-14 ISSUE:
-    # we are keeping an instance variable of store and wlib to avoid
-    # polluting the global instance. But in practice many code are not
-    # aware of the instance variables and still go straight to the
-    # global system instance. This only add confusion to different part
-    # of code.
+    store.setup_debug_weblib(test_path)
 
   def tearDown(self):
     # TODO HACK: close any open file before replace.
     # Need comphrensive review
-    self.store.reset()
+    store.getStore().reset()
 
   def _run_url(self, path):
     """ Invoke the URL and return the response HTTP message """
     buf = fileutil.aStringIO()
     app_httpserver.handlePath(path, buf)
     return buf.getvalue()
-
 
   # TODO: we have switched from checkPatterns() to checkStrings(). Clean up the code below.
   def checkPathForPattern(self, path, patterns, no_pattern=None):

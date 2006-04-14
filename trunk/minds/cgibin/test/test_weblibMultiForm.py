@@ -5,6 +5,7 @@ import unittest
 from minds.safe_config import cfg as testcfg
 from minds.cgibin.test import test_weblib
 from minds import weblib
+from minds.weblib import store
 
 
 class TestWeblibMultiForm(test_weblib.TestCGIBase):
@@ -19,7 +20,7 @@ class TestWeblibMultiForm(test_weblib.TestCGIBase):
 
 
   def test_POST_add(self):
-    wlib = self.wlib
+    wlib = store.getWeblib()
 
     # before
     self.assertEqual(len(wlib.webpages.getById(2).tags), 2) # Kremlin, Русский
@@ -48,7 +49,7 @@ class TestWeblibMultiForm(test_weblib.TestCGIBase):
 
 
   def test_POST_remove(self):
-    wlib = self.wlib
+    wlib = store.getWeblib()
 
     # before
     self.assertEqual(len(wlib.webpages.getById(2).tags), 2) # Kremlin, Русский
@@ -77,7 +78,7 @@ class TestWeblibMultiForm(test_weblib.TestCGIBase):
 
 
   def test_POST_add_new_tag(self):
-    wlib = self.wlib
+    wlib = store.getWeblib()
 
     # before
     self.assertEqual(len(wlib.webpages.getById(2).tags), 2) # Kremlin, Русский

@@ -5,6 +5,7 @@ import unittest
 from minds.safe_config import cfg as testcfg
 from minds.cgibin.test import test_weblib
 from minds import weblib
+from minds.weblib import store
 
 
 class TestTagForm(test_weblib.TestCGIBase):
@@ -29,7 +30,7 @@ class TestTagForm(test_weblib.TestCGIBase):
     ])
 
   def test_POST_rename(self):
-    wlib = self.wlib
+    wlib = store.getWeblib()
 
     # before
     page = wlib.webpages.getById(2)
@@ -56,7 +57,7 @@ class TestTagForm(test_weblib.TestCGIBase):
 
 
   def test_POST_rename_capitalization(self):
-    wlib = self.wlib
+    wlib = store.getWeblib()
 
     # before
     page = wlib.webpages.getById(2)
@@ -79,7 +80,7 @@ class TestTagForm(test_weblib.TestCGIBase):
 
 
   def test_POST_merge(self):
-    wlib = self.wlib
+    wlib = store.getWeblib()
 
     # before
     page = wlib.webpages.getById(2)
@@ -127,7 +128,7 @@ class TestTagForm(test_weblib.TestCGIBase):
   def test_PUT_input_escape(self):
     # First insert some risky data into weblib
     badtag = weblib.Tag(name='</bad_tag>')
-    badtag = self.store.writeTag(badtag)
+    badtag = store.getStore().writeTag(badtag)
 
     # GET
     url = '/weblib/@%s/form?name=</bad_tag>' % badtag.id
@@ -137,7 +138,7 @@ class TestTagForm(test_weblib.TestCGIBase):
 
 
   def test_POST_category_collapse(self):
-    wlib = self.wlib
+    wlib = store.getWeblib()
 
     self.assertTrue('c' not in wlib.tags.getById(124).flags)
 

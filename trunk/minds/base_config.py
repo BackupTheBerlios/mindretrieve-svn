@@ -133,15 +133,18 @@ class Config(object):
 
 
     def save(self):
-        # TODO: transactionally update a file
         today = str(datetime.date.today())
         log.info('Saving config file: %s %s' % (self.config_path, today))
         self.set('_system.updated', today)
-        fp = file(self.config_path,'wb')
+        wpath = self.config_path + '.tmp'
+        bpath = self.config_path + '.~'
+        fp = file(wpath,'wb')
         try:
             self._serialize(fp)
         finally:
             fp.close()
+        from minds.util import fileutil
+        fileutil.shift_files([wpath, self.config_path, bpath])
 
 
     def setupPaths(self):

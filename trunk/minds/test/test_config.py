@@ -1,3 +1,4 @@
+import os, os.path
 import sys
 import unittest
 
@@ -77,7 +78,7 @@ class TestConfig(unittest.TestCase):
     self.assertEqual(self.cfg.get('xx.yy'),'zz')
 
 
- def test_save_needed(self):
+ def test_save(self):
     outfile = testpath / 'config.ini'
     try:
         outfile.remove()
@@ -95,11 +96,12 @@ class TestConfig(unittest.TestCase):
     self.assert_('[xx]' in text)
     self.assert_('yy=zz' in text)
 
+    # save again, this time got config.ini and a backup file
+    self.cfg.set('xx.yy','11')
+    self.cfg.save()
+    self.assert_(os.path.exists(outfile))
+    self.assert_(os.path.exists(outfile+'.~'))
 #    outfile.remove()
-
-
- def test_transactional_update(self):
-     self.fail()
 
 
  def test_str(self):

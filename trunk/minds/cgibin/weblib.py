@@ -141,7 +141,7 @@ def doLoad(wfile, req):
 
 
 def doSave(wfile, req):
-    store.getStore().save()
+    store.getStore().save_and_backup()
     wlib = store.getWeblib()
     wfile.write('200 ok\r\n\r\n')
     wfile.write('saved %s pages %s tags' % (len(wlib.webpages), len(wlib.tags)))

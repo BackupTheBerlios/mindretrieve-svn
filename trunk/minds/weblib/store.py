@@ -96,6 +96,7 @@ import threading
 from minds.config import cfg
 from minds import weblib
 from minds.util import dateutil
+from minds.util import fileutil
 from minds.weblib import util
 
 
@@ -127,6 +128,7 @@ rebuild, the references would be invalidated!
 
 Is this protocol too problematic to use in practice?
 """
+
 
 # TODO: header name definitionRFC 2616 2.
 # The specification of header name observe the definition of token in RFC 2616 2.2 except the character '|' is not allowed.
@@ -323,13 +325,13 @@ class Store(object):
         if not os.path.isfile(self.pathname) or os.path.getsize(self.pathname) == 0:
             # file not exist? Use save() to write headers first
             log.info('Create weblib file: %s' % self.pathname)
-            self.save()
+            self.save_and_backup()
 
         if self.wlib.version != self.VERSION:
             # upgrade (or downgrade) weblib file
             # note that we must ensure the column header match what this version writes
             log.info('Upgrade weblib file existing verion=%s new version=%s' % (self.wlib.version, self.VERSION))
-            self.save()
+            self.save_and_backup()
 
 # Note: There is a small issue about timing of calling save(). The sequence of
 # events is depicted below:
@@ -412,7 +414,7 @@ class Store(object):
                 reader = codecs.getreader(self.ENCODING)(fp,'replace')
                 linereader = enumerate(reader)
 
-                self.wlib = weblib.WebLibrary(self)
+                self.wlib.reset()
                 wlib = self.wlib
 
                 # set default column interpretation
@@ -526,10 +528,16 @@ class Store(object):
         # support these headers
         if name == 'weblib-version':
             self.wlib.version = value0
+
         elif name == 'date':
-            self.wlib.date = value0
+            try:
+                self.wlib.date = dateutil.parse_iso8601_date(value0)
+            except ValueError:
+                self.wlib.date = datetime.datetime(1900,1,1,0,0,0)  # default date
+
         elif name == 'tag-columns':
             self.tag_column_index = parse_header(lineno, value, expected_col=self.TAG_COLUMNS)
+
         elif name == 'url-columns':
             self.url_column_index = parse_header(lineno, value, expected_col=self.URL_COLUMNS)
 
@@ -875,29 +883,78 @@ class Store(object):
         writer.write('\r\n')
 
 
-    def save(self, pathname=None, fp=None):
+    REFRESH_AFTER_DAYS = 3
+    BACKUP_COUNT = 5
+
+    def refresh_when_needed(self):
+        """
+        Over time the update record is going to build up. This method
+        does a save() and then load() to refresh the data file on a
+        regular schedule (every 3 days). This only need to be invoked at
+        a few selected locations rather than after every update
+        operation.
+        """
+        self.lock.acquire()
+        try:
+            d = datetime.datetime.today() - self.wlib.date
+            if d < datetime.timedelta(self.REFRESH_AFTER_DAYS):
+                return
+
+            log.info('Refresh data file, loaded since: %s' % self.wlib.date)
+
+            # refresh
+            self.save_and_backup()
+            self.load(self.pathname)
+
+        finally:
+            self.lock.release()
+
+
+    def save_and_backup(self):
+        """
+        Save file but keep backup first.
+        The last step would shift a list of files below:
+            weblib.dat.tmp  (newly saved)
+            weblib.dat      (current weblib)
+            weblib.dat.1
+            weblib.dat.2
+            weblib.dat.3
+            weblib.dat.4
+            weblib.dat.5
+
+        Note only weblib.dat.tmp is guarantine to exist before shift.
+        """
+        self.lock.acquire()
+        try:
+            # first save to tmp filename
+            tmp_pathname = self.pathname + '.tmp'
+            self.save(tmp_pathname)
+
+            # shift backup files
+            files = [tmp_pathname, self.pathname]
+            for i in range(self.BACKUP_COUNT):
+                files.append('%s.%s' % (self.pathname, i+1))
+            fileutil.shift_files(files)
+
+        finally:
+            self.lock.release()
+
+
+    def save(self, pathname, debug_fp=None):
         """
         Output a snapshot of the weblib file.
 
-        @param pathname - optional, override default pathname
+        @param pathname
         @param fp - optional, provide a ready make fp inplace of a disk file
         """
         self.lock.acquire()
         try:
             self.reset()
 
-            # Save to pathname. Do not replace self.pathname however.
-            if not pathname:
-                pathname = self.pathname
-            if fp:
-                use_temp_file = False
+            if debug_fp:
+                fp = debug_fp
             else:
-                # First output to a temp file.
-                # Then atomically replace the output file when done.
-                use_temp_file = True
-                tmp_pathname = pathname + '.tmp'
-                backup_pathname = pathname + '.~'
-                fp = file(tmp_pathname, 'wb')
+                fp = file(pathname, 'wb')
 
             try:
                 writer = codecs.getwriter(self.ENCODING)(fp,'replace')
@@ -925,24 +982,8 @@ class Store(object):
                     writer.write('\r\n')
 
             finally:
-                if use_temp_file:
+                if not debug_fp:
                     fp.close()
-
-            # swap files: backup <- pathname <- tmp
-            if use_temp_file:
-#                print >>sys.stderr, 'v -', tmp_pathname
-#                print >>sys.stderr, 'v -', pathname
-#                print >>sys.stderr, 'v -', backup_pathname
-                if os.path.isfile(pathname):
-                    # backup existing file first
-                    try:
-                        # In posix, rename atomically replace old file with new
-                        os.rename(pathname, backup_pathname)
-                    except OSError:
-                        # For Windows, delete before rename. Not atomic.
-                        os.remove(backup_pathname)
-                        os.rename(pathname, backup_pathname)
-                os.rename(tmp_pathname, pathname)
 
         finally:
             self.lock.release()

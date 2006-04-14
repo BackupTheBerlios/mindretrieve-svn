@@ -268,8 +268,11 @@ class Category(object):
 class WebLibrary(object):
 
     def __init__(self, store):
-
         self.store = store
+        self.reset()
+
+
+    def reset(self):
         self.version = ''
         self.date = ''
 

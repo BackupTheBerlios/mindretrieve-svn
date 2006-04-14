@@ -228,6 +228,7 @@ def doPutResource(wfile, req, bean):
     else:
         log.info('Updating WebPage: %s' % unicode(item))
         store.getStore().writeWebPage(item)
+    store.getStore().refresh_when_needed()
 
     response.redirect(wfile, '/updateParent')
 
@@ -238,6 +239,7 @@ def doDeleteResource(wfile, req):
     if item:
         log.info('Deleting WebPage %s' % unicode(item))
         store.getStore().removeItem(item)
+    store.getStore().refresh_when_needed()
 
     response.redirect(wfile, '/updateParent')
 

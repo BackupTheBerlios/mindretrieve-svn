@@ -10,6 +10,7 @@ import unittest
 from minds.safe_config import cfg as testcfg
 from minds import weblib
 from minds.weblib import store
+from toollib.path import path
 
 testpath = testcfg.getpath('testDoc')
 
@@ -195,7 +196,53 @@ encoding: utf-8\r
 #        os.remove(stor.pathname)
 
 
-    def test_colum_compatibility(self):
+    def test_refresh_when_needed(self):
+        stor = store.Store()
+        self.assert_('test' in stor.pathname)
+
+        # copy TESTFILE to weblib.dat
+        test_data = file(self.TESTFILE_PATH,'rb').read()
+        fp = file(stor.pathname,'wb')
+        fp.write(test_data)
+        fp.close()
+
+        # clear backup 1 & backup 2
+        backup1 = path(stor.pathname+'.1')
+        if backup1.exists():
+            backup1.remove()
+        backup2 = path(stor.pathname+'.2')
+        if backup2.exists():
+            backup2.remove()
+
+        # today is 2006-04-13, weblib.dat should has an older date
+        IN_BETWEEN_DATE = datetime.datetime(2006,2,1)
+
+        # load first version (should be old)
+        stor.load()
+        olddate = stor.wlib.date
+        assert olddate < IN_BETWEEN_DATE
+
+        self.assert_(not backup1.exists())
+        self.assert_(not backup2.exists())
+
+        # test refresh_when_needed(). It's old, should refresh
+        stor.refresh_when_needed()
+
+        self.assert_(stor.wlib.date > IN_BETWEEN_DATE)
+        self.assert_(stor.pathname.exists())
+        self.assert_(backup1.exists())
+        self.assert_(not backup2.exists())
+        olddate = stor.wlib.date
+
+        # test refresh_when_needed() again, should not refresh this time
+        stor.refresh_when_needed()
+        self.assertEqual(olddate, stor.wlib.date)
+        self.assert_(stor.pathname.exists())
+        self.assert_(backup1.exists())
+        self.assert_(not backup2.exists())
+
+
+    def test_column_compatibility(self):
         stor = store.Store()
         self.assert_('test' in stor.pathname)
 

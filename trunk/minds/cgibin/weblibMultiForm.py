@@ -164,6 +164,7 @@ def doPost(wfile, req):
 
     log.debug('EditTags for %s entries set(%s) remove(%s).', len(entries), set_tags, remove_tags)
     wlib.editTags(entries, [], set_tags, remove_tags)
+    store.getStore().refresh_when_needed()
 
     response.redirect(wfile, '/updateParent')
 
@@ -177,6 +178,8 @@ def doDelete(wfile, req):
             store.getStore().removeItem(item)
         except:
             log.exception('Unable to delete: %s', unicode(item))
+    store.getStore().refresh_when_needed()
+
     response.redirect(wfile, '/updateParent')
 
 

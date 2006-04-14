@@ -182,6 +182,11 @@ def shift_files(files):
         dest = files[i]
         src = files[i-1]
         if os.path.exists(src):
-            # dest should already be vacated
-            os.rename(src,dest)
+            try:
+                # dest should already be vacated
+                os.rename(src,dest)
+            except OSError, e:
+                raise OSError('%s src %s dest %s' % (str(e), src, dest))
+
+
 

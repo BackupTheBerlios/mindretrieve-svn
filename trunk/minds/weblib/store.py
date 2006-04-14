@@ -98,6 +98,7 @@ from minds import weblib
 from minds.util import dateutil
 from minds.util import fileutil
 from minds.weblib import util
+from toollib.path import path
 
 
 log = logging.getLogger('wlib.store')
@@ -1030,8 +1031,49 @@ def getStore(loadWeblib=True):
             store_instance.load()
     return store_instance
 
+
 def getWeblib():
     return getStore().wlib
+
+
+def setup_debug_weblib(filename_or_data):
+    """
+    Helper function to setup the weblib directory
+    """
+
+    # should only call this from debug or testing mode
+    from minds.safe_config import cfg as testcfg
+
+    test_path = testcfg.getpath('weblib')/Store.DEFAULT_FILENAME
+    assert 'test' in test_path
+
+    # clean the weblib directory
+    files = [test_path] + ['%s.%s' % (test_path, i+1) for i in range(Store.BACKUP_COUNT)]
+    for f in files:
+        try:
+            path(f).remove()
+        except OSError:
+            pass
+
+    getStore().reset()
+    getWeblib().reset()
+
+    if not filename_or_data:
+        return                  # blank data is fine
+
+    if isinstance(filename_or_data, path) or ('\n' not in filename_or_data):
+        # treat as filename
+        src = path(filename_or_data)
+        src.copyfile(test_path)
+
+    else:
+        # treat as data
+        fp = file(test_path,'wb')
+        fp.write(filename_or_data)
+        fp.close()
+
+    getStore().load(test_path)
+
 
 
 # ------------------------------------------------------------------------

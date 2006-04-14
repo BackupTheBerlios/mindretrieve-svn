@@ -14,6 +14,9 @@ from toollib.path import path
 
 testpath = testcfg.getpath('testDoc')
 
+# 2006-04-14 TODO:
+# should migrate to store.setup_debug_weblib() and dump the
+# string buffer based mock data via load()?
 
 class TestDsvUtil(unittest.TestCase):
 
@@ -657,9 +660,9 @@ encoding: utf-8\r
         self.assert_( changed_data.startswith(self.TESTTEXT))
 
         # reload changed data file
-        old_weblib = self.store.wlib
+        old_webpages = self.store.wlib.webpages
         self.store.load('*changed*buffer*', StringIO.StringIO(changed_data))
-        self.assert_(self.store.wlib is not old_weblib)  # a new wlib is really loaded :)
+        self.assert_(old_webpages is not self.store.wlib.webpages)  # a new wlib is really loaded :)
         self._check_changed()
 
         # save data file snapshot
@@ -670,9 +673,9 @@ encoding: utf-8\r
         self.assert_( not snapshot_data.startswith(self.TESTTEXT))
 
         # load snapshot and verify
-        old_weblib = self.store.wlib
+        old_webpages = self.store.wlib.webpages
         self.store.load('*snapshot*buffer*', StringIO.StringIO(snapshot_data))
-        self.assert_(self.store.wlib is not old_weblib)  # a new wlib is really loaded :)
+        self.assert_(old_webpages is not self.store.wlib.webpages)  # a new wlib is really loaded :)
         self._check_changed()
 
 

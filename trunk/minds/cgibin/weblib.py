@@ -21,6 +21,21 @@ from minds.weblib import util
 log = logging.getLogger('cgi.weblib')
 
 
+def _tag_from_cookie(req):
+    tid = req.cookie.get('weblib_tag')
+    if not tid:
+        return None
+    tid = tid.value
+    try:
+        if not tid.startswith('@'):
+            return None
+        tid = int(tid[1:])
+    except ValueError:
+        return None
+    wlib = store.getWeblib()
+    return wlib.tags.getById(tid)
+
+
 def main(rfile, wfile, env):
     wlib = store.getWeblib()
 
@@ -55,11 +70,11 @@ def main(rfile, wfile, env):
             querytxt = req.param('query')
             tag = req.param('tag')
 
-            # redirect to default tag (if it is defined)
+            # No tag specified? Use fallback: 1. cookie, 2. default tag
             if not ('tag' in req.form or querytxt):
-                dt = wlib.getDefaultTag()
-                if dt:
-                    url = request.tag_url([dt])
+                def_tag = _tag_from_cookie(req) or wlib.getDefaultTag()
+                if def_tag:
+                    url = request.tag_url([def_tag])
                     response.redirect(wfile, url)
                     return
 
@@ -301,6 +316,8 @@ def queryTag(wfile, req, nameOrId):
         webItems = [fakeTagNode]
 
     renderer = WeblibRenderer(wfile)
+    if tag:
+        renderer.cookie['weblib_tag'] = '@%s' % tag.id
     renderer.setLayoutParam(None)
     renderer.output(
         wlib.tags,

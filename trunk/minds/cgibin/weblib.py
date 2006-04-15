@@ -404,7 +404,7 @@ def queryRoot(wfile, req):
 
 class WeblibRenderer(response.WeblibLayoutRenderer):
     TEMPLATE_FILE = 'weblibContent.html'
-    """ weblibContent.html 2005-12-29
+    """ weblibContent.html 2006-04-14
     con:tagListForm
             rep:tag
     con:rootTag
@@ -415,6 +415,10 @@ class WeblibRenderer(response.WeblibLayoutRenderer):
             con:subcat
                     rep:catItem
                             con:link
+    con:upgrade_notification
+            con:link
+                    con:title
+                    con:summary
     con:found_msg
             con:search_engine
                     con:querytxt
@@ -428,12 +432,11 @@ class WeblibRenderer(response.WeblibLayoutRenderer):
             rep:webItem
                     con:placeHolder
                             con:checkbox
-                            con:itemDescription
-                            con:itemTag
-                                    rep:tag
+                            con:description
+                            rep:tag
+                            con:date
                             con:edit
                             con:delete
-                            con:cache
     """
     def render(self, node,
         tags,
@@ -564,14 +567,15 @@ class WeblibRenderer(response.WeblibLayoutRenderer):
             webitem = webItemNode.webitem
             node = node.placeHolder
             node.checkbox.atts['name'] = str(webitem.id)
-            node.itemDescription.content = unicode(webitem)
+            node.description.content = unicode(webitem)
             if util.isFileURL(webitem.url):
                 href = 'javascript:open_url(%s,"%s")' % (webitem.id, webitem.url)
-                node.itemDescription.atts['href'] = href
+                node.description.atts['href'] = href
             else:
-                node.itemDescription.atts['href'] = webitem.url
-            node.itemDescription.atts['title'] = '%s %s' % (webitem.modified, webitem.description)
-            node.itemTag.tag.repeat(self.renderWebItemTag, webitem.tags)
+                node.description.atts['href'] = webitem.url
+            node.description.atts['title'] = '%s %s' % (webitem.modified, webitem.description)
+            node.tag.repeat(self.renderWebItemTag, webitem.tags)
+            node.date.content = webitem.created or '0000-00-00'
             node.edit.atts['href'] %= webitem.id
             node.delete.atts['href'] = '%s/%s?method=delete' % (request.WEBLIB_URL, webitem.id)
 #            if webitem.fetched:

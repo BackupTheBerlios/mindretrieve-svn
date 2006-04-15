@@ -188,26 +188,39 @@
   background-color: #fc9;
 }
 
+.webItem {
+}
+
+.webItem .description {
+  float: left;
+}
+
+.webItem .rightPane {
+  float: right;
+}
+
+.webItem .tag {
+  color:black;
+  font-size:75%;
+}
+
+.webItem .date {
+  color:#777;
+  font-size:75%;
+}
+
+.webItem img {
+  position:relative;
+  top:1px;
+  border:0;
+}
+
+
 .itemHeader           {
   font-weight: bold;
 }
 .itemHeaderSpacer     {
   line-height:150%;
-}
-.itemDescription      {
-  float: left;
-}
-.itemTag              {
-  float: right;
-}
-.itemSmallLink        {
-  color:black;
-  font-size:75%;
-}
-.itemSmallLink img    {
-  position:relative;
-  top:1px;
-  border:0;
 }
 
 /* == hidden asyncForm ======================================================================== */
@@ -612,20 +625,28 @@ Upgrade available - <a node='con:link' href="https://developer.berlios.de/projec
 
   <tr node='rep:webItem' class='altrow'>
     <span node='-con:placeHolder'>
-    <td><input node='con:checkbox' type='checkbox' name='100' /></td>
     <td>
-        <span node='itemDescription' class='itemDescription'>
-            <a node='con:itemDescription' href='#' title='MindRetrieve - search your personal web'>this is a long link </a>
+        <input node='con:checkbox' type='checkbox' name='100' />
+    </td>
+    <td class='webItem'>
+        <span class='description'>
+            <a node='con:description' href='#' title='MindRetrieve - search your personal web'>this is a long link </a>
         </span>
-        <span node='con:itemTag' class='itemTag'>
-            <a node='rep:tag' href='#' class='itemSmallLink'>tag1</a>
+        <span class='rightPane'>
+            <a node='rep:tag' href='#' class='tag'>tag1</a>
             <span node="-sep:tag">, </span>
-            <a node='rep:tag' href='#' class='itemSmallLink'>tag2</a>
+            <a node='rep:tag' href='#' class='tag'>tag2</a>
+            <span node='con:date' class='date'>
+                2000-01-01
+            </span>
         </span>
     </td>
-    <td><a node='con:edit' href='javascript:editWebItem(%s);' class='itemSmallLink'><img src='img/edit_icon.gif' /></a></td>
-    <td><a node='con:delete' href='#' class='itemSmallLink' target='asyncFrame'><img src='img/delete_icon.gif' /></a></td>
-    <td><!-- <a node='con:cache' href='#' class='itemSmallLink'>2005-12-01</a> --></td>
+    <td>
+        <a node='con:edit' href='javascript:editWebItem(%s);' class='webItem'><img src='img/edit_icon.gif' /></a>
+    </td>
+    <td>
+        <a node='con:delete' href='#' class='webItem' target='asyncFrame'><img src='img/delete_icon.gif' /></a>
+    </td>
     </span>
   </tr>
 
@@ -640,6 +661,9 @@ Upgrade available - <a node='con:link' href="https://developer.berlios.de/projec
             <a node='rep:tag' href='#' class='itemSmallLink'>tag1</a>
             <span node="-sep:tag">, </span>
             <a node='rep:tag' href='#' class='itemSmallLink'>tag2</a>
+        </span>
+        <span node='con:itemDate' class='itemDate'>
+            2006-04-14
         </span>
     </td>
     <td><a node='con:edit' href='#' class='itemSmallLink'><img src='img/edit_icon.gif' /></a></td>

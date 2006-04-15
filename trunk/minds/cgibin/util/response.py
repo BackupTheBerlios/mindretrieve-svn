@@ -3,6 +3,7 @@
 Run from command line to display the HTMLTemplate parse tree.
 """
 import codecs
+import Cookie
 import datetime
 import sys
 import urllib
@@ -112,6 +113,13 @@ class CGIRenderer(object):
         encoding='utf-8',
         cache_control='no-cache'):
 
+        self.wfile = wfile
+        self.content_type = content_type
+        self.encoding = encoding
+        self.cache_control = cache_control
+
+        self.cookie = Cookie.SimpleCookie()
+
         # load template
         tpath = cfg.getpath('docBase')/self.TEMPLATE_FILE
         fp = tpath.open('rb')
@@ -120,17 +128,22 @@ class CGIRenderer(object):
         finally:
             fp.close()
 
-        # HTTP header
-        wfile.write('Content-type: %s; charset=%s\r\n' % (content_type, encoding))
-        if cache_control:
-            wfile.write('Cache-control: %s\r\n' % (cache_control,))
-        wfile.write('\r\n')
+
+    def output_headers(self):
+        # output HTTP headers
+        self.wfile.write('Content-type: %s; charset=%s\r\n' % (self.content_type, self.encoding))
+        if self.cache_control:
+            self.wfile.write('Cache-control: %s\r\n' % (self.cache_control,))
+        if self.cookie:
+            self.wfile.write(self.cookie.output())
+        self.wfile.write('\r\n')
 
         # build encoded output stream
-        self.out = codecs.getwriter(encoding)(wfile,'replace')
+        self.out = codecs.getwriter(self.encoding)(self.wfile,'replace')
 
 
     def output(self, *args):
+        self.output_headers()
         self.out.write(self.template.render(*args))
 
 
@@ -210,6 +223,8 @@ class WeblibLayoutRenderer(CGIRenderer):
 
 
     def output(self, *args):
+        self.output_headers()
+
         # generates the content first
         self.content_text = self.template.render(*args)
         self.style_block, self.script_block, self.content_text = _split_style_script_block(self.content_text)

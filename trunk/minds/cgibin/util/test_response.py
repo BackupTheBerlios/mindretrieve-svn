@@ -1,3 +1,4 @@
+import re
 import StringIO
 import sys
 import unittest
@@ -68,6 +69,16 @@ class TestResponse(unittest.TestCase):
         SampleRenderer(buf).output()
         # Render is fairly completed to check. CGI test would better verify them.
         # Just do some sanity check on the output here
+        self.assert_('</html>' in buf.getvalue())
+
+
+    def test_cookie(self):
+        buf = StringIO.StringIO()
+        r = SampleRenderer(buf)
+        r.cookie['xx'] = 'yy'
+        r.output()
+
+        self.assert_(re.search('set-cookie:.*xx.*=.*yy', buf.getvalue(), re.I))
         self.assert_('</html>' in buf.getvalue())
 
 

@@ -1,3 +1,4 @@
+import Cookie
 import cgi
 import urllib
 
@@ -50,6 +51,9 @@ class Request(object):
     def __init__(self, rfile, env, encoding='utf8'):
         self.env = env
         self.encoding = encoding
+        self.cookie = Cookie.SimpleCookie()
+        if 'HTTP_COOKIE' in env:
+            self.cookie.load(env.get('HTTP_COOKIE'))
         self.form = cgi.FieldStorage(fp=rfile, environ=env, keep_blank_values=1)
 
         # the HTTP method

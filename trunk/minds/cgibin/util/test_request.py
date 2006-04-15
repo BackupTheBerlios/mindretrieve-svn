@@ -5,9 +5,10 @@ import urllib
 
 from minds.cgibin.util import request
 
-def _make_request(method='GET', path='/', querystring=''):
+def _make_request(method='GET', path='/', querystring='', env=None):
     rfile = StringIO.StringIO()
-    env = {}
+    if not env:
+        env = {}
     env['REQUEST_METHOD'] = method
     env['PATH_INFO'] = path
     env['QUERY_STRING'] = querystring
@@ -30,6 +31,13 @@ class TestRequest(unittest.TestCase):
     u8_str = u_str.encode('utf8')           # '\xc3\xb6'
     url_str = urllib.quote(u8_str)          # '%C3%B6'
 
+
+    def test_cookie(self):
+        req = _make_request(method='GET', env={'HTTP_COOKIE': 'id=8000002ac944043'})
+        self.assertEqual(req.cookie['id'].value, '8000002ac944043')
+        self.assert_(not req.cookie.get('jsessionid'))
+
+
     def test_method(self):
         self.assertEqual(_make_request(method='GET').method, 'GET')
         self.assertEqual(_make_request(method='POST').method, 'POST')
@@ -40,6 +48,7 @@ class TestRequest(unittest.TestCase):
 
         # method parameter in querystring overrides HTTP method
         self.assertEqual(_make_request(method='GET',querystring='method=delete').method, 'DELETE')
+
 
     def test_rid(self):
         self.assertEqual(_rid_request(path='/_/form'), (-1,'form'))

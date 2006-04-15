@@ -136,6 +136,7 @@ class CGIRenderer(object):
             self.wfile.write('Cache-control: %s\r\n' % (self.cache_control,))
         if self.cookie:
             self.wfile.write(self.cookie.output())
+            self.wfile.write('\r\n')
         self.wfile.write('\r\n')
 
         # build encoded output stream

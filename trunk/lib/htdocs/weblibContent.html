@@ -142,26 +142,6 @@
     margin: 1ex 0 0 0;
 }
 
-.libTable a {
-    text-decoration: none;
-}
-
-.libTable a:hover {
-    text-decoration: underline;
-}
-
-.libTable .itemHeader a {
-    color:black;
-}
-
-.libTableHeader       {
-  background-color: #ccc;
-}
-
-.libTableFooter       {
-  background-color: #ccc;
-}
-
 .libTable             {
   border-collapse: collapse;
 }
@@ -175,12 +155,56 @@
   padding-right: 2px;
 }
 
+.libTable a {
+    text-decoration: none;
+}
+
+.libTable a:hover {
+    text-decoration: underline;
+}
+
+.libTable .itemHeader a {
+    color:black;
+}
+
+.webItemHeading       {
+  background-color: #ccc;
+}
+
+.webItemHeading .sorting img {
+    padding: 2px;
+    border: 0;
+}
+
+.webItemHeading .sorting a {
+    text-decoration: None;
+    font-weight: bold;
+    color: #000;
+}
+
+.webItemHeading .sorting a:hover {
+    text-decoration: None;
+    background-color: #fff;
+}
+
+.webItemHeading .tag {
+  float: right;
+}
+
+.webItemHeading .date {
+  text-align: right;
+}
+
+.libTableFooter       {
+  background-color: #ccc;
+}
+
 /* item table */
 .col1 { width: 2em; }
 .col2 { width: *;}
-.col3 { width: 1.5em;}
+.col3 { width: 6em;}
 .col4 { width: 1.5em;}
-.col5 { width: 9%;}
+.col5 { width: 1.5em;}
 
 .altrow               {
   background-color: #eee;
@@ -210,9 +234,10 @@
   font-size:75%;
 }
 
-.webItem .date {
+.webItem_date {
   color:#777;
   font-size:75%;
+  text-align: right;
 }
 
 .webItem img {
@@ -603,16 +628,30 @@ Upgrade available - <a node='con:link' href="https://developer.berlios.de/projec
   <col class='col2' />
   <col class='col3' />
   <col class='col4' />
-<!--  <col class='col5' />-->
+  <col class='col5' />
 
   <!--==header========================================================================-->
-  <tr class='libTableHeader'>
+  <tr class='webItemHeading' node='con:heading'>
     <td><input id='checkAll_top' type='checkbox' onclick='selectAll("checkAll_top");'></td>
-    <td colspan='4' align='right'>
-       <input type='button' value='Edit Selected' onclick='organizeSelected();' />
-       <input type='button' value='Delete Selected'  onclick='deleteSelected();' />
+    <td class='sorting'>
+        <span class='tag'>
+            <a node='con:tag' href="#"><img node='con:icon' src='img/arrowUp.gif' />Tag</a>
+        </span>
+        <span>
+            <a node='con:title' href='/weblib?sort=title-up'><img node='con:icon' src='img/arrowUp.gif' />Title</a>
+        </span>
+    </td>
+    <td class='sorting date'>
+        <a node='con:date' href="#"><img node='con:icon' src='img/arrowDown.gif' style='margin:0px; valign: middle;'/>Date</a>
+    </td>
+    <td>
+        <a node='con:edit' href='javascript:editWebItem(%s);' class='webItem'><img src='img/edit_icon.gif' /></a>
+    </td>
+    <td>
+        <a node='con:delete' href='#' class='webItem' target='asyncFrame'><img src='img/delete_icon.gif' /></a>
     </td>
   </tr>
+
 
   <!--==webItem========================================================================-->
 
@@ -640,10 +679,10 @@ Upgrade available - <a node='con:link' href="https://developer.berlios.de/projec
             <a node='rep:tag' href='#' class='tag'>tag1</a>
             <span node="-sep:tag">, </span>
             <a node='rep:tag' href='#' class='tag'>tag2</a>
-            <span node='con:date' class='date'>
-                2000-01-01
-            </span>
         </span>
+    </td>
+    <td node='con:date' class='webItem_date'>
+        2000-01-01
     </td>
     <td>
         <a node='con:edit' href='javascript:editWebItem(%s);' class='webItem'><img src='img/edit_icon.gif' /></a>
@@ -654,65 +693,34 @@ Upgrade available - <a node='con:link' href="https://developer.berlios.de/projec
     </span>
   </tr>
 
-  <tr node='rep:webItem'>
+
+  <tr node='rep:webItem' class=''>
     <span node='-con:placeHolder'>
-    <td><input node='con:checkbox' type='checkbox' name='100' /></td>
     <td>
-        <span node='itemDescription' class='itemDescription'>
-            <a node='con:itemDescription' href='#' title='MindRetrieve - search your personal web'>this is a long link </a>
+        <input node='con:checkbox' type='checkbox' name='100' />
+    </td>
+    <td class='webItem'>
+        <span class='description'>
+            <a node='con:description' href='#' title='MindRetrieve - search your personal web'>this is a long link </a>
         </span>
-        <span node='con:itemTag' class='itemTag'>
-            <a node='rep:tag' href='#' class='itemSmallLink'>tag1</a>
+        <span class='rightPane'>
+            <a node='rep:tag' href='#' class='tag'>tag1</a>
             <span node="-sep:tag">, </span>
-            <a node='rep:tag' href='#' class='itemSmallLink'>tag2</a>
-        </span>
-        <span node='con:itemDate' class='itemDate'>
-            2006-04-14
+            <a node='rep:tag' href='#' class='tag'>tag2</a>
         </span>
     </td>
-    <td><a node='con:edit' href='#' class='itemSmallLink'><img src='img/edit_icon.gif' /></a></td>
-    <td><a node='con:delete' href='#' class='itemSmallLink'><img src='img/delete_icon.gif' /></a></td>
-    <td><!-- <a node='con:cache' href='#' class='itemSmallLink'>2005-12-01</a> --></td>
+    <td node='con:date' class='webItem_date'>
+        2000-01-01
+    </td>
+    <td>
+        <a node='con:edit' href='javascript:editWebItem(%s);' class='webItem'><img src='img/edit_icon.gif' /></a>
+    </td>
+    <td>
+        <a node='con:delete' href='#' class='webItem' target='asyncFrame'><img src='img/delete_icon.gif' /></a>
+    </td>
     </span>
   </tr>
 
-  <tr node='rep:webItem' class='altrow'>
-    <span node='-con:placeHolder'>
-    <td><input node='con:checkbox' type='checkbox' name='100' /></td>
-    <td>
-        <span node='itemDescription' class='itemDescription'>
-            <a node='con:itemDescription' href='#' title='MindRetrieve - search your personal web'>this is a long link </a>
-        </span>
-        <span node='con:itemTag' class='itemTag'>
-            <a node='rep:tag' href='#' class='itemSmallLink'>tag1</a>
-            <span node="-sep:tag">, </span>
-            <a node='rep:tag' href='#' class='itemSmallLink'>tag2</a>
-        </span>
-    </td>
-    <td><a node='con:edit' href='#' class='itemSmallLink'><img src='img/edit_icon.gif' /></a></td>
-    <td><a node='con:delete' href='#' class='itemSmallLink'><img src='img/delete_icon.gif' /></a></td>
-    <td><!-- <a node='con:cache' href='#' class='itemSmallLink'>2005-12-01</a> --></td>
-    </span>
-  </tr>
-
-  <tr node='rep:webItem'>
-    <span node='-con:placeHolder'>
-    <td><input node='con:checkbox' type='checkbox' name='100' /></td>
-    <td>
-        <span node='itemDescription' class='itemDescription'>
-            <a node='con:itemDescription' href='#' title='MindRetrieve - search your personal web'>this is a long link </a>
-        </span>
-        <span node='con:itemTag' class='itemTag'>
-            <a node='rep:tag' href='#' class='itemSmallLink'>tag1</a>
-            <span node="-sep:tag">, </span>
-            <a node='rep:tag' href='#' class='itemSmallLink'>tag2</a>
-        </span>
-    </td>
-    <td><a node='con:edit' href='#' class='itemSmallLink'><img src='img/edit_icon.gif' /></a></td>
-    <td><a node='con:delete' href='#' class='itemSmallLink'><img src='img/delete_icon.gif' /></a></td>
-    <td><!-- <a node='con:cache' href='#' class='itemSmallLink'>2005-12-01</a> --></td>
-    </span>
-  </tr>
 
   <tr class='libTableFooter'>
     <td><input id='checkAll_bottom' type='checkbox' onclick='selectAll("checkAll_bottom")'></td>

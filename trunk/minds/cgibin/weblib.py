@@ -21,6 +21,15 @@ from minds.weblib import util
 log = logging.getLogger('cgi.weblib')
 
 
+SORT_TOKENS = [
+    'title-asc',
+    'title-desc',
+    'tag-asc',
+    'tag-desc',
+    'date-asc',
+    'date-desc',
+]
+
 def _tag_from_cookie(req):
     tid = req.cookie.get('weblib_tag')
     if not tid:
@@ -34,6 +43,20 @@ def _tag_from_cookie(req):
         return None
     wlib = store.getWeblib()
     return wlib.tags.getById(tid)
+
+
+def _get_sort_preference(req):
+    #print >>sys.__stderr__, req.param('sort'), '<>', req.cookie.get('weblib_sort')#, req
+    if 'sort' in req.form:
+        sort = req.param('sort')
+    elif 'weblib_sort' in req.cookie:
+        sort = req.cookie.get('weblib_sort').value
+    else:
+        return ''
+    sort = sort.lower()
+    if sort not in SORT_TOKENS:
+        return ''
+    return sort
 
 
 def main(rfile, wfile, env):
@@ -66,27 +89,31 @@ def main(rfile, wfile, env):
         elif path == 'save':
             doSave(wfile, req)
         else:
-            # query
-            querytxt = req.param('query')
-            tag = req.param('tag')
+            doQuery(wfile, req)
 
-            # No tag specified? Use fallback: 1. cookie, 2. default tag
-            if not ('tag' in req.form or querytxt):
-                def_tag = _tag_from_cookie(req) or wlib.getDefaultTag()
-                if def_tag:
-                    url = request.tag_url([def_tag])
-                    response.redirect(wfile, url)
-                    return
 
-#            if req.param('action') == 'cancel':
-#                response.redirect(wfile, request.WEBLIB_URL)
+def doQuery(wfile, req):
+    wlib = store.getWeblib()
+    querytxt = req.param('query')
+    tag = req.param('tag')
+    sort = _get_sort_preference(req)
+    sort = sort or 'tag-asc'
+    # No tag specified? Use fallback: 1. cookie, 2. default tag
+    if not ('tag' in req.form or querytxt):
+        def_tag = _tag_from_cookie(req) or wlib.getDefaultTag()
+        if def_tag:
+            url = request.tag_url([def_tag])
+            if sort:
+                url = '%s&sort=%s' % (url, sort)
+            response.redirect(wfile, url)
+            return
 
-            if tag:
-                queryTag(wfile, req, tag)
-            elif querytxt:
-                queryWebLib(wfile, req, tag, querytxt)
-            else:
-                queryRoot(wfile, req)
+    if tag:
+        queryTag(wfile, req, tag, sort)
+    elif querytxt:
+        queryWebLib(wfile, req, tag, sort, querytxt)
+    else:
+        queryRoot(wfile, req, sort)
 
 
 def doWeblibForm(wfile, req):
@@ -287,7 +314,7 @@ def _query_by_tag(wlib, tag):
     return webItems
 
 
-def queryTag(wfile, req, nameOrId):
+def queryTag(wfile, req, nameOrId, sort):
     wlib = store.getWeblib()
 
     tag = weblib.parseTag(wlib, nameOrId)
@@ -318,6 +345,8 @@ def queryTag(wfile, req, nameOrId):
     renderer = WeblibRenderer(wfile)
     if tag:
         renderer.cookie['weblib_tag'] = '@%s' % tag.id
+    if sort:
+        renderer.cookie['weblib_sort'] = sort
     renderer.setLayoutParam(None)
     renderer.output(
         wlib.tags,
@@ -325,10 +354,12 @@ def queryTag(wfile, req, nameOrId):
         wlib.getDefaultTag(),
         categoryList,
         upgrade_info,
-        webItems)
+        sort,
+        webItems,
+        )
 
 
-def queryWebLib(wfile, req, tag, querytxt):
+def queryWebLib(wfile, req, tag, sort, querytxt):
     go_direct = req.param('submit') == '>'
     if querytxt.endswith('>'):
         querytxt = querytxt[:-1]
@@ -367,6 +398,8 @@ def queryWebLib(wfile, req, tag, querytxt):
         webItems.append(WebItemNode(item))
 
     renderer = WeblibRenderer(wfile)
+    if sort:
+        renderer.cookie['weblib_sort'] = sort
     renderer.setLayoutParam(querytxt=querytxt)
     renderer.output(
         wlib.tags,
@@ -374,10 +407,12 @@ def queryWebLib(wfile, req, tag, querytxt):
         wlib.getDefaultTag(),
         categoryList,
         upgrade_info,
-        webItems)
+        sort,
+        webItems,
+        )
 
 
-def queryRoot(wfile, req):
+def queryRoot(wfile, req, sort):
     wlib = store.getWeblib()
 
     # category pane
@@ -390,6 +425,8 @@ def queryRoot(wfile, req):
     webItems = map(WebItemNode, query_wlib.queryRoot(wlib))
 
     renderer = WeblibRenderer(wfile)
+    if sort:
+        renderer.cookie['weblib_sort'] = sort
     renderer.setLayoutParam(None)
     renderer.output(
         wlib.tags,
@@ -397,14 +434,16 @@ def queryRoot(wfile, req):
         wlib.getDefaultTag(),
         categoryList,
         upgrade_info,
-        webItems)
+        sort,
+        webItems,
+        )
 
 
 # ----------------------------------------------------------------------
 
 class WeblibRenderer(response.WeblibLayoutRenderer):
     TEMPLATE_FILE = 'weblibContent.html'
-    """ weblibContent.html 2006-04-14
+    """ weblibContent.html 2006-04-17
     con:tagListForm
             rep:tag
     con:rootTag
@@ -425,6 +464,15 @@ class WeblibRenderer(response.WeblibLayoutRenderer):
                     rep:engine
             con:count
     con:web_items
+            con:heading
+                    con:tag
+                            con:icon
+                    con:title
+                            con:icon
+                    con:date
+                            con:icon
+                    con:edit
+                    con:delete
             con:headerTemplateHolder
                     con:headerTemplate
                             con:prefix
@@ -444,6 +492,7 @@ class WeblibRenderer(response.WeblibLayoutRenderer):
         defaultTag,
         categoryList,
         upgrade_info,
+        sort,
         webItems,
         ):
         """
@@ -500,6 +549,44 @@ class WeblibRenderer(response.WeblibLayoutRenderer):
         if not webItems:
             node.web_items.omit()
             return
+
+        # ------------------------------------------------------------------------
+        # webitems Heading
+        h = node.web_items.heading
+        if selectedTag:
+            base_url = '/weblib?tag=@%s&sort=%%s' % selectedTag.id
+        else:
+            base_url = '/weblib?sort=%s'
+
+        if sort == 'title-asc':
+            h.title.icon.atts['src'] = '/img/arrowUp.gif'
+            h.title.atts['href'] = base_url % 'title-desc'
+        elif sort == 'title-desc':
+            h.title.icon.atts['src'] = '/img/arrowDown.gif'
+            h.title.atts['href'] = base_url % 'title-asc'
+        else:
+            h.title.icon.omit();
+            h.title.atts['href'] = base_url % 'title-asc'
+
+        if sort == 'tag-asc':
+            h.tag.icon.atts['src'] = '/img/arrowUp.gif'
+            h.tag.atts['href'] = base_url % 'tag-desc'
+        elif sort == 'tag-desc':
+            h.tag.icon.atts['src'] = '/img/arrowDown.gif'
+            h.tag.atts['href'] = base_url % 'tag-asc'
+        else:
+            h.tag.icon.omit();
+            h.tag.atts['href'] = base_url % 'tag-asc'
+
+        if sort == 'date-asc':
+            h.date.icon.atts['src'] = '/img/arrowUp.gif'
+            h.date.atts['href'] = base_url % 'date-desc'
+        elif sort == 'date-desc':
+            h.date.icon.atts['src'] = '/img/arrowDown.gif'
+            h.date.atts['href'] = base_url % 'date-asc'
+        else:
+            h.date.icon.omit();
+            h.date.atts['href'] = base_url % 'date-asc'
 
         # ------------------------------------------------------------------------
         # webitems

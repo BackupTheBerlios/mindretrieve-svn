@@ -15,12 +15,46 @@ The simplest way to use this is to invoke its main method. E.g.
 It defines the class HTMLTestRunner, which is a counterpart of unittest's
 TextTestRunner. You can also instantiates a HTMLTestRunner object for
 finer control.
+
+
+------------------------------------------------------------------------
+Copyright (c) 2004-2006, Wai Yip Tung
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+* Redistributions of source code must retain the above copyright notice,
+  this list of conditions and the following disclaimer.
+* Redistributions in binary form must reproduce the above copyright
+  notice, this list of conditions and the following disclaimer in the
+  documentation and/or other materials provided with the distribution.
+* Neither the name Wai Yip Tung nor the names of its contributors may be
+  used to endorse or promote products derived from this software without
+  specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER
+OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
-# URL: http://tungwaiyip.info/software
+# URL: http://tungwaiyip.info/software/HTMLTestRunner.html
 
 __author__ = "Wai Yip Tung"
-__version__ = "0.7"
+__version__ = "0.7.1"
+
+# Changes in 0.7.1
+# * Back port to Python 2.3. Thank you Frank Horowitz.
+# * Fix missing scroll bars in detail log. Thank you Podi.
 
 
 # TOOD: need to make sure all HTML and JavaScript blocks are properly escaped!
@@ -29,7 +63,6 @@ __version__ = "0.7"
 # TODO: simplify javascript using ,ore than 1 class in the class attribute?
 
 import datetime
-import string
 import StringIO
 import sys
 import time
@@ -122,13 +155,13 @@ h1          { }
 CSS_LINK = '<link rel="stylesheet" href="$url" type="text/css">\n'
 
 
-HTML_TMPL = string.Template(r"""
+HTML_TMPL = r"""
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html>
 <head>
-    <title>$title</title>
+    <title>%(title)s</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    $css
+    %(css)s
 </head>
 <body>
 <script>
@@ -189,7 +222,7 @@ function showClassDetail(cid, count) {
 function showOutput(id, name) {
     w = window.open("", //url
                     name,
-                    "resizable,status,width=800,height=450");
+                    "resizable,scrollbars,status,width=800,height=450");
     d = w.document;
     d.write("<pre>");
     d.write(output_list[id]);
@@ -201,9 +234,9 @@ function showOutput(id, name) {
 
 </script>
 
-<h1>$description</h1>
-<p class='heading'><strong>Time:</strong> $time</p>
-<p class='heading'><strong>Status:</strong> $status</p>
+<h1>%(description)s</h1>
+<p class='heading'><strong>Time:</strong> %(time)s</p>
+<p class='heading'><strong>Status:</strong> %(status)s</p>
 <p id='show_detail_line'>Show
 <a href='javascript:showCase(0)'>Summary</a>
 <a href='javascript:showCase(1)'>Failed</a>
@@ -226,49 +259,49 @@ function showOutput(id, name) {
     <td>Error</td>
     <td>View</td>
 </tr>
-$tests
+%(tests)s
 <tr id='total_row'>
     <td>Total</td>
-    <td>$count</td>
-    <td>$Pass</td>
-    <td>$fail</td>
-    <td>$error</td>
+    <td>%(count)s</td>
+    <td>%(Pass)s</td>
+    <td>%(fail)s</td>
+    <td>%(error)s</td>
     <td>&nbsp;</td>
 </tr>
 </table>
 <div id='btm_filler' />
 </body>
 </html>
-""")
+"""
 
-CLASS_TMPL = string.Template(r"""
-<tr class='$style'>
-    <td>$name</td>
-    <td>$count</td>
-    <td>$Pass</td>
-    <td>$fail</td>
-    <td>$error</td>
-    <td><a href="javascript:showClassDetail('$cid',$count)">Detail</a></td>
+CLASS_TMPL = r"""
+<tr class='%(style)s'>
+    <td>%(name)s</td>
+    <td>%(count)s</td>
+    <td>%(Pass)s</td>
+    <td>%(fail)s</td>
+    <td>%(error)s</td>
+    <td><a href="javascript:showClassDetail('%(cid)s',%(count)s)">Detail</a></td>
 </tr>
-""")
+"""
 
-TEST_TMPL = string.Template(r"""
-<tr id='$tid' class='$Class'>
-    <td class='$style'><div class='testcase'>$name<div></td>
-    <td colspan='5' align='center'><a href="javascript:showOutput('$tid', '$name')">$status</a></td>
+TEST_TMPL = r"""
+<tr id='%(tid)s' class='%(Class)s'>
+    <td class='%(style)s'><div class='testcase'>%(name)s<div></td>
+    <td colspan='5' align='center'><a href="javascript:showOutput('%(tid)s', '%(name)s')">%(status)s</a></td>
 </tr>
-""")
+"""
 
-TEST_TMPL_NO_OUTPUT = string.Template(r"""
-<tr id='$tid' class='$Class'>
-    <td class='$style'><div class='testcase'>$name<div></td>
-    <td colspan='5' align='center'>$status</td>
+TEST_TMPL_NO_OUTPUT = r"""
+<tr id='%(tid)s' class='%(Class)s'>
+    <td class='%(style)s'><div class='testcase'>%(name)s<div></td>
+    <td colspan='5' align='center'>%(status)s</td>
 </tr>
-""")
+"""
 
-TEST_OUTPUT_TMPL = string.Template(r"""
-<script>output_list['$id'] = '$output';</script>
-""")
+TEST_OUTPUT_TMPL = r"""
+<script>output_list['%(id)s'] = '%(output)s';</script>
+"""
 
 
 # ----------------------------------------------------------------------
@@ -340,8 +373,9 @@ class _TestResult(TestResult):
 
     def addError(self, test, err):
         TestResult.addError(self, test, err)
+        _, _exc_str = self.errors[-1]
         output = self.complete_output()
-        self.result.append((2, test, output, self._exc_info_to_string(err, test)))
+        self.result.append((2, test, output, _exc_str))
         if self.verbosity > 1:
             sys.stderr.write('E  ')
             sys.stderr.write(str(test))
@@ -351,8 +385,9 @@ class _TestResult(TestResult):
 
     def addFailure(self, test, err):
         TestResult.addFailure(self, test, err)
+        _, _exc_str = self.failures[-1]
         output = self.complete_output()
-        self.result.append((1, test, output, self._exc_info_to_string(err, test)))
+        self.result.append((1, test, output, _exc_str))
         if self.verbosity > 1:
             sys.stderr.write('F  ')
             sys.stderr.write(str(test))
@@ -415,7 +450,7 @@ class HTMLTestRunner:
             nfAll += nf
             neAll += ne
 
-            row = CLASS_TMPL.safe_substitute(
+            row = CLASS_TMPL % dict(
                 style = ne > 0 and 'errorClass' or nf > 0 and 'failClass' or 'passClass',
                 name = "%s.%s" % (cls.__module__, cls.__name__),
                 count = np+nf+ne,
@@ -432,7 +467,7 @@ class HTMLTestRunner:
                 tid = (n == 0 and 'p' or 'f') + 't%s.%s' % (cid+1,tid+1)
                 name = t.id().split('.')[-1]
                 tmpl = has_output and TEST_TMPL or TEST_TMPL_NO_OUTPUT
-                row = tmpl.safe_substitute(
+                row = tmpl % dict(
                     tid = tid,
                     Class = (n == 0 and 'hiddenRow' or ''),
                     style = n == 2 and 'errorCase' or (n == 1 and 'failCase' or ''),
@@ -454,7 +489,7 @@ class HTMLTestRunner:
                         ue = e.decode('latin-1')
                     else:
                         ue = e
-                    row = TEST_OUTPUT_TMPL.safe_substitute(
+                    row = TEST_OUTPUT_TMPL % dict(
                         id = tid,
                         output = saxutils.escape(uo+ue) \
                             .replace("'", '&apos;') \
@@ -465,7 +500,7 @@ class HTMLTestRunner:
                     )
                     rows.append(row)
 
-        report = HTML_TMPL.safe_substitute(
+        report = HTML_TMPL % dict(
             title = self.description,
             css = CSS,
             description = self.description,

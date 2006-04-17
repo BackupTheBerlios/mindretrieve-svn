@@ -21,15 +21,6 @@ from minds.weblib import util
 log = logging.getLogger('cgi.weblib')
 
 
-SORT_TOKENS = [
-    'title-asc',
-    'title-desc',
-    'tag-asc',
-    'tag-desc',
-    'date-asc',
-    'date-desc',
-]
-
 def _tag_from_cookie(req):
     tid = req.cookie.get('weblib_tag')
     if not tid:
@@ -45,7 +36,41 @@ def _tag_from_cookie(req):
     return wlib.tags.getById(tid)
 
 
+class SORT:
+    """ A namespace and helper methods """
+    ASC  = 'asc'
+    DESC = 'desc'
+
+    TITLE = 'title'
+    TAG   = 'tag'
+    DATE  = 'date'
+
+    TITLE_ASC  = TITLE + '-' + ASC
+    TITLE_DESC = TITLE + '-' + DESC
+    TAG_ASC    = TAG   + '-' + ASC
+    TAG_DESC   = TAG   + '-' + DESC
+    DATE_ASC   = DATE  + '-' + ASC
+    DATE_DESC  = DATE  + '-' + DESC
+
+    TOKENS = [
+        TITLE_ASC ,
+        TITLE_DESC,
+        TAG_ASC   ,
+        TAG_DESC  ,
+        DATE_ASC  ,
+        DATE_DESC ,
+    ]
+
+    @staticmethod
+    def parse_token(token):
+        """ Parse 'column-order' into (column, order) """
+        if token not in SORT.TOKENS:
+            return '',''
+        return token.split('-',1)
+
+
 def _get_sort_preference(req):
+    # note: it is possible for sort to be unspecified
     #print >>sys.__stderr__, req.param('sort'), '<>', req.cookie.get('weblib_sort')#, req
     if 'sort' in req.form:
         sort = req.param('sort')
@@ -54,7 +79,7 @@ def _get_sort_preference(req):
     else:
         return ''
     sort = sort.lower()
-    if sort not in SORT_TOKENS:
+    if sort not in SORT.TOKENS:
         return ''
     return sort
 
@@ -97,7 +122,6 @@ def doQuery(wfile, req):
     querytxt = req.param('query')
     tag = req.param('tag')
     sort = _get_sort_preference(req)
-    sort = sort or 'tag-asc'
     # No tag specified? Use fallback: 1. cookie, 2. default tag
     if not ('tag' in req.form or querytxt):
         def_tag = _tag_from_cookie(req) or wlib.getDefaultTag()
@@ -302,15 +326,34 @@ def _n_dfs(root, nlist=None):
     nlist.pop()
 
 
-def _query_by_tag(wlib, tag):
-    webItems = []
+def _query_by_tag(wlib, tag, sort):
+    col, order = SORT.parse_token(sort)
     positions = query_wlib.query_by_tag(wlib, tag)
-    for pos in positions:
-        tagNode = WebItemTagNode(pos.tag)
-        tagNode.prefix = pos.prefix
-        webItems.append(tagNode)
-        for _,_,page in pos.items:
-            webItems.append(WebItemNode(page))
+
+    # build and sort webItems
+    webItems = []
+
+    if col == SORT.TITLE or col == SORT.DATE:
+        lst = []
+        for pos in positions:
+            for _,_,page in pos.items:
+                if col == SORT.TITLE:
+                    key = page.name.lower()
+                else:
+                    key = page.created
+                lst.append((key,WebItemNode(page)))
+        lst.sort(reverse=(order==SORT.DESC))
+        webItems = [w for _,w in lst]
+
+    else:
+        # order by tag (default)
+        for pos in positions:
+            tagNode = WebItemTagNode(pos.tag)
+            tagNode.prefix = pos.prefix
+            webItems.append(tagNode)
+            for _,_,page in pos.items:
+                webItems.append(WebItemNode(page))
+
     return webItems
 
 
@@ -334,7 +377,7 @@ def queryTag(wfile, req, nameOrId, sort):
 
     # webitem pane
     if tag:
-        webItems = _query_by_tag(wlib, tag)
+        webItems = _query_by_tag(wlib, tag, sort)
     else:
         # TODO: HACK!!!
         # Create a fake tag to fill something in the result
@@ -349,6 +392,7 @@ def queryTag(wfile, req, nameOrId, sort):
         renderer.cookie['weblib_sort'] = sort
     renderer.setLayoutParam(None)
     renderer.output(
+        request.tag_url(nameOrId),
         wlib.tags,
         tag,
         wlib.getDefaultTag(),
@@ -394,14 +438,33 @@ def queryWebLib(wfile, req, tag, sort, querytxt):
             node.suffix = '...'
             webItems.append(node)
 
+    # sort result?
+    col, order = SORT.parse_token(sort)
+    if col == SORT.TITLE or col == SORT.DATE:
+        lst = []
+        for r in result:
+            item = r[0]
+            if col == SORT.TITLE:
+                key = item.name.lower()
+            else:
+                key = item.created
+            lst.append((key,r))
+        lst.sort(reverse=(order==SORT.DESC))
+        result = [r for _,r in lst]
+
     for item,_ in result:
         webItems.append(WebItemNode(item))
+
+    # reconstuct the base url
+    qs = urllib.quote_plus(querytxt.encode('utf8'))
+    base_url = '/weblib?query=' + qs
 
     renderer = WeblibRenderer(wfile)
     if sort:
         renderer.cookie['weblib_sort'] = sort
     renderer.setLayoutParam(querytxt=querytxt)
     renderer.output(
+        base_url,
         wlib.tags,
         None,
         wlib.getDefaultTag(),
@@ -429,6 +492,7 @@ def queryRoot(wfile, req, sort):
         renderer.cookie['weblib_sort'] = sort
     renderer.setLayoutParam(None)
     renderer.output(
+        '/weblib',
         wlib.tags,
         None,
         wlib.getDefaultTag(),
@@ -487,6 +551,7 @@ class WeblibRenderer(response.WeblibLayoutRenderer):
                             con:delete
     """
     def render(self, node,
+        base_url,
         tags,
         selectedTag,
         defaultTag,
@@ -496,10 +561,11 @@ class WeblibRenderer(response.WeblibLayoutRenderer):
         webItems,
         ):
         """
+        @param base_url - base URL that invoke this page (without the sort parameter)
         @param tags - list of all tags
         @param selectedTag - tag selected or None
         @param defaultTag - a Tag (e.g. inbox)
-        @param webItems - list of WebItemNode of WebItemTagNode
+        @param webItems - sequence of intermixed WebItemNode and WebItemTagNode
         """
 
         lSelectedTagName = selectedTag and selectedTag.name.lower() or ''
@@ -553,40 +619,40 @@ class WeblibRenderer(response.WeblibLayoutRenderer):
         # ------------------------------------------------------------------------
         # webitems Heading
         h = node.web_items.heading
-        if selectedTag:
-            base_url = '/weblib?tag=@%s&sort=%%s' % selectedTag.id
+        if '?' in base_url:
+            base_url += '&sort=%s'
         else:
-            base_url = '/weblib?sort=%s'
+            base_url += '?sort=%s'
 
-        if sort == 'title-asc':
+        if sort == SORT.TITLE_ASC:
             h.title.icon.atts['src'] = '/img/arrowUp.gif'
-            h.title.atts['href'] = base_url % 'title-desc'
-        elif sort == 'title-desc':
+            h.title.atts['href'] = base_url % SORT.TITLE_DESC
+        elif sort == SORT.TITLE_DESC:
             h.title.icon.atts['src'] = '/img/arrowDown.gif'
-            h.title.atts['href'] = base_url % 'title-asc'
+            h.title.atts['href'] = base_url % SORT.TITLE_ASC
         else:
             h.title.icon.omit();
-            h.title.atts['href'] = base_url % 'title-asc'
+            h.title.atts['href'] = base_url % SORT.TITLE_ASC
 
-        if sort == 'tag-asc':
+        if sort == SORT.TAG_ASC:
             h.tag.icon.atts['src'] = '/img/arrowUp.gif'
-            h.tag.atts['href'] = base_url % 'tag-desc'
-        elif sort == 'tag-desc':
+            h.tag.atts['href'] = base_url % SORT.TAG_ASC    # tag is only ordered one way
+        elif sort == SORT.TAG_DESC:
             h.tag.icon.atts['src'] = '/img/arrowDown.gif'
-            h.tag.atts['href'] = base_url % 'tag-asc'
+            h.tag.atts['href'] = base_url % SORT.TAG_ASC
         else:
             h.tag.icon.omit();
-            h.tag.atts['href'] = base_url % 'tag-asc'
+            h.tag.atts['href'] = base_url % SORT.TAG_ASC
 
-        if sort == 'date-asc':
+        if sort == SORT.DATE_ASC:
             h.date.icon.atts['src'] = '/img/arrowUp.gif'
-            h.date.atts['href'] = base_url % 'date-desc'
-        elif sort == 'date-desc':
+            h.date.atts['href'] = base_url % SORT.DATE_DESC
+        elif sort == SORT.DATE_DESC:
             h.date.icon.atts['src'] = '/img/arrowDown.gif'
-            h.date.atts['href'] = base_url % 'date-asc'
+            h.date.atts['href'] = base_url % SORT.DATE_ASC
         else:
             h.date.icon.omit();
-            h.date.atts['href'] = base_url % 'date-asc'
+            h.date.atts['href'] = base_url % SORT.DATE_ASC
 
         # ------------------------------------------------------------------------
         # webitems

@@ -32,7 +32,8 @@ class TestCGIBase(unittest.TestCase):
     """ Invoke the URL and return the response HTTP message """
     buf = fileutil.aStringIO()
     app_httpserver.handlePath(path, buf)
-    return buf.getvalue()
+    data = buf.getvalue()
+    return data.decode('utf-8')
 
   # TODO: we have switched from checkPatterns() to checkStrings(). Clean up the code below.
   def checkPathForPattern(self, path, patterns, no_pattern=None):
@@ -40,7 +41,7 @@ class TestCGIBase(unittest.TestCase):
     p = patterns_tester.checkStrings(data, patterns, no_pattern)
     msg = (p == no_pattern) and 'unexpected pattern found' or 'pattern missing'
     self.assert_(not p,
-        'failed:%s\n  %s: %s%s' % (path, msg, p,
+        u'failed:%s\n  %s: %s%s' % (path, msg, p,
             patterns_tester.showFile(StringIO.StringIO(data), 'out', 10240),
     ))
 
@@ -76,9 +77,107 @@ class TestWeblibCGI(TestCGIBase):
     ])
 
 
+  def test_weblib_tag_sort_title(self):
+    # simply check for existence of 2 URLs and their order
+    self.checkPathForPattern("/weblib?tag=Kremlin&sort=title-asc", [
+        '<html>',
+        u'Kremlin de Moscou - Wikipédia',
+        u'Moscow Kremlin - Wikipedia, the free encyclopedia',
+        '</html>',
+    ])
+    self.checkPathForPattern("/weblib?tag=Kremlin&sort=title-desc", [
+        '<html>',
+        u'Moscow Kremlin - Wikipedia, the free encyclopedia',
+        u'Kremlin de Moscou - Wikipédia',
+        '</html>',
+    ])
+
+
+  def test_weblib_tag_sort_tag(self):
+    # simply check for existence of 2 URLs and their order
+    self.checkPathForPattern("/weblib?tag=Kremlin&sort=tag-asc", [
+        '<html>',
+        u'Kremlin de Moscou - Wikipédia',
+        u'Moscow Kremlin - Wikipedia, the free encyclopedia',
+        '</html>',
+    ])
+    # -desc not supported?
+    self.checkPathForPattern("/weblib?tag=Kremlin&sort=tag-desc", [
+        '<html>',
+        u'Kremlin de Moscou - Wikipédia',
+        u'Moscow Kremlin - Wikipedia, the free encyclopedia',
+        '</html>',
+    ])
+
+
+  def test_weblib_tag_sort_date(self):
+    # simply check for existence of 2 URLs and their order
+    self.checkPathForPattern("/weblib?tag=Kremlin&sort=date-asc", [
+        '<html>',
+        u'Kremlin de Moscou - Wikipédia',
+        u'Moscow Kremlin - Wikipedia, the free encyclopedia',
+        '</html>',
+    ])
+    self.checkPathForPattern("/weblib?tag=Kremlin&sort=date-desc", [
+        '<html>',
+        u'Moscow Kremlin - Wikipedia, the free encyclopedia',
+        u'Kremlin de Moscou - Wikipédia',
+        '</html>',
+    ])
+
+
   def test_weblib_query(self):
     self.checkPathForPattern("/weblib?query=%20-%20Wikipedia", [
         '<html>', 'ja.wikipedia.org', '</html>',
+    ])
+
+
+  def test_weblib_query_sort_title(self):
+    # simply check for existence of 2 URLs and their order
+    self.checkPathForPattern("/weblib?query=wiki&sort=title-asc", [
+        '<html>',
+        u'Kremlin de Moscou - Wikipédia',
+        u'Moscow Kremlin - Wikipedia, the free encyclopedia',
+        '</html>',
+    ])
+    self.checkPathForPattern("/weblib?query=wiki&sort=title-desc", [
+        '<html>',
+        u'Moscow Kremlin - Wikipedia, the free encyclopedia',
+        u'Kremlin de Moscou - Wikipédia',
+        '</html>',
+    ])
+
+
+  def test_weblib_query_sort_tag(self):
+    # simply check for existence of 2 URLs and their order
+    self.checkPathForPattern("/weblib?query=wiki&sort=tag-asc", [
+        '<html>',
+        u'Moscow Kremlin - Wikipedia, the free encyclopedia',
+        u'Kremlin de Moscou - Wikipédia',
+        '</html>',
+    ])
+    # -desc not supported?
+    self.checkPathForPattern("/weblib?query=wiki&sort=tag-desc", [
+        '<html>',
+        u'Moscow Kremlin - Wikipedia, the free encyclopedia',
+        u'Kremlin de Moscou - Wikipédia',
+        '</html>',
+    ])
+
+
+  def test_weblib_query_sort_date(self):
+    # simply check for existence of 2 URLs and their order
+    self.checkPathForPattern("/weblib?query=wiki&sort=date-asc", [
+        '<html>',
+        u'Kremlin de Moscou - Wikipédia',
+        u'Moscow Kremlin - Wikipedia, the free encyclopedia',
+        '</html>',
+    ])
+    self.checkPathForPattern("/weblib?query=wiki&sort=date-desc", [
+        '<html>',
+        u'Moscow Kremlin - Wikipedia, the free encyclopedia',
+        u'Kremlin de Moscou - Wikipédia',
+        '</html>',
     ])
 
 

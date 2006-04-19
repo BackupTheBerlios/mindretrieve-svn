@@ -13,8 +13,8 @@ class TestWeblibMultiForm(test_weblib.TestCGIBase):
   def test_GET(self):
     self.checkPathForPattern("/weblib/multiform?method=GET&2=on&3=on", [
         '<html>',
-        'Московский Кремль — Википедия',    # title
-        'Français', # tag
+        u'Московский Кремль — Википедия',    # title
+        u'Français', # tag
         '</html>',
     ])
 

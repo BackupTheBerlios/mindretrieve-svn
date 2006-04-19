@@ -665,6 +665,7 @@ class Store(object):
                 timestamp   = timestamp,
                 version     = version,
                 name        = row.name,
+                nickname    = row.nickname,
                 description = row.description,
                 tags        = [],
                 flags       = row.flags,

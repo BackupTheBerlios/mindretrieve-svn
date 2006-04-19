@@ -534,7 +534,7 @@ class Store(object):
             try:
                 self.wlib.date = dateutil.parse_iso8601_date(value0)
             except ValueError:
-                self.wlib.date = datetime.datetime(1900,1,1,0,0,0)  # default date
+                self.wlib.date = datetime.datetime(1,1,1)   # default date
 
         elif name == 'tag-columns':
             self.tag_column_index = parse_header(lineno, value, expected_col=self.TAG_COLUMNS)
@@ -884,7 +884,7 @@ class Store(object):
         writer.write('\r\n')
 
 
-    REFRESH_AFTER_DAYS = 3
+    REFRESH_AFTER_DAYS = 7
     BACKUP_COUNT = 5
 
     def refresh_when_needed(self):
@@ -897,11 +897,11 @@ class Store(object):
         """
         self.lock.acquire()
         try:
-            d = datetime.datetime.today() - self.wlib.date
+            d = datetime.date.today() - self.wlib.date.date()
             if d < datetime.timedelta(self.REFRESH_AFTER_DAYS):
                 return
 
-            log.info('Refresh data file, loaded since: %s' % self.wlib.date)
+            log.info('Refresh data file, loaded since: %sZ' % self.wlib.date)
 
             # refresh
             self.save_and_backup()

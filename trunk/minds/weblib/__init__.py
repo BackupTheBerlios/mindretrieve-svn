@@ -274,7 +274,7 @@ class WebLibrary(object):
 
     def reset(self):
         self.version = ''
-        self.date = ''
+        self.date = datetime.datetime(1,1,1)    # UTC
 
         self.webpages = util.IdList()
         self.tags = util.IdNameList()

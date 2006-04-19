@@ -218,7 +218,7 @@ encoding: utf-8\r
             backup2.remove()
 
         # today is 2006-04-13, weblib.dat should has an older date
-        IN_BETWEEN_DATE = datetime.datetime(2006,2,1)
+        IN_BETWEEN_DATE = datetime.date(2006,2,1)
 
         # load first version (should be old)
         stor.load()

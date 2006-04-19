@@ -87,6 +87,10 @@ def query(wlib, querytxt, select_tags):
 
     result = [] # list of (score, active_score, Webpage)
 
+    nickname_score = 100.0
+    name_score = 10.0 / len(terms)
+    domain_score = 1.0 /len(terms)
+
     for item in wlib.webpages:
         # first filter by select_tag
         if select_tags_set and select_tags_set.difference(item.tags):
@@ -94,10 +98,13 @@ def query(wlib, querytxt, select_tags):
 
         score = 0
 
+        if item.nickname.lower() == querytxt:
+            score += nickname_score
+
         lname = item.name.lower()
         for w in terms:
             if w in lname:
-                score += 10
+                score += name_score
 
         if score == 0:
             # Secondly check domain name
@@ -106,7 +113,7 @@ def query(wlib, querytxt, select_tags):
             lnetloc = urlparse.urlparse(item.url)[1].lower()
             for w in terms:
                 if w in lnetloc:
-                    score += 1
+                    score += domain_score
                     break
 
         if score == 0:

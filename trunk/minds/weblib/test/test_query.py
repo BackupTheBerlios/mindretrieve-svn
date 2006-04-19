@@ -62,12 +62,23 @@ class TestQuery(unittest.TestCase):
 
     def test_query(self):
         wlib = self.store.wlib
+
+        # 4 webpages have wiki
         result = query_wlib.query(wlib, 'wiki', None)
         self.assertTrue(result)
-        self.assertEqual(len(result), 4)   # 4 webpages have wiki
+        self.assertEqual(len(result), 4)
+
+        # 1 match url
         result = query_wlib.query(wlib, '.net', None)
         self.assertTrue(result)
-        self.assertEqual(len(result), 1)   # 1 match url
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0][0].id, 1)
+
+        # 1 match nickname
+        result = query_wlib.query(wlib, '_nickname_', None)
+        self.assertTrue(result)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0][0].id, 1)
 
 
     def test_queryRoot(self):

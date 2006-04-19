@@ -727,6 +727,12 @@ class WeblibRenderer(response.WeblibLayoutRenderer):
             else:
                 node.description.atts['href'] = webitem.url
             node.description.atts['title'] = '%s %s' % (webitem.modified, webitem.description)
+
+            if webitem.nickname:
+                node.nickname.content = webitem.nickname
+            else:
+                node.nickname.omit()
+
             node.tag.repeat(self.renderWebItemTag, webitem.tags)
             node.date.content = webitem.created or '0000-00-00'
             node.edit.atts['href'] %= webitem.id

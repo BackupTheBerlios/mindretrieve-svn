@@ -620,39 +620,39 @@ class WeblibRenderer(response.WeblibLayoutRenderer):
         # webitems Heading
         h = node.web_items.heading
         if '?' in base_url:
-            base_url += '&sort=%s'
+            s_url = base_url + '&sort='
         else:
-            base_url += '?sort=%s'
+            s_url = base_url + '?sort='
 
         if sort == SORT.TITLE_ASC:
             h.title.icon.atts['src'] = '/img/arrowUp.gif'
-            h.title.atts['href'] = base_url % SORT.TITLE_DESC
+            h.title.atts['href'] = s_url + SORT.TITLE_DESC
         elif sort == SORT.TITLE_DESC:
             h.title.icon.atts['src'] = '/img/arrowDown.gif'
-            h.title.atts['href'] = base_url % SORT.TITLE_ASC
+            h.title.atts['href'] = s_url + SORT.TITLE_ASC
         else:
             h.title.icon.omit();
-            h.title.atts['href'] = base_url % SORT.TITLE_ASC
+            h.title.atts['href'] = s_url + SORT.TITLE_ASC
 
         if sort == SORT.TAG_ASC:
             h.tag.icon.atts['src'] = '/img/arrowUp.gif'
-            h.tag.atts['href'] = base_url % SORT.TAG_ASC    # tag is only ordered one way
+            h.tag.atts['href'] = s_url + SORT.TAG_ASC    # tag is only ordered one way
         elif sort == SORT.TAG_DESC:
             h.tag.icon.atts['src'] = '/img/arrowDown.gif'
-            h.tag.atts['href'] = base_url % SORT.TAG_ASC
+            h.tag.atts['href'] = s_url + SORT.TAG_ASC
         else:
             h.tag.icon.omit();
-            h.tag.atts['href'] = base_url % SORT.TAG_ASC
+            h.tag.atts['href'] = s_url + SORT.TAG_ASC
 
         if sort == SORT.DATE_ASC:
             h.date.icon.atts['src'] = '/img/arrowUp.gif'
-            h.date.atts['href'] = base_url % SORT.DATE_DESC
+            h.date.atts['href'] = s_url + SORT.DATE_DESC
         elif sort == SORT.DATE_DESC:
             h.date.icon.atts['src'] = '/img/arrowDown.gif'
-            h.date.atts['href'] = base_url % SORT.DATE_ASC
+            h.date.atts['href'] = s_url + SORT.DATE_ASC
         else:
             h.date.icon.omit();
-            h.date.atts['href'] = base_url % SORT.DATE_ASC
+            h.date.atts['href'] = s_url + SORT.DATE_ASC
 
         # ------------------------------------------------------------------------
         # webitems

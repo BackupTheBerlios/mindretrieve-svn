@@ -118,7 +118,11 @@ function onWindowLoaded(e) {
     </tr>
     <tr>
         <td>*Title</td>
-        <td><input id='name' type='text' node='con:name' name='title' size='70' />&nbsp;</td>
+        <td>
+            <input id='name' type='text' node='con:name' name='title' size='70' />
+            <span style='margin-left:2em;'></span>
+            Date <input type='text' node='con:created' name='created' size='10' />
+        </td>
     </tr>
     <tr>
         <td>*Address</td>
@@ -127,16 +131,12 @@ function onWindowLoaded(e) {
         <div node='con:filename' class='filename'>$filename</div>
         </td>
     </tr>
-    <tr>
-        <td>Date</td>
-        <td>
-            <input type='text' node='con:created' name='created' size='10' />
-        </td>
-    </tr>
+
     <tr>
         <td>Description</td>
         <td><textarea node='con:description' name='description' cols='70' rows='6'></textarea></td>
     </tr>
+
     <tr>
         <td>Tags</td>
         <td>
@@ -145,17 +145,14 @@ function onWindowLoaded(e) {
         </td>
 
     </tr>
+
     <tr>
-        <td>&nbsp;</td>
+        <td>Nickname</td>
         <td>
-            <div class='detail_info'>
-            <span>Modified&nbsp;</span>
-            <span class='date_field' node='con:modified_txt'><span class='date_padding'></span></span>
-            <span style="margin-left:1em">Snapshot&nbsp;</span>
-            <span class='date_field' node='con:snapshot_txt'><span class='date_padding'></span></span>
-            </div>
+            <input id='nickname' type='text' node='con:nickname' name='nickname' size='12' />
         </td>
     </tr>
+
     <tr>
         <td></td>
         <td>

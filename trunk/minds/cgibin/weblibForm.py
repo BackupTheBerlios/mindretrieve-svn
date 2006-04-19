@@ -98,8 +98,8 @@ class Bean(object):
         if self.oldItem:
             # Case 1. make a copy of the existing item
             item = self.oldItem.__copy__()
-            # overwritten with request parameters (only if defined)
-            # usually only defined if it is redirected from case 3 request.
+#            # overwritten with request parameters (only if defined)
+#            # usually only defined if it is redirected from case 3 request.
 #            if req.param('title')      : item.name        = req.param('title')
 #            if req.param('url')        : item.url         = req.param('url')
 #            if req.param('description'): item.description = req.param('description')
@@ -117,8 +117,8 @@ class Bean(object):
                         url         = url,
                         description = req.param('description'),
                         created     = today,
-                        modified    = today,
-                        lastused    = today,
+#                        modified    = today,
+#                        lastused    = today,
                     )
 
                 if wlib.getDefaultTag():
@@ -127,11 +127,11 @@ class Bean(object):
                 # Case 3. use existing webpage
                 self.oldItem = matches[0]
                 item = self.oldItem.__copy__()
-                # however override with possibly new title and description
-                item.name        = req.param('title')
-                item.description = req.param('description')
-                # actually the item is not very important because we
-                # are going to redirect the request to the proper rid.
+#                # however override with possibly new title and description
+#                item.name        = req.param('title')
+#                item.description = req.param('description')
+                # 2006-04-19: do not override because we are going to
+                # redirect the request to the rid and use current data.
 
         self.item = item
         # construct tags_description for editing
@@ -142,7 +142,7 @@ class Bean(object):
         """
         Parse submission from form
           method: PUT
-          parameters: description, title, url, tags, created, modified, lastused
+          parameters: description, title, url, tags, created, nickname
              (plus some more auxiliary parameters?)
         """
         wlib = store.getWeblib()
@@ -155,9 +155,10 @@ class Bean(object):
             if 'url'         in req.form: self.item.url          = req.param('url')
             if 'description' in req.form: self.item.description  = req.param('description')
             if 'created'     in req.form: self.item.created      = req.param('created')
-            if 'modified'    in req.form: self.item.modified     = req.param('modified')
-            if 'lastused'    in req.form: self.item.lastused     = req.param('lastused')
+#            if 'modified'    in req.form: self.item.modified     = req.param('modified')
+#            if 'lastused'    in req.form: self.item.lastused     = req.param('lastused')
             if 'tags'        in req.form: self._parseTags(req)
+            if 'nickname'    in req.form: self.item.nickname     = req.param('nickname')
         else:
             # create new item
             self.item = weblib.WebPage(
@@ -165,8 +166,9 @@ class Bean(object):
                 url         = req.param('url'),
                 description = req.param('description'),
                 created     = req.param('created'),
-                modified    = req.param('modified'),
-                lastused    = req.param('lastused'),
+#                modified    = req.param('modified'),
+#                lastused    = req.param('lastused'),
+                nickname    = req.param('nickname'),
             )
             self._parseTags(req)
 
@@ -248,22 +250,22 @@ def doDeleteResource(wfile, req):
 
 class FormRenderer(response.CGIRenderer):
     TEMPLATE_FILE = 'weblibForm.html'
-    """ 2005-12-09
+    """ 2006-04-19
     con:form_title
+    con:add_header
+    con:edit_header
     con:form
             con:error
                     con:message
             con:name
+            con:created
             con:url
             con:url_link
+            con:filename
             con:description
             con:tags
-            con:created_txt
-            con:modified_txt
-            con:lastused_txt
-            con:created
-            con:modified
-            con:lastused
+            con:nickname
+            con:tags_array
             con:new_tags_js_var
     """
     def render(self, node, bean, tags):
@@ -290,7 +292,12 @@ class FormRenderer(response.CGIRenderer):
 
         if item:
             form.name       .atts['value'] = item.name
+            form.created    .atts['value'] = item.created
             form.url        .atts['value'] = item.url
+            form.description.content       = item.description
+            form.tags       .atts['value'] = bean.item.tags_description
+            form.nickname   .atts['value'] = item.nickname
+
             if weblib_util.isFileURL(item.url):
                 scheme, netloc, url_path, _, _, _ = urlparse.urlparse(item.url)
                 pathname = weblib_util.nt_url2pathname(url_path)
@@ -300,14 +307,10 @@ class FormRenderer(response.CGIRenderer):
                 form.url_link.atts['href']  = item.url
                 form.filename.omit()
 
-            form.description.content       = item.description
-            form.tags       .atts['value'] = bean.item.tags_description
-            form.created    .atts['value'] = item.created
-
-            if item.modified:
-                form.modified_txt.content = item.modified
-            if item.fetched:
-                form.snapshot_txt.content = item.fetched
+#            if item.modified:
+#                form.modified_txt.content = item.modified
+#            if item.fetched:
+#                form.snapshot_txt.content = item.fetched
 
         tags_strings = [u'        "%s"' % response.jsEscapeString(unicode(tag)) for tag in tags]
         node.form.tags_array.raw = node.form.tags_array.raw % ',\n'.join(tags_strings)

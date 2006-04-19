@@ -493,6 +493,46 @@ encoding: utf-8\r
         self.assert_(page.version > version0)
 
 
+    def test_write_webpage_values(self):
+        wlib = self.store.wlib
+
+        test_obj = weblib.WebPage(
+            timestamp   ='2000-01-01',
+            version     =7,
+            name        ='_name_',
+            nickname    ='_nickname_',
+            url         ='_url_',
+            description ='_description_',
+            tags        =[],
+            created     ='2000-01-01',
+            modified    ='2000-01-02',
+            lastused    ='2000-01-03',
+            fetched     ='2000-01-04',
+            flags       ='_flags_',
+        )
+
+        # <<< write the test object >>>
+        newPage = self.store.writeWebPage(test_obj)
+
+        # query the WebPage again from wlib
+        w = wlib.webpages.getById(newPage.id)
+        # a new instance is created
+        self.assert_(w is not test_obj)
+
+        # all values are stored
+        self.assertEqual(w.version    , 8)
+        self.assertEqual(w.name       , '_name_')
+        self.assertEqual(w.nickname   , '_nickname_')
+        self.assertEqual(w.url        , '_url_')
+        self.assertEqual(w.description, '_description_')
+        self.assertEqual(w.tags       , [])
+        self.assertEqual(w.created    , '2000-01-01')
+        self.assertEqual(w.modified   , '2000-01-02')
+        self.assertEqual(w.lastused   , '2000-01-03')
+        self.assertEqual(w.fetched    , '2000-01-04')
+        self.assertEqual(w.flags      , '_flags_')
+
+
     def test_remove_tag(self):
         wlib = self.store.wlib
         self._make_test_data()

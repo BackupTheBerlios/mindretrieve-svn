@@ -1,13 +1,10 @@
-# -*- coding: latin-1 -*-
+# -*- coding: utf-8 -*-
 
-import datetime
-import string
 import StringIO
 import sys
-import time
 import unittest
+
 from toollib import HTMLTestRunner
-from xml.sax import saxutils
 
 # ----------------------------------------------------------------------
 
@@ -31,57 +28,32 @@ def safe_str(obj):
 # ----------------------------------------------------------------------
 # Sample tests to drive the HTMLTestRunner
 
-class SampleCase1(unittest.TestCase):
-    def test_10(self):
-        print >>sys.stderr, 'some info to stderr in 10'
-
-    def test_11_fail(self):
-        self.fail('test failed')
-
-    def test_12_error(self):
-        raise RuntimeError('some problem happened in 12')
-
-class SampleCase2(SampleCase1):
-    # 3 cases from SampleCase1
-    def test_23(self):
-        pass
-
-class SampleCase3(unittest.TestCase):
-    def test_30(self):
-        pass
-
-
-class SampleCase4(unittest.TestCase):
-    """ Similiar to SampleCase1 with everything in unicode """
-
-    MESSAGE = u'the message is \u8563'
-
-    def test_40(self):
-        print self.MESSAGE.encode('utf-8')
-        print >>sys.stderr, self.MESSAGE.encode('utf-8')
-
-    def test_41_fail(self):
-        self.fail(self.MESSAGE)
-
-    def test_42_error(self):
-        raise RuntimeError(self.MESSAGE)
-
-
-class SampleCase5(unittest.TestCase):
-    """ Similiar to SampleCase1 with everything in latin-1 """
-
-    MESSAGE = 'the message is áéíóú'
-
-    def test_50(self):
+class BaseTest(unittest.TestCase):
+    def test_1(self):
         print self.MESSAGE
+    def test_2(self):
         print >>sys.stderr, self.MESSAGE
-
-    def test_51_fail(self):
+    def test_3(self):
         self.fail(self.MESSAGE)
-
-    def test_52_error(self):
+    def test_4(self):
         raise RuntimeError(self.MESSAGE)
 
+class TestBasic(BaseTest):
+    MESSAGE = 'basic test'
+
+class TestHTML(BaseTest):
+    MESSAGE = 'the message is <>&"\'\nline2'
+
+class TestLatin1(BaseTest):
+    MESSAGE = u'the message is Ã¡Ã©Ã­Ã³Ãº'.encode('latin-1')
+
+class TestUnicode(BaseTest):
+    MESSAGE = u'the message is \u8563'
+    # 2006-04-25 Note: Exception would show up as
+    # AssertionError: <unprintable instance object>
+    #
+    # This seems to be limitation of traceback.format_exception()
+    # Same result in standard unittest.
 
 # ------------------------------------------------------------------------
 # This is the main test on HTMLTestRunner
@@ -90,97 +62,121 @@ class Test_HTMLTestRunner(unittest.TestCase):
 
     # Define the expected output sequence. This is imperfect but should
     # give a good sense of the well being of the test.
-    #
-    # General format
-    # 1. test name
-    # 2. status
-    # 3. output captured
-    EXPECTED = unicode("""
->test_10<
+    EXPECTED = u"""
+>__main__.TestBasic<
+>test_1<
 >pass<
-some info to stderr in 10
+basic test
 
->test_11_fail<
+>test_2<
+>pass<
+basic test
+
+>test_3<
 >fail<
+AssertionError: basic test
 
->test_12_error<
+>test_4<
 >error<
-some problem happened in 12
+RuntimeError: basic test
 
->test_23<
+
+>__main__.TestHTML<
+>test_1<
 >pass<
+'the message is &lt;&gt;&amp;&quot;&apos;\nline2
 
->test_30<
+>test_2<
 >pass<
+'the message is &lt;&gt;&amp;&quot;&apos;\nline2
 
->test_40<
->pass<
-the message is
-\nthe message is
-
->test_41_fail<
+>test_3<
 >fail<
-AssertionError:
+AssertionError: the message is &lt;&gt;&amp;&quot;&apos;\nline2
 
->test_42_error<
+>test_4<
 >error<
-RuntimeError:
+RuntimeError: the message is &lt;&gt;&amp;&quot;&apos;\nline2
 
->test_50<
+
+>__main__.TestLatin1<
+>test_1<
 >pass<
-the message is áéíóú\nthe message is áéíóú
+the message is Ã¡Ã©Ã­Ã³Ãº
 
->test_51_fail<
+>test_2<
+>pass<
+the message is Ã¡Ã©Ã­Ã³Ãº
+
+>test_3<
 >fail<
-AssertionError: the message is áéíóú
+AssertionError: the message is Ã¡Ã©Ã­Ã³Ãº
 
->test_52_error<
+>test_4<
 >error<
-RuntimeError: the message is áéíóú
+RuntimeError: the message is Ã¡Ã©Ã­Ã³Ãº
+
+
+>__main__.TestUnicode<
+>test_1<
+>pass<
+the message is \u8563
+
+>test_2<
+>pass<
+the message is \u8563
+
+>test_3<
+>fail<
+AssertionError: &lt;unprintable instance object&gt;
+
+>test_4<
+>error<
+RuntimeError: &lt;unprintable instance object&gt;
 
 Total
->14<
->6<
+>16<
+>8<
 >4<
 >4<
 </html>
-""",'latin-1')
-
-
-    def setUp(self):
-        self.suite = unittest.TestSuite()
-        self.suite.addTests([
-            unittest.defaultTestLoader.loadTestsFromTestCase(SampleCase1),
-            unittest.defaultTestLoader.loadTestsFromTestCase(SampleCase2),
-            unittest.defaultTestLoader.loadTestsFromTestCase(SampleCase3),
-            unittest.defaultTestLoader.loadTestsFromTestCase(SampleCase4),
-            unittest.defaultTestLoader.loadTestsFromTestCase(SampleCase5),
-            ])
-
+"""
 
     def test1(self):
+        # Run HTMLTestRunner. Verify the HTML report.
+
+        # suite of TestCases
+        self.suite = unittest.TestSuite()
+        self.suite.addTests([
+            unittest.defaultTestLoader.loadTestsFromTestCase(TestBasic),
+            unittest.defaultTestLoader.loadTestsFromTestCase(TestHTML),
+            unittest.defaultTestLoader.loadTestsFromTestCase(TestLatin1),
+            unittest.defaultTestLoader.loadTestsFromTestCase(TestUnicode),
+            ])
+
+        # Invoke TestRunner
         buf = StringIO.StringIO()
-        #unittest baseline
-        #runner = unittest.TextTestRunner(buf)
+        #runner = unittest.TextTestRunner(buf)       #DEBUG: this is the unittest baseline
         runner = HTMLTestRunner.HTMLTestRunner(buf)
         runner.run(self.suite)
 
         # check out the output
         byte_output = buf.getvalue()
+        # for user to capture the output to see what goes wrong
         print byte_output
-        # HTMLTestRunner pump UTF-8 output
+        # HTMLTestRunner pumps UTF-8 output
         output = byte_output.decode('utf-8')
         self._checkoutput(output)
 
 
     def _checkoutput(self,output):
         i = 0
-        for p in self.EXPECTED.splitlines():
+        for lineno, p in enumerate(self.EXPECTED.splitlines()):
             if not p:
                 continue
             j = output.find(p,i)
             if j < 0:
-                self.fail(safe_str('Pattern not found "%s"' % p))
+                self.fail(safe_str('Pattern not found lineno %s: "%s"' % (lineno+1,p)))
             i = j + len(p)
 
 

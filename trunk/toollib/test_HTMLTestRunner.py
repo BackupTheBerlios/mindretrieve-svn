@@ -4,7 +4,7 @@ import StringIO
 import sys
 import unittest
 
-from toollib import HTMLTestRunner
+import HTMLTestRunner
 
 # ----------------------------------------------------------------------
 

@@ -28,7 +28,18 @@ def safe_str(obj):
 # ----------------------------------------------------------------------
 # Sample tests to drive the HTMLTestRunner
 
+class Test0(unittest.TestCase):
+    """ A class that passed """
+    def test_pass_no_output(self):
+        pass
+
+class Test1(unittest.TestCase):
+    """ A class that failed """
+    def test_fail(self):
+        self.fail()
+
 class BaseTest(unittest.TestCase):
+    """ Base TestCase. Generates 4 test cases x different content type. """
     def test_1(self):
         print self.MESSAGE
     def test_2(self):
@@ -63,6 +74,10 @@ class Test_HTMLTestRunner(unittest.TestCase):
     # Define the expected output sequence. This is imperfect but should
     # give a good sense of the well being of the test.
     EXPECTED = u"""
+>__main__.Test0<
+
+>__main__.Test1<
+
 >__main__.TestBasic<
 >test_1<
 >pass<
@@ -135,9 +150,9 @@ AssertionError: &lt;unprintable instance object&gt;
 RuntimeError: &lt;unprintable instance object&gt;
 
 Total
->16<
->8<
->4<
+>18<
+>9<
+>5<
 >4<
 </html>
 """
@@ -148,6 +163,8 @@ Total
         # suite of TestCases
         self.suite = unittest.TestSuite()
         self.suite.addTests([
+            unittest.defaultTestLoader.loadTestsFromTestCase(Test0),
+            unittest.defaultTestLoader.loadTestsFromTestCase(Test1),
             unittest.defaultTestLoader.loadTestsFromTestCase(TestBasic),
             unittest.defaultTestLoader.loadTestsFromTestCase(TestHTML),
             unittest.defaultTestLoader.loadTestsFromTestCase(TestLatin1),

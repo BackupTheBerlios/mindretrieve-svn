@@ -12,10 +12,11 @@ The simplest way to use this is to invoke its main method. E.g.
     if __name__ == '__main__':
         HTMLTestRunner.main()
 
-It defines the class HTMLTestRunner, which is a counterpart of unittest's
+It defines the class HTMLTestRunner, which is a counterpart to unittest's
 TextTestRunner. You can also instantiates a HTMLTestRunner object for
 finer control.
 
+To customerize reports, please see the documentation on the Template class.
 
 ------------------------------------------------------------------------
 Copyright (c) 2004-2006, Wai Yip Tung
@@ -50,15 +51,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # URL: http://tungwaiyip.info/software/HTMLTestRunner.html
 
 __author__ = "Wai Yip Tung"
-__version__ = "0.7.1"
+__version__ = "0.8.0"
 
-# Changes in 0.7.1
-# * Back port to Python 2.3. Thank you Frank Horowitz.
-# * Fix missing scroll bars in detail log. Thank you Podi.
 
+"""
+Changes in 0.8.0
+>> Define Template and structure for customerization
+>> Workaround IE 6 bug that it does not treat <script> block as CDATA
+
+Changes in 0.7.1
+* Back port to Python 2.3. Thank you Frank Horowitz.
+* Fix missing scroll bars in detail log. Thank you Podi.
+"""
 
 # TOOD: need to make sure all HTML and JavaScript blocks are properly escaped!
-# TODO: allow link to custom CSS
 # TODO: color stderr
 # TODO: simplify javascript using ,ore than 1 class in the class attribute?
 
@@ -103,65 +109,62 @@ stderr_redirector = OutputRedirector(sys.stderr)
 # ----------------------------------------------------------------------
 # Template
 
-STATUS = {
+class Template_mixin(object):
+    """
+    Define a HTML template for report customerization and generation.
+
+    Overall structure of an HTML report
+
+    HTML
+    +------------------------+
+    |<html>                  |
+    |  <head>                |
+    |                        |
+    |   STYLESHEET           |
+    |   +----------------+   |
+    |   |                |   |
+    |   +----------------+   |
+    |                        |
+    |  </head>               |
+    |                        |
+    |  <body>                |
+    |                        |
+    |   HEADING              |
+    |   +----------------+   |
+    |   |                |   |
+    |   +----------------+   |
+    |                        |
+    |   REPORT               |
+    |   +----------------+   |
+    |   |                |   |
+    |   +----------------+   |
+    |                        |
+    |   ENDING               |
+    |   +----------------+   |
+    |   |                |   |
+    |   +----------------+   |
+    |                        |
+    |  </body>               |
+    |</html>                 |
+    +------------------------+
+    """
+
+    STATUS = {
 0: 'pass',
 1: 'fail',
 2: 'error',
 }
 
 
-CSS = """
-<style>
-body        { font-family: verdana, arial, helvetica, sans-serif; font-size: 80%; }
-table       { font-size: 100%; }
-pre         { }
-h1          { }
-.heading    {
-    margin-top: 0ex;
-    margin-bottom: 1ex;
-}
-#show_detail_line {
-    margin-top: 3ex;
-    margin-bottom: 1ex;
-}
-#result_table {
-    width: 80%;
-    border-collapse: collapse;
-    border: medium solid #777;
-}
-#result_table td {
-    border: thin solid #777;
-    padding: 2px;
-}
-#header_row {
-    font-weight: bold;
-    color: white;
-    background-color: #777;
-}
-#total_row  { font-weight: bold; }
-.passClass  { background-color: #6c6; }
-.failClass  { background-color: #c60; }
-.errorClass { background-color: #c00; }
-.passCase   { color: #6c6; }
-.failCase   { color: #c60; font-weight: bold; }
-.errorCase  { color: #c00; font-weight: bold; }
-.hiddenRow  { display: none; }
-.testcase   { margin-left: 2em; }
-#btm_filler { margin-top: 50%; }
-</style>
-"""
+    # ------------------------------------------------------------------------
+    # HTML Template
 
-# currently not used
-CSS_LINK = '<link rel="stylesheet" href="$url" type="text/css">\n'
-
-
-HTML_TMPL = r"""
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+    HTML_TMPL = r"""<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html>
 <head>
     <title>%(title)s</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    %(css)s
+    %(stylesheet)s
 </head>
 <body>
 <script>
@@ -234,9 +237,100 @@ function showOutput(id, name) {
 
 </script>
 
-<h1>%(description)s</h1>
-<p class='heading'><strong>Time:</strong> %(time)s</p>
-<p class='heading'><strong>Status:</strong> %(status)s</p>
+%(heading)s
+%(report)s
+%(ending)s
+
+</body>
+</html>
+"""
+    # variables: (title, stylesheet, heading, report, ending)
+
+
+    # ------------------------------------------------------------------------
+    # Stylesheet
+    #
+    # alternatively use a <link> for external style sheet, e.g.
+    #   <link rel="stylesheet" href="$url" type="text/css">
+
+    STYLESHEET_TMPL = """
+<style>
+body        { font-family: verdana, arial, helvetica, sans-serif; font-size: 80%; }
+table       { font-size: 100%; }
+pre         { }
+
+/* -- heading ---------------------------------------------------------------------- */
+h1 {
+}
+.heading {
+    margin-top: 0ex;
+    margin-bottom: 1ex;
+}
+.heading .attribute {
+}
+.heading .description {
+}
+
+/* -- report ------------------------------------------------------------------------ */
+#show_detail_line {
+    margin-top: 3ex;
+    margin-bottom: 1ex;
+}
+#result_table {
+    width: 80%;
+    border-collapse: collapse;
+    border: medium solid #777;
+}
+#header_row {
+    font-weight: bold;
+    color: white;
+    background-color: #777;
+}
+#result_table td {
+    border: thin solid #777;
+    padding: 2px;
+}
+#total_row  { font-weight: bold; }
+.passClass  { background-color: #6c6; }
+.failClass  { background-color: #c60; }
+.errorClass { background-color: #c00; }
+.passCase   { color: #6c6; }
+.failCase   { color: #c60; font-weight: bold; }
+.errorCase  { color: #c00; font-weight: bold; }
+.hiddenRow  { display: none; }
+.testcase   { margin-left: 2em; }
+
+
+/* -- ending ---------------------------------------------------------------------- */
+.ending     { margin-top: 50%; }
+
+</style>
+"""
+
+
+
+    # ------------------------------------------------------------------------
+    # Heading
+    #
+
+    HEADING_TMPL = """<div class='heading'>
+<h1>%(title)s</h1>
+%(parameters)s
+<p class='description'>%(description)s</p>
+</div>
+
+""" # variables: (title, parameters, description)
+
+    HEADING_ATTRIBUTE_TMPL = """<p class='attribute'><strong>%(name)s:</strong> %(value)s</p>
+""" # variables: (name, value)
+
+
+
+    # ------------------------------------------------------------------------
+    # Report
+    #
+
+    REPORT_TMPL = """
 <p id='show_detail_line'>Show
 <a href='javascript:showCase(0)'>Summary</a>
 <a href='javascript:showCase(1)'>Failed</a>
@@ -259,7 +353,7 @@ function showOutput(id, name) {
     <td>Error</td>
     <td>View</td>
 </tr>
-%(tests)s
+%(test_list)s
 <tr id='total_row'>
     <td>Total</td>
     <td>%(count)s</td>
@@ -269,12 +363,10 @@ function showOutput(id, name) {
     <td>&nbsp;</td>
 </tr>
 </table>
-<div id='btm_filler' />
-</body>
-</html>
-"""
+""" # variables: (test_list, count, Pass, fail, error)
 
-CLASS_TMPL = r"""
+
+    REPORT_CLASS_TMPL = r"""
 <tr class='%(style)s'>
     <td>%(name)s</td>
     <td>%(count)s</td>
@@ -283,28 +375,40 @@ CLASS_TMPL = r"""
     <td>%(error)s</td>
     <td><a href="javascript:showClassDetail('%(cid)s',%(count)s)">Detail</a></td>
 </tr>
-"""
+""" # variables: (style, name, count, Pass, fail, error, cid)
 
-TEST_TMPL = r"""
+
+    REPORT_TEST_WITH_OUTPUT_TMPL = r"""
 <tr id='%(tid)s' class='%(Class)s'>
     <td class='%(style)s'><div class='testcase'>%(name)s<div></td>
     <td colspan='5' align='center'><a href="javascript:showOutput('%(tid)s', '%(name)s')">%(status)s</a></td>
 </tr>
-"""
+""" # variables: (tid, Class, style, name, status)
 
-TEST_TMPL_NO_OUTPUT = r"""
+
+    REPORT_TEST_NO_OUTPUT_TMPL_ = r"""
 <tr id='%(tid)s' class='%(Class)s'>
     <td class='%(style)s'><div class='testcase'>%(name)s<div></td>
     <td colspan='5' align='center'>%(status)s</td>
 </tr>
-"""
+""" # variables: (tid, Class, style, name, status)
 
-TEST_OUTPUT_TMPL = r"""
+
+    REPORT_TEST_OUTPUT_TMPL = r"""
 <script>output_list['%(id)s'] = '%(output)s';</script>
-"""
+""" # variables: (id, output)
 
 
-# ----------------------------------------------------------------------
+
+    # ------------------------------------------------------------------------
+    # ENDING
+    #
+
+    ENDING_TMPL = """<div id='ending' />"""
+
+# -------------------- The end of the Template class -------------------
+
+
 
 TestResult = unittest.TestResult
 
@@ -396,7 +500,7 @@ class _TestResult(TestResult):
             sys.stderr.write('F')
 
 
-class HTMLTestRunner:
+class HTMLTestRunner(Template_mixin):
     """
     """
     def __init__(self, stream=sys.stdout, descriptions=1, verbosity=1, description='Test'):
@@ -435,7 +539,49 @@ class HTMLTestRunner:
         r = [(cls, rmap[cls]) for cls in classes]
         return r
 
+    def getReportAttributes(self, result):
+        """ Return report attributes as a list of (name, value) """
+        return [
+            ('Time', str(self.startTime)[:19]),
+            ('Status', result.wasSuccessful() and 'Passed' or 'Failed'),
+        ]
+
     def generateReport(self, test, result):
+        report_attrs = self.getReportAttributes(result)
+        stylesheet = self._generate_stylesheet()
+        heading = self._generate_heading(report_attrs)
+        report = self._generate_report(result)
+        ending = self._generate_ending()
+        output = self.HTML_TMPL % dict(
+            title = self.description,
+            stylesheet = stylesheet,
+            heading = heading,
+            report = report,
+            ending = ending,
+        )
+        self.stream.write(output.encode('utf8'))
+
+    def _generate_stylesheet(self):
+        return self.STYLESHEET_TMPL
+
+    def _generate_heading(self, report_attrs):
+        a_lines = []
+        for name, value in report_attrs:
+            line = self.HEADING_ATTRIBUTE_TMPL % dict(
+                    name = saxutils.escape(name),
+                    value = saxutils.escape(value),
+                )
+            a_lines.append(line)
+
+        heading = self.HEADING_TMPL % dict(
+            title = self.description,
+            parameters = ''.join(a_lines),
+            description = 'n/a',
+        )
+
+        return heading
+
+    def _generate_report(self, result):
         rows = []
         npAll = nfAll = neAll = 0
         sortedResult = self.sortResult(result.result)
@@ -450,7 +596,7 @@ class HTMLTestRunner:
             nfAll += nf
             neAll += ne
 
-            row = CLASS_TMPL % dict(
+            row = self.REPORT_CLASS_TMPL % dict(
                 style = ne > 0 and 'errorClass' or nf > 0 and 'failClass' or 'passClass',
                 name = "%s.%s" % (cls.__module__, cls.__name__),
                 count = np+nf+ne,
@@ -462,57 +608,61 @@ class HTMLTestRunner:
             rows.append(row)
 
             for tid, (n,t,o,e) in enumerate(cls_results):
-                # e.g. 'pt1.1', 'ft1.1', etc
-                has_output = bool(o or e)
-                tid = (n == 0 and 'p' or 'f') + 't%s.%s' % (cid+1,tid+1)
-                name = t.id().split('.')[-1]
-                tmpl = has_output and TEST_TMPL or TEST_TMPL_NO_OUTPUT
-                row = tmpl % dict(
-                    tid = tid,
-                    Class = (n == 0 and 'hiddenRow' or ''),
-                    style = n == 2 and 'errorCase' or (n == 1 and 'failCase' or ''),
-                    name = name,
-                    status = STATUS[n],
-                )
-                rows.append(row)
-                if has_output:
-                    # o and e should be byte string because they are collected from stdout and stderr?
-                    if isinstance(o,str):
-# TODO: some problem with 'string_escape': it escape \n and mess up formating
-#                        uo = unicode(o.encode('string_escape'))
-                        uo = o.decode('latin-1')
-                    else:
-                        uo = o
-                    if isinstance(e,str):
-# TODO: some problem with 'string_escape': it escape \n and mess up formating
-#                        ue = unicode(e.encode('string_escape'))
-                        ue = e.decode('latin-1')
-                    else:
-                        ue = e
-                    row = TEST_OUTPUT_TMPL % dict(
-                        id = tid,
-                        output = saxutils.escape(uo+ue) \
-                            .replace("'", '&apos;') \
-                            .replace('"', '&quot;') \
-                            .replace('\\','\\\\') \
-                            .replace('\r','\\r') \
-                            .replace('\n','\\n'),
-                    )
-                    rows.append(row)
+                self._generate_report_test(rows, cid, tid, n, t, o, e)
 
-        report = HTML_TMPL % dict(
-            title = self.description,
-            css = CSS,
-            description = self.description,
-            time = str(self.startTime)[:19],
-            status = result.wasSuccessful() and 'Passed' or 'Failed',
-            tests = ''.join(rows),
+        report = self.REPORT_TMPL % dict(
+            test_list = ''.join(rows),
             count = str(npAll+nfAll+neAll),
             Pass = str(npAll),
             fail = str(nfAll),
             error = str(neAll),
         )
-        self.stream.write(report.encode('utf8'))
+        return report
+
+    def _generate_report_test(self, rows, cid, tid, n, t, o, e):
+        # e.g. 'pt1.1', 'ft1.1', etc
+        has_output = bool(o or e)
+        tid = (n == 0 and 'p' or 'f') + 't%s.%s' % (cid+1,tid+1)
+        name = t.id().split('.')[-1]
+        tmpl = has_output and self.REPORT_TEST_WITH_OUTPUT_TMPL or self.REPORT_TEST_NO_OUTPUT_TMPL
+        row = tmpl % dict(
+            tid = tid,
+            Class = (n == 0 and 'hiddenRow' or ''),
+            style = n == 2 and 'errorCase' or (n == 1 and 'failCase' or ''),
+            name = name,
+            status = self.STATUS[n],
+        )
+        rows.append(row)
+        if not has_output:
+            return
+
+        # o and e should be byte string because they are collected from stdout and stderr?
+        if isinstance(o,str):
+            # TODO: some problem with 'string_escape': it escape \n and mess up formating
+            # uo = unicode(o.encode('string_escape'))
+            uo = o.decode('latin-1')
+        else:
+            uo = o
+        if isinstance(e,str):
+            # TODO: some problem with 'string_escape': it escape \n and mess up formating
+            # ue = unicode(e.encode('string_escape'))
+            ue = e.decode('latin-1')
+        else:
+            ue = e
+
+        row = self.REPORT_TEST_OUTPUT_TMPL % dict(
+            id = tid,
+            output = saxutils.escape(uo+ue) \
+                .replace("'", '&apos;') \
+                .replace('"', '&quot;') \
+                .replace('\\','\\\\') \
+                .replace('\r','\\r') \
+                .replace('\n','\\n'),
+        )
+        rows.append(row)
+
+    def _generate_ending(self):
+        return self.ENDING_TMPL
 
 
 ##############################################################################

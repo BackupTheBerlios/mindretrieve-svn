@@ -1,3 +1,9 @@
+# TODO: migrate jsescape to response
+# TODO: documentation:
+#    simple customer
+#    more customerization
+# TODO: release to podi, cheese shop
+
 """
 A TestRunner for use with the Python unit testing framework. It
 generates a HTML report to show the result at a glance.
@@ -150,11 +156,13 @@ class Template_mixin(object):
     """
 
     STATUS = {
-0: 'pass',
-1: 'fail',
-2: 'error',
-}
+    0: 'pass',
+    1: 'fail',
+    2: 'error',
+    }
 
+    DEFAULT_TITLE = 'Unit Test Report'
+    DEFAULT_DESCRIPTION = ''
 
     # ------------------------------------------------------------------------
     # HTML Template
@@ -223,12 +231,16 @@ function showClassDetail(cid, count) {
 }
 
 function showOutput(id, name) {
-    w = window.open("", //url
+    var output = output_list[id];
+    output = output.replace(/&/g,'&amp;');
+    output = output.replace(/</g,'&lt;');
+    output = output.replace(/>/g,'&gt;');
+    var w = window.open("", //url
                     name,
                     "resizable,scrollbars,status,width=800,height=450");
     d = w.document;
     d.write("<pre>");
-    d.write(output_list[id]);
+    d.write(output);
     d.write("\n");
     d.write("<a href='javascript:window.close()'>close</a>\n");
     d.write("</pre>\n");
@@ -266,9 +278,15 @@ h1 {
     margin-top: 0ex;
     margin-bottom: 1ex;
 }
+
 .heading .attribute {
+    margin-top: 1ex;
+    margin-bottom: 0;
 }
+
 .heading .description {
+    margin-top: 4ex;
+    margin-bottom: 6ex;
 }
 
 /* -- report ------------------------------------------------------------------------ */
@@ -302,7 +320,8 @@ h1 {
 
 
 /* -- ending ---------------------------------------------------------------------- */
-.ending     { margin-top: 50%; }
+#ending {
+}
 
 </style>
 """
@@ -386,7 +405,7 @@ h1 {
 """ # variables: (tid, Class, style, name, status)
 
 
-    REPORT_TEST_NO_OUTPUT_TMPL_ = r"""
+    REPORT_TEST_NO_OUTPUT_TMPL = r"""
 <tr id='%(tid)s' class='%(Class)s'>
     <td class='%(style)s'><div class='testcase'>%(name)s<div></td>
     <td colspan='5' align='center'>%(status)s</td>
@@ -404,10 +423,24 @@ h1 {
     # ENDING
     #
 
-    ENDING_TMPL = """<div id='ending' />"""
+    ENDING_TMPL = """<div id='ending'>&nbsp;</div>"""
 
 # -------------------- The end of the Template class -------------------
 
+
+
+def jsEscapeString(s):
+    """ Escape s for use as a Javascript String """
+    return s.replace('\\','\\\\') \
+        .replace('\r', '\\r') \
+        .replace('\n', '\\n') \
+        .replace('"', '\\"') \
+        .replace("'", "\\'") \
+        .replace("&", '\\x26') \
+        .replace("<", '\\x3C') \
+        .replace(">", '\\x3E')
+    # Note: non-ascii unicode characters do not need to be encoded
+    # Note: previously we encode < as &lt;, etc. However IE6 fail to treat <script> block as CDATA.
 
 
 TestResult = unittest.TestResult
@@ -420,6 +453,9 @@ class _TestResult(TestResult):
         TestResult.__init__(self)
         self.stdout0 = None
         self.stderr0 = None
+        self.success_count = 0
+        self.failure_count = 0
+        self.error_count = 0
         self.verbosity = verbosity
 
         # result is a list of result in 4 tuple
@@ -465,6 +501,7 @@ class _TestResult(TestResult):
 
 
     def addSuccess(self, test):
+        self.success_count += 1
         TestResult.addSuccess(self, test)
         output = self.complete_output()
         self.result.append((0, test, output, ''))
@@ -476,6 +513,7 @@ class _TestResult(TestResult):
             sys.stderr.write('.')
 
     def addError(self, test, err):
+        self.error_count += 1
         TestResult.addError(self, test, err)
         _, _exc_str = self.errors[-1]
         output = self.complete_output()
@@ -488,6 +526,7 @@ class _TestResult(TestResult):
             sys.stderr.write('E')
 
     def addFailure(self, test, err):
+        self.failure_count += 1
         TestResult.addFailure(self, test, err)
         _, _exc_str = self.failures[-1]
         output = self.complete_output()
@@ -503,18 +542,20 @@ class _TestResult(TestResult):
 class HTMLTestRunner(Template_mixin):
     """
     """
-    def __init__(self, stream=sys.stdout, descriptions=1, verbosity=1, description='Test'):
-        # unittest itself has no good mechanism for user to define a
-        # description neither in TestCase nor TestSuite. Allow user to
-        # pass in the description as a parameter.
-
-        # note: this is different from unittest.TextTestRunner's
-        # 'descrpitions' parameter, which is an integer flag.
-
+    def __init__(self, stream=sys.stdout, verbosity=1, title=None, description=None):
         self.stream = stream
-        self.startTime = datetime.datetime.now()
-        self.description = description
         self.verbosity = verbosity
+        if title is None:
+            self.title = self.DEFAULT_TITLE
+        else:
+            self.title = title
+        if description is None:
+            self.description = self.DEFAULT_DESCRIPTION
+        else:
+            self.description = description
+
+        self.startTime = datetime.datetime.now()
+
 
     def run(self, test):
         "Run the given test case or test suite."
@@ -524,6 +565,7 @@ class HTMLTestRunner(Template_mixin):
         self.generateReport(test, result)
         print >>sys.stderr, '\nTime Elapsed: %s' % (self.stopTime-self.startTime)
         return result
+
 
     def sortResult(self, result_list):
         # unittest does not seems to run in any particular order.
@@ -539,12 +581,28 @@ class HTMLTestRunner(Template_mixin):
         r = [(cls, rmap[cls]) for cls in classes]
         return r
 
+
     def getReportAttributes(self, result):
-        """ Return report attributes as a list of (name, value) """
+        """
+        Return report attributes as a list of (name, value).
+        Override this to add custom attributes.
+        """
+        startTime = str(self.startTime)[:19]
+        duration = str(self.stopTime - self.startTime)
+        status = []
+        if result.success_count: status.append('Success %s' % result.success_count)
+        if result.failure_count: status.append('Failure %s' % result.failure_count)
+        if result.error_count:   status.append('Error %s'   % result.error_count  )
+        if status:
+            status = ' '.join(status)
+        else:
+            status = 'none'
         return [
-            ('Time', str(self.startTime)[:19]),
-            ('Status', result.wasSuccessful() and 'Passed' or 'Failed'),
+            ('Start Time', startTime),
+            ('Duration', duration),
+            ('Status', status),
         ]
+
 
     def generateReport(self, test, result):
         report_attrs = self.getReportAttributes(result)
@@ -553,7 +611,7 @@ class HTMLTestRunner(Template_mixin):
         report = self._generate_report(result)
         ending = self._generate_ending()
         output = self.HTML_TMPL % dict(
-            title = self.description,
+            title = self.title,
             stylesheet = stylesheet,
             heading = heading,
             report = report,
@@ -561,8 +619,10 @@ class HTMLTestRunner(Template_mixin):
         )
         self.stream.write(output.encode('utf8'))
 
+
     def _generate_stylesheet(self):
         return self.STYLESHEET_TMPL
+
 
     def _generate_heading(self, report_attrs):
         a_lines = []
@@ -572,29 +632,24 @@ class HTMLTestRunner(Template_mixin):
                     value = saxutils.escape(value),
                 )
             a_lines.append(line)
-
         heading = self.HEADING_TMPL % dict(
-            title = self.description,
+            title = saxutils.escape(self.title),
             parameters = ''.join(a_lines),
-            description = 'n/a',
+            description = saxutils.escape(self.description),
         )
-
         return heading
+
 
     def _generate_report(self, result):
         rows = []
-        npAll = nfAll = neAll = 0
         sortedResult = self.sortResult(result.result)
         for cid, (cls, cls_results) in enumerate(sortedResult):
-            # update counts
+            # subtotal for a class
             np = nf = ne = 0
             for n,t,o,e in cls_results:
                 if n == 0: np += 1
                 elif n == 1: nf += 1
                 else: ne += 1
-            npAll += np
-            nfAll += nf
-            neAll += ne
 
             row = self.REPORT_CLASS_TMPL % dict(
                 style = ne > 0 and 'errorClass' or nf > 0 and 'failClass' or 'passClass',
@@ -612,12 +667,13 @@ class HTMLTestRunner(Template_mixin):
 
         report = self.REPORT_TMPL % dict(
             test_list = ''.join(rows),
-            count = str(npAll+nfAll+neAll),
-            Pass = str(npAll),
-            fail = str(nfAll),
-            error = str(neAll),
+            count = str(result.success_count+result.failure_count+result.error_count),
+            Pass = str(result.success_count),
+            fail = str(result.failure_count),
+            error = str(result.error_count),
         )
         return report
+
 
     def _generate_report_test(self, rows, cid, tid, n, t, o, e):
         # e.g. 'pt1.1', 'ft1.1', etc
@@ -652,14 +708,10 @@ class HTMLTestRunner(Template_mixin):
 
         row = self.REPORT_TEST_OUTPUT_TMPL % dict(
             id = tid,
-            output = saxutils.escape(uo+ue) \
-                .replace("'", '&apos;') \
-                .replace('"', '&quot;') \
-                .replace('\\','\\\\') \
-                .replace('\r','\\r') \
-                .replace('\n','\\n'),
+            output = jsEscapeString(uo+ue),
         )
         rows.append(row)
+
 
     def _generate_ending(self):
         return self.ENDING_TMPL

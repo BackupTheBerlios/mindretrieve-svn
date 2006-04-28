@@ -53,7 +53,7 @@ class SampleTestBasic(SampleOutputTestBase):
     MESSAGE = 'basic test'
 
 class SampleTestHTML(SampleOutputTestBase):
-    MESSAGE = 'the message is <>&"\'\nline2'
+    MESSAGE = 'the message is 5 symbols: <>&"\'\nplus the HTML entity string: [&copy;] on a second line'
 
 class SampleTestLatin1(SampleOutputTestBase):
     MESSAGE = u'the message is áéíóú'.encode('latin-1')
@@ -97,12 +97,18 @@ class Test_HTMLTestRunner(unittest.TestCase):
         # Invoke TestRunner
         buf = StringIO.StringIO()
         #runner = unittest.TextTestRunner(buf)       #DEBUG: this is the unittest baseline
-        runner = HTMLTestRunner.HTMLTestRunner(buf)
+        runner = HTMLTestRunner.HTMLTestRunner(
+                    stream=buf,
+                    title='<Demo Test>',
+                    description='This demonstrates the report output by HTMLTestRunner.'
+                    )
         runner.run(self.suite)
 
         # Define the expected output sequence. This is imperfect but should
         # give a good sense of the well being of the test.
         EXPECTED = u"""
+Demo Test
+
 >__main__.SampleTest0<
 
 >__main__.SampleTest1<
@@ -128,19 +134,23 @@ RuntimeError: basic test
 >__main__.SampleTestHTML<
 >test_1<
 >pass<
-'the message is &lt;&gt;&amp;&quot;&apos;\nline2
+'the message is 5 symbols: \\x3C\\x3E\\x26\\"\\'\\n
+plus the HTML entity string: [\\x26copy;] on a second line
 
 >test_2<
 >pass<
-'the message is &lt;&gt;&amp;&quot;&apos;\nline2
+'the message is 5 symbols: \\x3C\\x3E\\x26\\"\\'\\n
+plus the HTML entity string: [\\x26copy;] on a second line
 
 >test_3<
 >fail<
-AssertionError: the message is &lt;&gt;&amp;&quot;&apos;\nline2
+AssertionError: the message is 5 symbols: \\x3C\\x3E\\x26\\"\\'\\n
+plus the HTML entity string: [\\x26copy;] on a second line
 
 >test_4<
 >error<
-RuntimeError: the message is &lt;&gt;&amp;&quot;&apos;\nline2
+RuntimeError: the message is 5 symbols: \\x3C\\x3E\\x26\\"\\'\\n
+plus the HTML entity string: [\\x26copy;] on a second line
 
 
 >__main__.SampleTestLatin1<
@@ -172,11 +182,11 @@ the message is \u8563
 
 >test_3<
 >fail<
-AssertionError: &lt;unprintable instance object&gt;
+AssertionError: \\x3Cunprintable instance object\\x3E
 
 >test_4<
 >error<
-RuntimeError: &lt;unprintable instance object&gt;
+RuntimeError: \\x3Cunprintable instance object\\x3E
 
 Total
 >18<

@@ -1,9 +1,3 @@
-# TODO: migrate jsescape to response
-# TODO: documentation:
-#    simple customer
-#    more customerization
-# TODO: release to podi, cheese shop
-
 """
 A TestRunner for use with the Python unit testing framework. It
 generates a HTML report to show the result at a glance.
@@ -18,11 +12,25 @@ The simplest way to use this is to invoke its main method. E.g.
     if __name__ == '__main__':
         HTMLTestRunner.main()
 
-It defines the class HTMLTestRunner, which is a counterpart to unittest's
-TextTestRunner. You can also instantiates a HTMLTestRunner object for
-finer control.
 
-To customerize reports, please see the documentation on the Template class.
+For more customization options, instantiates a HTMLTestRunner object.
+HTMLTestRunner is a counterpart to unittest's TextTestRunner. E.g.
+
+    # output to a file
+    fp = file('my_report.html', 'wb')
+    runner = HTMLTestRunner.HTMLTestRunner(
+                stream=fp,
+                title='My unit test',
+                description='This demonstrates the report output by HTMLTestRunner.'
+                )
+
+    # Use an external stylesheet.
+    # See the Template_mixin class for more customizable options
+    runner.STYLESHEET_TMPL = '<link rel="stylesheet" href="my_stylesheet.css" type="text/css">'
+
+    # run the test
+    runner.run(my_test_suite)
+
 
 ------------------------------------------------------------------------
 Copyright (c) 2004-2006, Wai Yip Tung
@@ -62,15 +70,14 @@ __version__ = "0.8.0"
 
 """
 Changes in 0.8.0
->> Define Template and structure for customerization
->> Workaround IE 6 bug that it does not treat <script> block as CDATA
+* Define Template_mixin class for customization.
+* Workaround a IE 6 bug that it does not treat <script> block as CDATA.
 
 Changes in 0.7.1
 * Back port to Python 2.3. Thank you Frank Horowitz.
 * Fix missing scroll bars in detail log. Thank you Podi.
 """
 
-# TOOD: need to make sure all HTML and JavaScript blocks are properly escaped!
 # TODO: color stderr
 # TODO: simplify javascript using ,ore than 1 class in the class attribute?
 
@@ -171,6 +178,7 @@ class Template_mixin(object):
 <html>
 <head>
     <title>%(title)s</title>
+    <meta name="generator" content="%(generator)s">
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     %(stylesheet)s
 </head>
@@ -230,17 +238,20 @@ function showClassDetail(cid, count) {
     }
 }
 
+function html_escape(s) {
+    s = s.replace(/&/g,'&amp;');
+    s = s.replace(/</g,'&lt;');
+    s = s.replace(/>/g,'&gt;');
+    return s;
+}
+
 function showOutput(id, name) {
-    var output = output_list[id];
-    output = output.replace(/&/g,'&amp;');
-    output = output.replace(/</g,'&lt;');
-    output = output.replace(/>/g,'&gt;');
     var w = window.open("", //url
                     name,
                     "resizable,scrollbars,status,width=800,height=450");
     d = w.document;
     d.write("<pre>");
-    d.write(output);
+    d.write(html_escape(output_list[id]));
     d.write("\n");
     d.write("<a href='javascript:window.close()'>close</a>\n");
     d.write("</pre>\n");
@@ -256,7 +267,7 @@ function showOutput(id, name) {
 </body>
 </html>
 """
-    # variables: (title, stylesheet, heading, report, ending)
+    # variables: (title, generator, stylesheet, heading, report, ending)
 
 
     # ------------------------------------------------------------------------
@@ -606,12 +617,14 @@ class HTMLTestRunner(Template_mixin):
 
     def generateReport(self, test, result):
         report_attrs = self.getReportAttributes(result)
+        generator = 'HTMLTestRunner %s' % __version__
         stylesheet = self._generate_stylesheet()
         heading = self._generate_heading(report_attrs)
         report = self._generate_report(result)
         ending = self._generate_ending()
         output = self.HTML_TMPL % dict(
-            title = self.title,
+            title = saxutils.escape(self.title),
+            generator = generator,
             stylesheet = stylesheet,
             heading = heading,
             report = report,

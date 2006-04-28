@@ -28,17 +28,17 @@ def safe_str(obj):
 # ----------------------------------------------------------------------
 # Sample tests to drive the HTMLTestRunner
 
-class Test0(unittest.TestCase):
+class SampleTest0(unittest.TestCase):
     """ A class that passed """
     def test_pass_no_output(self):
         pass
 
-class Test1(unittest.TestCase):
+class SampleTest1(unittest.TestCase):
     """ A class that failed """
     def test_fail(self):
         self.fail()
 
-class BaseTest(unittest.TestCase):
+class SampleOutputTestBase(unittest.TestCase):
     """ Base TestCase. Generates 4 test cases x different content type. """
     def test_1(self):
         print self.MESSAGE
@@ -49,16 +49,16 @@ class BaseTest(unittest.TestCase):
     def test_4(self):
         raise RuntimeError(self.MESSAGE)
 
-class TestBasic(BaseTest):
+class SampleTestBasic(SampleOutputTestBase):
     MESSAGE = 'basic test'
 
-class TestHTML(BaseTest):
+class SampleTestHTML(SampleOutputTestBase):
     MESSAGE = 'the message is <>&"\'\nline2'
 
-class TestLatin1(BaseTest):
+class SampleTestLatin1(SampleOutputTestBase):
     MESSAGE = u'the message is áéíóú'.encode('latin-1')
 
-class TestUnicode(BaseTest):
+class SampleTestUnicode(SampleOutputTestBase):
     MESSAGE = u'the message is \u8563'
     # 2006-04-25 Note: Exception would show up as
     # AssertionError: <unprintable instance object>
@@ -66,19 +66,48 @@ class TestUnicode(BaseTest):
     # This seems to be limitation of traceback.format_exception()
     # Same result in standard unittest.
 
+
 # ------------------------------------------------------------------------
 # This is the main test on HTMLTestRunner
 
 class Test_HTMLTestRunner(unittest.TestCase):
 
-    # Define the expected output sequence. This is imperfect but should
-    # give a good sense of the well being of the test.
-    EXPECTED = u"""
->__main__.Test0<
+    def test0(self):
+        self.suite = unittest.TestSuite()
+        buf = StringIO.StringIO()
+        runner = HTMLTestRunner.HTMLTestRunner(buf)
+        runner.run(self.suite)
+        # didn't blow up? ok.
+        self.assert_('</html>' in buf.getvalue())
 
->__main__.Test1<
+    def test_main(self):
+        # Run HTMLTestRunner. Verify the HTML report.
 
->__main__.TestBasic<
+        # suite of TestCases
+        self.suite = unittest.TestSuite()
+        self.suite.addTests([
+            unittest.defaultTestLoader.loadTestsFromTestCase(SampleTest0),
+            unittest.defaultTestLoader.loadTestsFromTestCase(SampleTest1),
+            unittest.defaultTestLoader.loadTestsFromTestCase(SampleTestBasic),
+            unittest.defaultTestLoader.loadTestsFromTestCase(SampleTestHTML),
+            unittest.defaultTestLoader.loadTestsFromTestCase(SampleTestLatin1),
+            unittest.defaultTestLoader.loadTestsFromTestCase(SampleTestUnicode),
+            ])
+
+        # Invoke TestRunner
+        buf = StringIO.StringIO()
+        #runner = unittest.TextTestRunner(buf)       #DEBUG: this is the unittest baseline
+        runner = HTMLTestRunner.HTMLTestRunner(buf)
+        runner.run(self.suite)
+
+        # Define the expected output sequence. This is imperfect but should
+        # give a good sense of the well being of the test.
+        EXPECTED = u"""
+>__main__.SampleTest0<
+
+>__main__.SampleTest1<
+
+>__main__.SampleTestBasic<
 >test_1<
 >pass<
 basic test
@@ -96,7 +125,7 @@ AssertionError: basic test
 RuntimeError: basic test
 
 
->__main__.TestHTML<
+>__main__.SampleTestHTML<
 >test_1<
 >pass<
 'the message is &lt;&gt;&amp;&quot;&apos;\nline2
@@ -114,7 +143,7 @@ AssertionError: the message is &lt;&gt;&amp;&quot;&apos;\nline2
 RuntimeError: the message is &lt;&gt;&amp;&quot;&apos;\nline2
 
 
->__main__.TestLatin1<
+>__main__.SampleTestLatin1<
 >test_1<
 >pass<
 the message is áéíóú
@@ -132,7 +161,7 @@ AssertionError: the message is áéíóú
 RuntimeError: the message is áéíóú
 
 
->__main__.TestUnicode<
+>__main__.SampleTestUnicode<
 >test_1<
 >pass<
 the message is \u8563
@@ -156,39 +185,18 @@ Total
 >4<
 </html>
 """
-
-    def test1(self):
-        # Run HTMLTestRunner. Verify the HTML report.
-
-        # suite of TestCases
-        self.suite = unittest.TestSuite()
-        self.suite.addTests([
-            unittest.defaultTestLoader.loadTestsFromTestCase(Test0),
-            unittest.defaultTestLoader.loadTestsFromTestCase(Test1),
-            unittest.defaultTestLoader.loadTestsFromTestCase(TestBasic),
-            unittest.defaultTestLoader.loadTestsFromTestCase(TestHTML),
-            unittest.defaultTestLoader.loadTestsFromTestCase(TestLatin1),
-            unittest.defaultTestLoader.loadTestsFromTestCase(TestUnicode),
-            ])
-
-        # Invoke TestRunner
-        buf = StringIO.StringIO()
-        #runner = unittest.TextTestRunner(buf)       #DEBUG: this is the unittest baseline
-        runner = HTMLTestRunner.HTMLTestRunner(buf)
-        runner.run(self.suite)
-
         # check out the output
         byte_output = buf.getvalue()
-        # for user to capture the output to see what goes wrong
+        # output the main test output for debugging & demo
         print byte_output
         # HTMLTestRunner pumps UTF-8 output
         output = byte_output.decode('utf-8')
-        self._checkoutput(output)
+        self._checkoutput(output,EXPECTED)
 
 
-    def _checkoutput(self,output):
+    def _checkoutput(self,output,EXPECTED):
         i = 0
-        for lineno, p in enumerate(self.EXPECTED.splitlines()):
+        for lineno, p in enumerate(EXPECTED.splitlines()):
             if not p:
                 continue
             j = output.find(p,i)

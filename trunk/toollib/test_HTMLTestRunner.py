@@ -100,6 +100,7 @@ class Test_HTMLTestRunner(unittest.TestCase):
         runner = HTMLTestRunner.HTMLTestRunner(
                     stream=buf,
                     title='<Demo Test>',
+                    report_attrs=[('Version','1.2.3')],
                     description='This demonstrates the report output by HTMLTestRunner.'
                     )
         runner.run(self.suite)
@@ -108,6 +109,9 @@ class Test_HTMLTestRunner(unittest.TestCase):
         # give a good sense of the well being of the test.
         EXPECTED = u"""
 Demo Test
+
+Version
+1.2.3
 
 >__main__.SampleTest0<
 

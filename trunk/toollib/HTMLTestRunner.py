@@ -13,14 +13,16 @@ The simplest way to use this is to invoke its main method. E.g.
         HTMLTestRunner.main()
 
 
-For more customization options, instantiates a HTMLTestRunner object.
-HTMLTestRunner is a counterpart to unittest's TextTestRunner. E.g.
+To customize the report, instantiates a HTMLTestRunner object and set
+the parameters. HTMLTestRunner is a counterpart to unittest's
+TextTestRunner. E.g.
 
     # output to a file
     fp = file('my_report.html', 'wb')
     runner = HTMLTestRunner.HTMLTestRunner(
                 stream=fp,
                 title='My unit test',
+                report_attrs=[('Version','1.2.3')],
                 description='This demonstrates the report output by HTMLTestRunner.'
                 )
 
@@ -553,7 +555,14 @@ class _TestResult(TestResult):
 class HTMLTestRunner(Template_mixin):
     """
     """
-    def __init__(self, stream=sys.stdout, verbosity=1, title=None, description=None):
+    def __init__(self, stream=sys.stdout, verbosity=1, title=None, report_attrs=[], description=None):
+        """
+        @param stream - output stream, default to stdout
+        @param verbosity
+        @param title - use in title and heading
+        @param report_attrs - list of (name, value) to show in report
+        @param description - test description
+        """
         self.stream = stream
         self.verbosity = verbosity
         if title is None:
@@ -564,6 +573,7 @@ class HTMLTestRunner(Template_mixin):
             self.description = self.DEFAULT_DESCRIPTION
         else:
             self.description = description
+        self.report_attrs = report_attrs
 
         self.startTime = datetime.datetime.now()
 
@@ -595,8 +605,10 @@ class HTMLTestRunner(Template_mixin):
 
     def getReportAttributes(self, result):
         """
-        Return report attributes as a list of (name, value).
-        Override this to add custom attributes.
+        Add a few system generated attributes on top of users defined.
+        Override this to add other dynamic custom attributes.
+
+        @return list of (name, value).
         """
         startTime = str(self.startTime)[:19]
         duration = str(self.stopTime - self.startTime)
@@ -608,11 +620,11 @@ class HTMLTestRunner(Template_mixin):
             status = ' '.join(status)
         else:
             status = 'none'
-        return [
-            ('Start Time', startTime),
-            ('Duration', duration),
-            ('Status', status),
-        ]
+
+        return [('Start Time', startTime),
+                 ('Duration', duration),
+                 ('Status', status),
+                ] + self.report_attrs
 
 
     def generateReport(self, test, result):

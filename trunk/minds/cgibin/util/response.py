@@ -29,12 +29,22 @@ def redirect(wfile, url):
 
 def jsEscapeString(s):
     """ Escape s for use as a Javascript String """
-
-    # 2005-12-12 note:
-    # < and > are not suppose to require escaping.
-    # But HTML parsers seems to aggressively terminate a string when
-    # they see "</script>". Try this in your browser.
-
+    return s.replace('\\','\\\\') \
+        .replace('\r', '\\r') \
+        .replace('\n', '\\n') \
+        .replace('"', '\\"') \
+        .replace("'", "\\'") \
+        .replace("&", '\\x26') \
+        .replace("<", '\\x3C') \
+        .replace(">", '\\x3E')
+    # Note: non-ascii unicode characters do not need to be encoded
+    # Note: HTML 4.01 18.2.1 The SCRIPT element specify <script> block
+    #       to be CDATA. So alternatively < can be escape as &lt;.
+    #       However IE6 does not parse it as such.
+    # 2005-12-12 Note:
+    #       < and > should not require escaping? But HTML parsers seems
+    #       to aggressively terminate a string when they see
+    #       "</script>". Test the string below in your browser.
     """
     <script>
       alert('Escaped \x3c/script\x33\x3cfont size=7 color=red\x3eGOTCHA');
@@ -43,15 +53,6 @@ def jsEscapeString(s):
     This is the HTML body
     """
 
-    # Note: non-ascii unicode characters do not need encoding
-
-    return s.replace('\\','\\\\') \
-        .replace('\r', '\\r') \
-        .replace('\n', '\\n') \
-        .replace('"', '\\"') \
-        .replace("'", "\\'") \
-        .replace("<", '\\x3C') \
-        .replace(">", '\\x3E')
 
 # ----------------------------------------------------------------------
 

@@ -40,8 +40,9 @@ class TestResponse(unittest.TestCase):
 2. new line separate by \\r\\n.
 3. quote ' and double quote ".
 4. The slash \\ character.
-5. The angle brackets < and >.
-6. The euro sign \N{euro sign}.
+5. The & character.
+6. The angle brackets < and >.
+7. The euro sign \N{euro sign}.
 """
         escaped_test = response.jsEscapeString(text)
 
@@ -54,6 +55,7 @@ class TestResponse(unittest.TestCase):
         self.assert_('\\"' in escaped_test)
         self.assert_("\\'" in escaped_test)
         self.assert_('\\\\' in escaped_test)
+        self.assert_('&'  not in escaped_test)
         self.assert_('<'  not in escaped_test)
         self.assert_('>' not in escaped_test)
 
